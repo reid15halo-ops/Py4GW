@@ -35,6 +35,7 @@ class SharedCommandType(IntEnum):
     SetTransparentClickThrough = auto()
     SetOpacity = auto()
     UseItem = auto()
+    UseSummoningStone = auto()
     PauseWidgets = auto()
     ResumeWidgets = auto()
     SwitchCharacter = auto()
@@ -49,12 +50,14 @@ class SharedCommandType(IntEnum):
     RestockAllPcons = auto()
     RestockConset = auto()
     RestockResurrectionScroll = auto()
+    RestockSummoningStones = auto()
     EnableWidget = auto()
     DisableWidget = auto()
     InventoryQuery = auto()
     EquipItem = auto()
     MerchantRules = auto()
     RefreshHeroAIBuilds = auto()
+    WithdrawGold = auto()
 
     #region privately Handled Commands
     MultiBoxing = auto() # privately Handled Command, by frenkey

@@ -225,6 +225,36 @@ class BuildMgr:
             return None
         return self.GetCustomSkill(skill_id)
 
+    def _get_shared_skill_toggle(self, slot: int) -> bool:
+        if not (1 <= int(slot) <= 8):
+            return False
+
+        options = getattr(self._cached_data, "account_options", None)
+        if options is None:
+            try:
+                from Py4GWCoreLib import GLOBAL_CACHE, Player
+
+                account_email = Player.GetAccountEmail()
+                if account_email:
+                    options = GLOBAL_CACHE.ShMem.GetHeroAIOptionsFromEmail(account_email)
+            except Exception:
+                options = None
+
+        if options is None:
+            return True
+
+        skills = getattr(options, "Skills", None)
+        if skills is None:
+            return True
+
+        try:
+            return bool(skills[int(slot) - 1])
+        except (IndexError, TypeError, ValueError):
+            return True
+
+    def IsSharedSkillToggleEnabled(self, slot: int) -> bool:
+        return self._get_shared_skill_toggle(slot)
+
     def IsCloseToAggro(self) -> bool:
         """Returns True when combat is imminent but the player is not yet engaged."""
         from Py4GWCoreLib import Routines
@@ -685,13 +715,17 @@ class BuildMgr:
         self,
         cluster_radius: float,
         preferred_condition: Callable[[int], bool] | None = None,
+        *,
+        filter_radius: float | None = None,
     ) -> int:
         from Py4GWCoreLib import Player, AgentArray
         from Py4GWCoreLib.Agent import Agent
 
+        effective_filter_radius = float(filter_radius if filter_radius is not None else cluster_radius)
+
         player_pos = Player.GetXY()
         enemy_array = AgentArray.GetEnemyArray()
-        enemy_array = AgentArray.Filter.ByDistance(enemy_array, player_pos, cluster_radius)
+        enemy_array = AgentArray.Filter.ByDistance(enemy_array, player_pos, effective_filter_radius)
         enemy_array = AgentArray.Filter.ByCondition(enemy_array, lambda agent_id: Agent.IsAlive(agent_id))
 
         if not enemy_array:
@@ -1051,6 +1085,18 @@ class BuildMgr:
         if not self._is_spirit_skill(skill_id):
             return False
 
+        # Allow the skill's metadata to request HP-aware recast: when the spirit's
+        # current HP fraction drops below `MinSpiritHpFractionForRecast`, treat it
+        # as absent so the caller can refresh before the spirit naturally dies.
+        # 0.0 (default) keeps the pre-change binary alive/dead gate.
+        min_hp_fraction = 0.0
+        try:
+            custom_skill = self.GetCustomSkill(skill_id)
+            if custom_skill is not None:
+                min_hp_fraction = float(custom_skill.Conditions.MinSpiritHpFractionForRecast or 0.0)
+        except Exception:
+            min_hp_fraction = 0.0
+
         spirit_array = AgentArray.GetSpiritPetArray()
         spirit_array = AgentArray.Filter.ByDistance(spirit_array, Player.GetXY(), Range.Earshot.value)
         spirit_array = AgentArray.Filter.ByCondition(spirit_array, lambda agent_id: Agent.IsAlive(agent_id))
@@ -1062,6 +1108,8 @@ class BuildMgr:
 
             spirit_model_id = SpiritModelID(model_value)
             if SPIRIT_BUFF_MAP.get(spirit_model_id) == skill_id:
+                if min_hp_fraction > 0.0 and Agent.GetHealth(spirit_id) < min_hp_fraction:
+                    continue
                 return True
 
         return False
@@ -1338,6 +1386,8 @@ class BuildMgr:
         slot = SkillBar.GetSlotBySkillID(skill_id)
         if not (1 <= slot <= 8):
             return False
+        if not self.IsSharedSkillToggleEnabled(slot):
+            return False
         if not Routines.Checks.Skills.HasEnoughAdrenalineBySlot(slot):
             return False
         if self.SpiritBuffExists(skill_id):
@@ -1363,6 +1413,8 @@ class BuildMgr:
 
         skill_id = SkillBar.GetSkillIDBySlot(slot)
         if not skill_id:
+            return False
+        if not self.IsSharedSkillToggleEnabled(slot):
             return False
         if not Routines.Checks.Skills.HasEnoughEnergy(Player.GetAgentID(), skill_id):
             return False
@@ -1454,7 +1506,26 @@ class BuildMgr:
                 aftercast_delay=aftercast_delay,
             ))
 
-        yield from self._move_for_spirit_cast()
+        # yield from self._move_for_spirit_cast()
+        #
+        # Pre-cast positioning disabled. Previously this path ran the line
+        # above, which issued Player.Move and interrupted any in-progress
+        # cast. When the player had not yet arrived at the destination by
+        # the time UseSkill ran, the cast silently failed - leaving the
+        # caster stuck in a cast-retry + reposition loop while HeroAI's
+        # follow behavior pulled them back. Post-cast step-away inside
+        # CastSkillID still runs and keeps the caster from standing inside
+        # the new spirit after it has actually spawned.
+        #
+        # The helpers _move_for_spirit_cast and _pick_spirit_precast_position
+        # are intentionally left in place. They do semi-work today (the move
+        # happens, the candidate search runs) but are mis-timed: the cast is
+        # fired before the player arrives at the destination, so the spirit
+        # spawns at an intermediate position or not at all. They can be re-
+        # enabled by uncommenting the line above after fixing the timing
+        # (arrival poll on Player.Move, widening the candidate search to
+        # avoid dead-ends in crowded spirit clusters, and decoupling the
+        # move-distance from the overlap radius).
         return (yield from self.CastSkillID(
             skill_id=skill_id,
             extra_condition=extra_condition,
