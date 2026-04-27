@@ -399,6 +399,102 @@ try:
             "text": (0.95, 0.91, 0.76, 1.00),
             "meta": (0.84, 0.79, 0.61, 1.00),
         },
+        "settings_profiles": {
+            "header": (0.95, 0.48, 0.00, 0.88),
+            "header_hovered": (1.00, 0.56, 0.06, 0.94),
+            "header_active": (1.00, 0.64, 0.14, 1.00),
+            "header_text": (0.06, 0.05, 0.02, 1.00),
+            "text": (0.90, 0.93, 0.97, 1.00),
+            "meta": (0.74, 0.79, 0.86, 1.00),
+        },
+        "settings_other_accounts": {
+            "header": (0.48, 0.17, 0.75, 0.88),
+            "header_hovered": (0.56, 0.27, 0.84, 0.94),
+            "header_active": (0.64, 0.36, 0.91, 1.00),
+            "header_text": (0.96, 0.96, 0.96, 1.00),
+            "text": (0.96, 0.88, 0.72, 1.00),
+            "meta": (0.88, 0.76, 0.54, 1.00),
+        },
+        "settings_select": {
+            "header": (0.00, 0.00, 0.00, 0.88),
+            "header_hovered": (0.08, 0.08, 0.08, 0.94),
+            "header_active": (0.14, 0.14, 0.14, 1.00),
+            "header_text": (0.96, 0.96, 0.96, 1.00),
+            "text": (0.90, 0.93, 0.97, 1.00),
+            "meta": (0.74, 0.79, 0.86, 1.00),
+        },
+        "settings_select_explorable": {
+            "header": (0.10, 0.10, 0.10, 0.88),
+            "header_hovered": (0.16, 0.16, 0.16, 0.94),
+            "header_active": (0.22, 0.22, 0.22, 1.00),
+            "header_text": (0.96, 0.96, 0.96, 1.00),
+            "text": (0.82, 0.93, 0.88, 1.00),
+            "meta": (0.68, 0.82, 0.77, 1.00),
+        },
+        "settings_select_summoning": {
+            "header": (0.15, 0.15, 0.15, 0.88),
+            "header_hovered": (0.21, 0.21, 0.21, 0.94),
+            "header_active": (0.27, 0.27, 0.27, 1.00),
+            "header_text": (0.96, 0.96, 0.96, 1.00),
+            "text": (0.96, 0.88, 0.76, 1.00),
+            "meta": (0.88, 0.77, 0.60, 1.00),
+        },
+        "settings_select_mbdp": {
+            "header": (0.20, 0.20, 0.20, 0.88),
+            "header_hovered": (0.26, 0.26, 0.26, 0.94),
+            "header_active": (0.32, 0.32, 0.32, 1.00),
+            "header_text": (0.96, 0.96, 0.96, 1.00),
+            "text": (0.96, 0.88, 0.72, 1.00),
+            "meta": (0.88, 0.76, 0.54, 1.00),
+        },
+        "settings_select_outpost": {
+            "header": (0.25, 0.25, 0.25, 0.88),
+            "header_hovered": (0.31, 0.31, 0.31, 0.94),
+            "header_active": (0.37, 0.37, 0.37, 1.00),
+            "header_text": (0.96, 0.96, 0.96, 1.00),
+            "text": (0.82, 0.89, 0.98, 1.00),
+            "meta": (0.67, 0.78, 0.92, 1.00),
+        },
+        "settings_select_alcohol": {
+            "header": (0.30, 0.30, 0.30, 0.88),
+            "header_hovered": (0.36, 0.36, 0.36, 0.94),
+            "header_active": (0.42, 0.42, 0.42, 1.00),
+            "header_text": (0.96, 0.96, 0.96, 1.00),
+            "text": (0.97, 0.84, 0.74, 1.00),
+            "meta": (0.88, 0.72, 0.58, 1.00),
+        },
+        "settings_mbdp": {
+            "header": (0.82, 0.00, 0.00, 0.88),
+            "header_hovered": (0.88, 0.10, 0.10, 0.94),
+            "header_active": (0.94, 0.20, 0.20, 1.00),
+            "header_text": (0.96, 0.96, 0.96, 1.00),
+            "text": (0.96, 0.88, 0.72, 1.00),
+            "meta": (0.88, 0.76, 0.54, 1.00),
+        },
+        "settings_alcohol": {
+            "header": (0.00, 0.64, 0.26, 0.88),
+            "header_hovered": (0.06, 0.72, 0.34, 0.94),
+            "header_active": (0.12, 0.80, 0.42, 1.00),
+            "header_text": (0.96, 0.98, 0.96, 1.00),
+            "text": (0.97, 0.84, 0.74, 1.00),
+            "meta": (0.88, 0.72, 0.58, 1.00),
+        },
+        "settings_restock": {
+            "header": (0.00, 0.45, 0.70, 0.88),
+            "header_hovered": (0.06, 0.52, 0.77, 0.94),
+            "header_active": (0.10, 0.58, 0.84, 1.00),
+            "header_text": (0.96, 0.98, 1.00, 1.00),
+            "text": (0.95, 0.91, 0.76, 1.00),
+            "meta": (0.84, 0.79, 0.61, 1.00),
+        },
+        "settings_tooltip": {
+            "header": (0.94, 0.89, 0.26, 0.88),
+            "header_hovered": (0.98, 0.93, 0.34, 0.94),
+            "header_active": (1.00, 0.97, 0.43, 1.00),
+            "header_text": (0.06, 0.06, 0.04, 1.00),
+            "text": (0.90, 0.93, 0.97, 1.00),
+            "meta": (0.74, 0.79, 0.86, 1.00),
+        },
     }
 
     def _section_palette(section_key: str) -> dict:
@@ -411,10 +507,11 @@ try:
             ("Header", "header"),
             ("HeaderHovered", "header_hovered"),
             ("HeaderActive", "header_active"),
+            ("Text", "header_text"),
         ):
             try:
                 col = getattr(PyImGui.ImGuiCol, col_name, None)
-                if col is None:
+                if col is None or key not in palette:
                     continue
                 PyImGui.push_style_color(col, palette[key])
                 pushed += 1
@@ -614,28 +711,33 @@ try:
         },
         "debug_logging": {
             "short": "Shows detailed Pycons decisions in console.",
-            "long": "Enable detailed logging for consume checks and MB/DP decisions. Use this to diagnose why an item did or did not trigger. Leave it off in normal play to keep console noise low.",
-            "why": "Debug logs are the fastest way to confirm thresholds, eligibility, and trigger ordering.",
+            "long": "Shows extra console messages explaining why Pycons did or did not use an item. Leave it off during normal play to keep the console quiet.",
+            "why": "Useful when an item is not being used and you want to see the reason.",
         },
         "team_broadcast": {
-            "short": "Send this account's item usage events to team accounts.",
-            "long": "This account broadcasts consumable usage events to same-party accounts on the same map. Broadcasters coordinate party MB/DP behavior; receiving accounts still apply their own local safety checks before consuming.",
-            "why": "Party-wide MB/DP coordination depends on broadcasters; without it, team coordination behavior will not run.",
+            "short": "Tell your other accounts when this account uses team items.",
+            "long": "When this account uses a team morale or DP item, Pycons tells your other same-party accounts on the same map. Those accounts still use their own safety checks before spending anything.",
+            "why": "Turn this on for the account that should lead team morale and DP item use.",
+        },
+        "mbdp_name": {
+            "short": "MB/DP means Morale Boost / Death Penalty.",
+            "long": "This section controls items that raise morale or remove death penalty for you or your party.",
+            "why": "The short name is kept because it is compact, but the feature is about morale and DP recovery items.",
         },
         "team_consume_opt_in": {
-            "short": "Allow this account to consume when teammates broadcast.",
-            "long": "This account opts in as a receiver for team consume broadcasts. If disabled, incoming broadcasts are ignored. Receiver-side local enabled checks may still block item use if local safety requires it.",
-            "why": "This controls whether followers are passive observers or active consumers in team workflows.",
+            "short": "Let this account react to team item calls.",
+            "long": "When enabled, this account can use matching morale or DP items when another account sends a team item call. If disabled, this account ignores those calls.",
+            "why": "Use this on follower accounts that should help with team consumables.",
         },
         "advanced_intervals": {
-            "short": "Shows per-item timing controls.",
-            "long": "Displays advanced per-item interval options so you can tune how frequently each selected item is checked. This is mostly for performance tuning or specialized pacing strategies.",
-            "why": "Wrong interval tuning can increase item burn or delay important triggers.",
+            "short": "Show timing controls for each item.",
+            "long": "Shows extra timing fields for individual items. Most players can leave this off unless they need very specific pacing.",
+            "why": "Bad timing values can waste items or make important items trigger late.",
         },
         "persist_main_runtime_toggles": {
-            "short": "Optionally save main-window ON/OFF toggles as defaults.",
-            "long": "When OFF, ON/OFF toggles in the main selected-items list are runtime-only and reset from saved defaults on reload. When ON, those same main-window toggles also update the corresponding saved enabled defaults in Settings.",
-            "why": "Leave OFF for temporary run-only overrides; turn ON when you want quick main-window changes to persist.",
+            "short": "Choose whether main-window ON/OFF changes are saved.",
+            "long": "When off, ON/OFF changes in the main window are temporary and reset after reload. When on, those changes are saved as your default settings.",
+            "why": "Leave off for one-run changes. Turn on when the main window should edit your saved setup.",
         },
         "auto_vault_restock": {
             "short": "Auto-restock missing selected consumables from Xunlai Vault.",
@@ -643,9 +745,9 @@ try:
             "why": "Keeps automation running when inventory stacks run out, without manual chest management.",
         },
         "restock_interval_ms": {
-            "short": "How often vault balancing checks run.",
-            "long": "Controls how frequently Pycons runs the outpost vault-balancing pass for selected items with restock enabled. Use a slower interval than consume checks to reduce chest churn and blocked actions.",
-            "why": "Decoupling restock cadence from consume cadence keeps upkeep responsive without over-polling Xunlai actions.",
+            "short": "How often Pycons checks Xunlai restock.",
+            "long": "Controls how often Pycons checks whether selected items need to be moved to or from Xunlai. Slower values reduce repeated Xunlai actions.",
+            "why": "A slower restock check is usually smoother and avoids extra blocked actions.",
         },
         "restock_mode": {
             "short": "Choose whether restock withdraws, deposits, or both.",
@@ -653,9 +755,9 @@ try:
             "why": "Use Balanced for full target maintenance, or one-way modes when you want tighter control over vault traffic.",
         },
         "restock_move_cap_per_cycle": {
-            "short": "Maximum quantity moved in one restock action.",
-            "long": "Limits how many units a single restock action may withdraw or deposit. Lower values reduce per-action inventory swings; higher values converge to target faster.",
-            "why": "Smaller moves can feel smoother during active play; larger moves finish balancing faster.",
+            "short": "Most items Pycons may move at once.",
+            "long": "Limits how many items Pycons may withdraw or deposit in one Xunlai restock action. Lower values move stock more gently; higher values catch up faster.",
+            "why": "Smaller moves are smoother. Larger moves finish restocking faster.",
         },
         "restock_keep_target_on_deselect": {
             "short": "Keep per-item restock target when item is deselected.",
@@ -724,18 +826,18 @@ try:
         },
         "mbdp_enabled": {
             "short": "Master toggle for morale/DP automation.",
-            "long": "Turns all morale/death-penalty automation on or off. If OFF, none of the MB/DP settings below do anything, even if configured.",
-            "why": "Use this as the global enable/disable for all MB/DP behavior. When enabled, unavailable higher-tier items can fall back to lower-tier valid options.",
+            "long": "Turns all morale boost and death penalty item automation on or off. If off, none of the settings below will use items.",
+            "why": "Use this as the main switch for morale and DP cleanup.",
         },
         "mbdp_allow_partywide_in_human_parties": {
-            "short": "Allow party-wide MB/DP with non-eligible humans present.",
-            "long": "If OFF, party-wide MB/DP spending is blocked when there are human party members not considered eligible by your team flags. If ON, party-wide logic can still spend even in mixed human groups.",
-            "why": "Use OFF for safety; use ON only for fully coordinated teams.",
+            "short": "Allow team items when extra human players are in party.",
+            "long": "When off, Pycons avoids party-wide morale and DP items if there are human party members that Pycons is not coordinating. When on, Pycons may still use party-wide items in mixed human parties.",
+            "why": "Off is safer. Turn on only when everyone in the party expects these items to be used.",
         },
         "mbdp_receiver_require_enabled": {
-            "short": "Receivers only consume MB/DP items enabled locally.",
-            "long": "If ON, a receiver account will only consume a broadcast MB/DP item if that exact item is also enabled locally on that account. If OFF, broadcast can trigger consumption even if local item toggle is OFF.",
-            "why": "ON is safer and prevents accidental follower spending.",
+            "short": "Followers only use team items enabled on that account.",
+            "long": "When on, a follower only reacts to a team item call if that exact item is enabled locally. When off, a team call can make the follower use the item even if its local toggle is off.",
+            "why": "On is safer and prevents accidental follower spending.",
         },
         "mbdp_prefer_seal_for_recharge": {
             "short": "Prefer Seal over Pumpkin for self +10 morale upkeep.",
@@ -743,23 +845,23 @@ try:
             "why": "This is a preference/order setting only.",
         },
         "mbdp_restore_defaults": {
-            "short": "Reset MB/DP settings in this section to defaults.",
-            "long": "Restores only MB/DP values in this section to balanced defaults. Does not change general, alcohol, or consumable selection settings.",
-            "why": "Fast recovery if experimentation made MB/DP behavior unpredictable.",
+            "short": "Reset morale/DP settings in this section to defaults.",
+            "long": "Restores only morale and death penalty values in this section to balanced defaults. Does not change general, alcohol, or consumable selection settings.",
+            "why": "Fast recovery if experimentation made morale/DP behavior unpredictable.",
         },
         "mbdp_self_dp_minor_threshold": {
-            "short": "Self DP threshold for lighter cleanup actions.",
-            "long": "DP value where lighter self DP cleanup starts. This threshold is for lower-strength self DP recovery items (for example Refined Jelly / Wintergreen Candy Cane). Example: -30 means self cleanup can start when you reach -30 DP.",
+            "short": "Your DP level where light cleanup starts.",
+            "long": "When your DP reaches this value, Pycons may use lighter DP cleanup items for you, such as Refined Jelly or Wintergreen Candy Cane. Example: -30 means cleanup can start at -30 DP.",
             "why": "Closer to 0 triggers earlier/more often; closer to -60 triggers later/less often.",
         },
         "mbdp_self_dp_major_threshold": {
-            "short": "Self DP threshold for stronger cleanup actions.",
-            "long": "DP value where stronger self DP cleanup can start. This threshold is for stronger self DP recovery items (for example Peppermint Candy Cane). Example: -45 means stronger cleanup can start when you reach -45 DP.",
+            "short": "Your DP level where stronger cleanup starts.",
+            "long": "When your DP reaches this value, Pycons may use stronger DP cleanup items for you, such as Peppermint Candy Cane. Example: -45 means stronger cleanup can start at -45 DP.",
             "why": "Usually set lower (more negative) than minor so it acts like escalation.",
         },
         "mbdp_self_morale_target_effective": {
-            "short": "Desired self effective morale (-60..+10).",
-            "long": "Target morale state for yourself on effective scale (-60 to +10). 0 means neutral (no DP, no extra morale). Higher target means more aggressive morale upkeep.",
+            "short": "Morale level Pycons tries to keep on you.",
+            "long": "Target morale for yourself, from -60 DP to +10 morale boost. 0 means neutral. Higher values use morale items more aggressively.",
             "why": "Use this to control how aggressively self morale is topped up.",
         },
         "mbdp_self_min_morale_gain": {
@@ -768,53 +870,53 @@ try:
             "why": "Higher values reduce waste from tiny top-ups.",
         },
         "mbdp_party_min_members": {
-            "short": "Minimum eligible members needed for party MB/DP logic.",
-            "long": "Minimum number of eligible party members required before party-wide MB/DP logic can fire.",
-            "why": "This is a strict gate for party behavior.",
+            "short": "Party members needed before team items can be used.",
+            "long": "Minimum number of party members who must be valid targets before party-wide morale or DP items are considered.",
+            "why": "This prevents spending team items for too few people.",
         },
         "mbdp_party_min_interval_ms": {
-            "short": "Minimum time between party-wide MB/DP actions.",
-            "long": "Minimum time between party MB/DP triggers. Lower means faster reactions and more item use. Higher means slower, more conservative spending.",
+            "short": "Minimum time between team morale/DP item uses.",
+            "long": "Minimum time between party-wide morale or DP item uses. Lower values react faster and spend more. Higher values are slower and more conservative.",
             "why": "This strongly affects total item consumption rate.",
         },
         "mbdp_party_target_effective": {
-            "short": "Desired party effective morale (-60..+10).",
-            "long": "Party morale target used for benefit calculations. +10 means try to keep party near max morale boost.",
+            "short": "Morale level Pycons tries to keep for the party.",
+            "long": "Party morale target used when deciding if team morale items are worth using. +10 means try to keep the party near maximum morale boost.",
             "why": "This affects when party morale options are considered worth using.",
         },
         "mbdp_strict_party_plus10": {
             "short": "Aggressively maintain +10 party morale.",
-            "long": "When enabled, party morale decisions ignore minimum total-gain thresholds and will attempt to top up morale whenever any sampled party member is below +10. DP cleanup stages still run first.",
+            "long": "When enabled, party morale decisions ignore minimum party-gain limits and try to top up morale whenever any checked party member is below +10. DP cleanup still runs first.",
             "why": "Use this when your goal is to keep party morale as close to +10 as possible instead of conserving morale consumables.",
         },
         "mbdp_party_min_total_gain_5": {
-            "short": "Minimum summed gain required before +5 party morale item use.",
-            "long": "Minimum summed projected value needed before +5 party morale items are allowed.",
+            "short": "Minimum total party gain before a +5 morale item.",
+            "long": "Minimum total morale benefit across the party before +5 party morale items are allowed.",
             "why": "Lower this to fire +5 items more often.",
         },
         "mbdp_party_min_total_gain_10": {
-            "short": "Minimum summed gain required before +10 party morale item use.",
-            "long": "Minimum summed projected value needed before +10 party morale items are allowed.",
+            "short": "Minimum total party gain before a +10 morale item.",
+            "long": "Minimum total morale benefit across the party before +10 party morale items are allowed.",
             "why": "Raise this to make +10 items rarer; lower it to use them sooner.",
         },
         "mbdp_party_light_dp_threshold": {
-            "short": "Party DP threshold for light cleanup stage.",
-            "long": "DP value for the lighter party DP cleanup stage. This threshold is for lower-strength party DP recovery items (for example Four-Leaf Clover). Example: -15 means this stage can start when members reach -15 DP (plus member-count rules).",
-            "why": "Use this as the earlier/softer party DP response stage. If higher tiers are unavailable, Pycons can fall through to this and then to morale options when valid.",
+            "short": "Party DP level where light cleanup starts.",
+            "long": "DP value for lighter party DP recovery items, such as Four-Leaf Clover. Example: -15 means this cleanup can start when party members reach -15 DP, if enough members qualify.",
+            "why": "Use this as the earlier, softer party DP response. If stronger items are unavailable, Pycons can still use lower options when valid.",
         },
         "mbdp_party_heavy_dp_threshold": {
-            "short": "Party DP threshold for heavy cleanup stage.",
-            "long": "DP value for the stronger party DP cleanup stage. This threshold is for stronger party DP recovery items (for example Oath of Purity). Example: -30 means this stage can start when members reach -30 DP (plus member-count rules).",
-            "why": "Usually set lower (more negative) than light so it acts as escalation. If this tier is unavailable, Pycons can fall back to lower valid tiers.",
+            "short": "Party DP level where stronger cleanup starts.",
+            "long": "DP value for stronger party DP recovery items, such as Oath of Purity. Example: -30 means this cleanup can start when party members reach -30 DP, if enough members qualify.",
+            "why": "Usually set lower, meaning more negative, than light cleanup so it acts as escalation. If stronger items are unavailable, Pycons can fall back to lower valid options.",
         },
         "mbdp_powerstone_dp_threshold": {
-            "short": "Emergency DP threshold for Powerstone-level response.",
-            "long": "Severe DP value for emergency cleanup stage. Example: -45 means emergency stage can start when members reach -45 DP (plus member-count rules).",
-            "why": "Use this as emergency-only escalation for severe DP. If unavailable, Pycons falls through lower DP tiers and then morale tiers instead of stalling.",
+            "short": "Party DP level where Powerstone emergency starts.",
+            "long": "Severe DP value for emergency cleanup. Example: -45 means emergency cleanup can start when party members reach -45 DP, if enough members qualify.",
+            "why": "Use this for severe DP only. If unavailable, Pycons tries lower DP cleanup and then valid morale options instead of stalling.",
         },
         "filter_search": {
             "short": "Filter consumables by name.",
-            "long": "Search text filter for consumables lists in the settings window. Works across explorable, summoning, outpost, MB/DP, and alcohol groups.",
+            "long": "Searches the consumable lists in Settings. Works across explorable, summoning, outpost, morale/DP, and alcohol groups.",
             "why": "Speeds up setup when many items exist.",
         },
         "select_all_visible": {
@@ -854,52 +956,52 @@ try:
         },
         "preset_leader_force_plus10_team": {
             "short": "Leader mode that enforces a team morale target.",
-            "long": "ON enables leader-force target enforcement for party morale. Value sets the effective morale target to maintain for eligible party members. In this mode, morale items are only used when eligible members are below that target; if everyone is already at or above target, no morale item is spent. OFF disables this specific leader-force target-enforcement mode only. OFF does not disable MB/DP as a whole, and other MB/DP settings, thresholds, and presets can still run separately. DP cleanup can still be handled by your regular MB/DP DP trigger settings.",
-            "why": "Use this when one leader account should enforce a specific team morale target without turning off the rest of MB/DP behavior.",
+            "long": "ON makes the leader account try to keep valid party members at the chosen morale target. Morale items are only used when someone is below that target. Turning this off only disables this leader preset; normal morale and DP settings can still run.",
+            "why": "Use this when one leader account should manage party morale without turning off the rest of morale/DP behavior.",
         },
         "preset_solo_safe": {
             "short": "Safe single-account preset with local-only behavior.",
-            "long": "Applies a conservative solo profile: no team broadcast/opt-in, MB/DP enabled with safe defaults, and receiver-local safety protections kept on.",
+            "long": "Applies a conservative solo profile: no team calls, morale/DP enabled with safe defaults, and follower safety protections kept on.",
             "why": "Good baseline when you are not coordinating consumables across accounts.",
         },
         "profile_save_new": {
-            "short": "Save the current live settings as a new named profile.",
-            "long": "Creates a new shared Pycons profile using the current live configuration, including the current main-window enabled ON/OFF state.",
+            "short": "Save the current settings as a new named profile.",
+            "long": "Creates a new shared Pycons profile using the current Pycons settings, including the current main-window ON/OFF state.",
             "why": "Useful when you want to snapshot your current setup without overwriting an existing profile.",
         },
         "profile_load_selected": {
-            "short": "Load the selected saved profile into the live Pycons config.",
-            "long": "Writes the selected shared profile back into the live [Pycons] section for the current account, reloads Pycons immediately, and refreshes local runtime state.",
+            "short": "Load the selected saved profile for this account.",
+            "long": "Applies the selected shared profile to this account, reloads Pycons immediately, and refreshes the current session.",
             "why": "Fast profile switching for different team roles or farming modes without pushing changes to other accounts.",
         },
         "profile_save_over_selected": {
-            "short": "Overwrite the selected saved profile with the current live settings.",
-            "long": "Updates the selected shared profile using the current live configuration while preserving that profile's internal id and created timestamp.",
+            "short": "Overwrite the selected saved profile with the current settings.",
+            "long": "Updates the selected shared profile using your current Pycons settings while keeping that profile's identity and created date.",
             "why": "Useful when you want to revise an existing saved setup after tuning it in the main window.",
         },
         "profile_rename": {
             "short": "Rename the selected saved profile.",
-            "long": "Updates only the selected shared profile's display name and updated timestamp. Internal profile ids stay stable.",
+            "long": "Updates only the selected shared profile's display name and saved update time.",
             "why": "Lets you clean up or clarify saved setups without changing how they are stored.",
         },
         "profile_duplicate": {
             "short": "Duplicate the selected saved profile.",
-            "long": "Creates a new shared profile by copying the selected saved profile's payload. It does not use the current live settings.",
+            "long": "Creates a new shared profile by copying the selected saved profile. It does not use the current settings.",
             "why": "Useful when you want a starting point for a variant setup without overwriting the original saved profile.",
         },
         "profile_delete": {
             "short": "Delete the selected saved profile.",
-            "long": "Removes the selected profile file from the shared Pycons profile library. The live [Pycons] config on the current account is not changed.",
+            "long": "Removes the selected profile from the shared Pycons profile library. The current account settings are not changed.",
             "why": "Keeps the saved-profile list tidy when a setup is no longer needed.",
         },
         "preset_set_others_optin": {
-            "short": "Set all other same-party accounts to opt in.",
-            "long": "Writes team-consume opt-in ON to every other account currently detected in the same party/map instance as this account.",
-            "why": "Useful after applying leader presets so followers immediately receive broadcasted consume actions.",
+            "short": "Let other same-party accounts use team calls.",
+            "long": "Turns team item calls on for every other account Pycons currently sees in the same party and map.",
+            "why": "Useful after applying leader presets so followers can react to team item calls.",
         },
         "preset_set_others_optout": {
-            "short": "Set all other same-party accounts to opt out.",
-            "long": "Writes team-consume opt-in OFF to every other account currently detected by Pycons account discovery.",
+            "short": "Stop other same-party accounts from using team calls.",
+            "long": "Turns team item calls off for every other account Pycons currently sees.",
             "why": "Useful for quickly stopping follower consumption without editing each account manually.",
         },
     }
@@ -978,69 +1080,9 @@ try:
                 seen.add(key)
         return ordered
 
-    PRESET_SLOT_COUNT = 3
     LEADER_FORCE_PRESET_KEY = "leader_force_target_morale"
-    PRESET_BOOL_KEYS = {
-        "debug_logging",
-        "only_show_available_inventory",
-        "only_show_selected_items",
-        "show_advanced_intervals",
-        "persist_main_runtime_toggles",
-        "auto_vault_restock",
-        "restock_keep_target_on_deselect",
-        "alcohol_enabled",
-        "alcohol_disable_effect",
-        "alcohol_use_explorable",
-        "alcohol_use_outpost",
-        "mbdp_enabled",
-        "mbdp_allow_partywide_in_human_parties",
-        "mbdp_receiver_require_enabled",
-        "mbdp_prefer_seal_for_recharge",
-        "mbdp_strict_party_plus10",
-        "team_broadcast",
-        "team_consume_opt_in",
-    }
-    PRESET_SCALAR_KEYS = [
-        "debug_logging",
-        "only_show_available_inventory",
-        "only_show_selected_items",
-        "show_advanced_intervals",
-        "persist_main_runtime_toggles",
-        "auto_vault_restock",
-        "restock_interval_ms",
-        "restock_mode",
-        "restock_move_cap_per_cycle",
-        "restock_keep_target_on_deselect",
-        "alcohol_enabled",
-        "alcohol_disable_effect",
-        "alcohol_target_level",
-        "alcohol_use_explorable",
-        "alcohol_use_outpost",
-        "alcohol_preference",
-        "team_broadcast",
-        "team_consume_opt_in",
-        "force_team_morale_value",
-        "mbdp_enabled",
-        "mbdp_allow_partywide_in_human_parties",
-        "mbdp_receiver_require_enabled",
-        "mbdp_strict_party_plus10",
-        "mbdp_self_dp_minor_threshold",
-        "mbdp_self_dp_major_threshold",
-        "mbdp_self_morale_target_effective",
-        "mbdp_self_min_morale_gain",
-        "mbdp_party_min_members",
-        "mbdp_party_min_interval_ms",
-        "mbdp_party_target_effective",
-        "mbdp_party_min_total_gain_5",
-        "mbdp_party_min_total_gain_10",
-        "mbdp_party_light_dp_threshold",
-        "mbdp_party_heavy_dp_threshold",
-        "mbdp_powerstone_dp_threshold",
-        "mbdp_prefer_seal_for_recharge",
-    ]
     PYCONS_PROFILE_SECTION_PREFIX = "PyconsProfile:"
     PYCONS_SHARED_PROFILE_SECTION = "PyconsProfile"
-    PYCONS_PROFILE_MIGRATION_FLAG_KEY = "profiles_legacy_slots_migrated_v1"
     PYCONS_SHARED_PROFILE_MIGRATION_FLAG_KEY = "profiles_shared_library_migrated_v1"
     PROFILE_NAME_MAX_LEN = 64
     PROFILE_BOOL_KEYS = {
@@ -1095,9 +1137,6 @@ try:
 
     def _default_pycons_sync_category_selection() -> dict[str, bool]:
         return {str(key): False for key, _label in PYCONS_SYNC_CATEGORY_DEFS}
-
-    def _preset_slot_default_name(slot_idx: int) -> str:
-        return f"Preset {int(slot_idx)}"
 
     def _save_ini_config(ini_handler, config):
         ini_handler.save(config)
@@ -1683,9 +1722,9 @@ try:
 
         selected_count = _profile_selected_item_count(payload)
         parts = [
-            f"Broadcast {'ON' if bool(payload.get('team_broadcast', False)) else 'OFF'}",
-            f"Opt In {'ON' if bool(payload.get('team_consume_opt_in', False)) else 'OFF'}",
-            f"MB/DP {'ON' if bool(payload.get('mbdp_enabled', False)) else 'OFF'}",
+            f"Team calls {'ON' if bool(payload.get('team_broadcast', False)) else 'OFF'}",
+            f"Follow team calls {'ON' if bool(payload.get('team_consume_opt_in', False)) else 'OFF'}",
+            f"Morale/DP {'ON' if bool(payload.get('mbdp_enabled', False)) else 'OFF'}",
             f"Alcohol {'ON' if bool(payload.get('alcohol_enabled', False)) else 'OFF'}",
             f"Auto-restock {'ON' if bool(payload.get('auto_vault_restock', False)) else 'OFF'}",
             f"{selected_count} item{'s' if selected_count != 1 else ''} selected",
@@ -1827,34 +1866,6 @@ try:
         profiles.sort(key=lambda entry: (_profile_name_norm(entry.get("name", "")), str(entry.get("id", ""))))
         return profiles
 
-    def _list_legacy_slot_profile_records(ini_handler, *, fallback_payload: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-        profiles: list[dict[str, Any]] = []
-        for slot in range(1, PRESET_SLOT_COUNT + 1):
-            prefix = f"preset_slot_{slot}_"
-            if not bool(ini_handler.read_bool(INI_SECTION, f"{prefix}saved", False)):
-                continue
-            payload = _read_profile_payload_from_ini(
-                ini_handler,
-                INI_SECTION,
-                prefix=prefix,
-                fallback_payload=fallback_payload,
-            )
-            profiles.append(
-                {
-                    "id": "",
-                    "name": _profile_display_name(
-                        ini_handler.read_key(INI_SECTION, f"{prefix}name", _preset_slot_default_name(slot)),
-                        f"slot{slot}",
-                    ),
-                    "created_at": "",
-                    "updated_at": "",
-                    "payload": payload,
-                    "payload_signature": _profile_payload_signature(payload),
-                    "slot": int(slot),
-                }
-            )
-        return profiles
-
     def _import_profile_record_into_shared_library(
         record: dict[str, Any],
         *,
@@ -1944,11 +1955,7 @@ try:
 
         live_payload = _read_profile_payload_from_ini(handler, INI_SECTION)
         local_profiles = _list_account_local_dynamic_profiles(handler, fallback_payload=live_payload)
-        migration_source = "local"
         source_records = local_profiles
-        if not source_records and not bool(handler.read_bool(INI_SECTION, PYCONS_PROFILE_MIGRATION_FLAG_KEY, False)):
-            migration_source = "legacy"
-            source_records = _list_legacy_slot_profile_records(handler, fallback_payload=live_payload)
 
         def _run_migration_locked():
             existing_shared_profiles = _list_pycons_profiles(include_payload=True)
@@ -1958,12 +1965,7 @@ try:
             skipped_duplicate_count = 0
 
             for record in source_records:
-                slot = int(record.get("slot", 0) or 0)
-                source_label = (
-                    f"legacy slot {slot} from {source_suffix}"
-                    if slot > 0
-                    else f"account {source_suffix}"
-                )
+                source_label = f"account {source_suffix}"
                 imported, renamed, skipped_duplicate = _import_profile_record_into_shared_library(
                     record,
                     existing_profiles=existing_shared_profiles,
@@ -1990,7 +1992,7 @@ try:
         _save_ini_config(handler, config)
 
         if imported_count > 0 or skipped_duplicate_count > 0:
-            source_text = "account-local Pycons saved profile(s)" if migration_source == "local" else "legacy Pycons preset slot(s)"
+            source_text = "account-local Pycons saved profile(s)"
             detail_parts = [f"imported {imported_count}"]
             if renamed_count > 0:
                 detail_parts.append(f"renamed {renamed_count}")
@@ -2005,7 +2007,7 @@ try:
 
     def _save_current_as_new_profile(profile_name: str) -> tuple[bool, str, str]:
         if not _profiles_available_for_current_ini():
-            return False, "Saved profiles are unavailable until Pycons is bound to the account-specific live INI.", ""
+            return False, "Saved profiles are unavailable until Pycons knows which account settings file to use.", ""
 
         valid, error_message, clean_name = _validate_profile_display_name(profile_name)
         if not valid:
@@ -2038,7 +2040,7 @@ try:
 
     def _save_over_profile(profile_id: str) -> tuple[bool, str]:
         if not _profiles_available_for_current_ini():
-            return False, "Saved profiles are unavailable until Pycons is bound to the account-specific live INI."
+            return False, "Saved profiles are unavailable until Pycons knows which account settings file to use."
 
         try:
             payload = _build_current_profile_payload()
@@ -2067,7 +2069,7 @@ try:
 
     def _rename_profile(profile_id: str, profile_name: str) -> tuple[bool, str, str]:
         if not _profiles_available_for_current_ini():
-            return False, "Saved profiles are unavailable until Pycons is bound to the account-specific live INI.", ""
+            return False, "Saved profiles are unavailable until Pycons knows which account settings file to use.", ""
 
         valid, error_message, clean_name = _validate_profile_display_name(profile_name, exclude_profile_id=profile_id)
         if not valid:
@@ -2119,7 +2121,7 @@ try:
 
     def _duplicate_profile(profile_id: str) -> tuple[bool, str, str, str]:
         if not _profiles_available_for_current_ini():
-            return False, "Saved profiles are unavailable until Pycons is bound to the account-specific live INI.", "", ""
+            return False, "Saved profiles are unavailable until Pycons knows which account settings file to use.", "", ""
 
         try:
             def _duplicate_locked():
@@ -2154,7 +2156,7 @@ try:
 
     def _delete_profile(profile_id: str) -> tuple[bool, str]:
         if not _profiles_available_for_current_ini():
-            return False, "Saved profiles are unavailable until Pycons is bound to the account-specific live INI."
+            return False, "Saved profiles are unavailable until Pycons knows which account settings file to use."
 
         try:
             def _delete_locked():
@@ -2181,7 +2183,7 @@ try:
     def _load_profile(profile_id: str) -> tuple[bool, str]:
         global _last_mbdp_party_ms
         if not _profiles_available_for_current_ini():
-            return False, "Saved profiles are unavailable until Pycons is bound to the account-specific live INI."
+            return False, "Saved profiles are unavailable until Pycons knows which account settings file to use."
 
         try:
             ini_handler = _get_ini_handler()
@@ -2206,7 +2208,7 @@ try:
                 _set_active_applied_profile_id(profile_id)
                 return True, f"Loaded profile '{display_name}'."
             detail = f" {reload_detail}" if reload_detail else ""
-            return False, f"Profile '{display_name}' was written to live config, but reload failed.{detail}"
+            return False, f"Profile '{display_name}' was saved to current settings, but reload failed.{detail}"
         except Exception as exc:
             return False, f"Failed to load the selected profile: {exc}"
 
@@ -2296,84 +2298,6 @@ try:
                     Console.MessageType.Info,
                 )
 
-    def _save_custom_preset_slot(slot_idx: int):
-        slot = max(1, min(PRESET_SLOT_COUNT, int(slot_idx)))
-        ini_handler = _get_ini_handler()
-        prefix = f"preset_slot_{slot}_"
-        ini_handler.write_key(INI_SECTION, f"{prefix}saved", "True")
-        for key in PRESET_SCALAR_KEYS:
-            try:
-                ini_handler.write_key(INI_SECTION, f"{prefix}{key}", getattr(cfg, key))
-            except Exception:
-                pass
-        for item in ALL_CONSUMABLES:
-            k = str(item.get("key", "") or "")
-            if not k:
-                continue
-            ini_handler.write_key(INI_SECTION, f"{prefix}selected_{k}", str(bool(cfg.selected.get(k, False))))
-            ini_handler.write_key(INI_SECTION, f"{prefix}enabled_{k}", str(bool(cfg.enabled.get(k, False))))
-            ini_handler.write_key(INI_SECTION, f"{prefix}restock_enabled_{k}", str(bool(cfg.restock_enabled_items.get(k, False))))
-            ini_handler.write_key(INI_SECTION, f"{prefix}restock_target_{k}", str(int(max(0, min(2500, int(cfg.restock_targets.get(k, VAULT_RESTOCK_TARGET_QTY) or 0))))))
-        for item in ALCOHOL_ITEMS:
-            k = str(item.get("key", "") or "")
-            if not k:
-                continue
-            ini_handler.write_key(INI_SECTION, f"{prefix}alcohol_selected_{k}", str(bool(cfg.alcohol_selected.get(k, False))))
-            ini_handler.write_key(INI_SECTION, f"{prefix}alcohol_enabled_{k}", str(bool(cfg.alcohol_enabled_items.get(k, False))))
-            ini_handler.write_key(INI_SECTION, f"{prefix}restock_enabled_{k}", str(bool(cfg.restock_enabled_items.get(k, False))))
-            ini_handler.write_key(INI_SECTION, f"{prefix}restock_target_{k}", str(int(max(0, min(2500, int(cfg.restock_targets.get(k, VAULT_RESTOCK_TARGET_QTY) or 0))))))
-        _log(f"Saved custom preset slot {slot}.", Console.MessageType.Info)
-
-    def _load_custom_preset_slot(slot_idx: int) -> bool:
-        global _last_mbdp_party_ms
-        slot = max(1, min(PRESET_SLOT_COUNT, int(slot_idx)))
-        ini_handler = _get_ini_handler()
-        prefix = f"preset_slot_{slot}_"
-        if not ini_handler.read_bool(INI_SECTION, f"{prefix}saved", False):
-            _log(f"Preset slot {slot} is empty.", Console.MessageType.Warning)
-            return False
-
-        for key in PRESET_SCALAR_KEYS:
-            try:
-                if key in PRESET_BOOL_KEYS:
-                    setattr(cfg, key, bool(ini_handler.read_bool(INI_SECTION, f"{prefix}{key}", bool(getattr(cfg, key)))))
-                else:
-                    setattr(cfg, key, int(ini_handler.read_int(INI_SECTION, f"{prefix}{key}", int(getattr(cfg, key)))))
-            except Exception:
-                pass
-        cfg.restock_interval_ms = max(MIN_RESTOCK_INTERVAL_MS, int(getattr(cfg, "restock_interval_ms", DEFAULT_RESTOCK_INTERVAL_MS)))
-        cfg.restock_mode = max(RESTOCK_MODE_BALANCED, min(RESTOCK_MODE_DEPOSIT_ONLY, int(getattr(cfg, "restock_mode", DEFAULT_RESTOCK_MODE))))
-        cfg.restock_move_cap_per_cycle = max(
-            MIN_RESTOCK_MOVE_CAP_PER_CYCLE,
-            min(MAX_RESTOCK_MOVE_CAP_PER_CYCLE, int(getattr(cfg, "restock_move_cap_per_cycle", DEFAULT_RESTOCK_MOVE_CAP_PER_CYCLE))),
-        )
-
-        for item in ALL_CONSUMABLES:
-            k = str(item.get("key", "") or "")
-            if not k:
-                continue
-            cfg.selected[k] = bool(ini_handler.read_bool(INI_SECTION, f"{prefix}selected_{k}", bool(cfg.selected.get(k, False))))
-            cfg.enabled[k] = bool(ini_handler.read_bool(INI_SECTION, f"{prefix}enabled_{k}", bool(cfg.enabled.get(k, False))))
-            cfg.restock_enabled_items[k] = bool(ini_handler.read_bool(INI_SECTION, f"{prefix}restock_enabled_{k}", bool(cfg.restock_enabled_items.get(k, False))))
-            cfg.restock_targets[k] = max(0, min(2500, int(ini_handler.read_int(INI_SECTION, f"{prefix}restock_target_{k}", int(cfg.restock_targets.get(k, VAULT_RESTOCK_TARGET_QTY) or 0)))))
-        for item in ALCOHOL_ITEMS:
-            k = str(item.get("key", "") or "")
-            if not k:
-                continue
-            cfg.alcohol_selected[k] = bool(ini_handler.read_bool(INI_SECTION, f"{prefix}alcohol_selected_{k}", bool(cfg.alcohol_selected.get(k, False))))
-            cfg.alcohol_enabled_items[k] = bool(ini_handler.read_bool(INI_SECTION, f"{prefix}alcohol_enabled_{k}", bool(cfg.alcohol_enabled_items.get(k, False))))
-            cfg.restock_enabled_items[k] = bool(ini_handler.read_bool(INI_SECTION, f"{prefix}restock_enabled_{k}", bool(cfg.restock_enabled_items.get(k, False))))
-            cfg.restock_targets[k] = max(0, min(2500, int(ini_handler.read_int(INI_SECTION, f"{prefix}restock_target_{k}", int(cfg.restock_targets.get(k, VAULT_RESTOCK_TARGET_QTY) or 0)))))
-
-        _runtime_sync_from_cfg_full()
-
-        _last_mbdp_party_ms = 0
-        _set_active_applied_profile_id("")
-        cfg.last_applied_preset = str(cfg.preset_slot_names.get(slot, _preset_slot_default_name(slot)))
-        cfg.mark_dirty()
-        _log(f"Loaded custom preset slot {slot}.", Console.MessageType.Info)
-        return True
-
     def _resolve_same_party_accounts_for_opt_toggle(self_email: str):
         all_accounts = GLOBAL_CACHE.ShMem.GetAllAccountData() or []
         me = GLOBAL_CACHE.ShMem.GetAccountDataFromEmail(self_email)
@@ -2430,14 +2354,14 @@ try:
         try:
             self_email = str(Player.GetAccountEmail() or "")
             if not self_email:
-                _log("Could not set opt-in for others: local account email unavailable.", Console.MessageType.Warning)
+                _log("Could not update team-call responses for other accounts: local account email unavailable.", Console.MessageType.Warning)
                 return
             accounts, my_party_id, party_rows_count = _resolve_same_party_accounts_for_opt_toggle(self_email)
             updated, toggled_names = _set_team_opt_in_for_accounts(accounts, self_email, True)
             if updated == 0:
-                cfg.last_party_opt_toggle_summary = "Opt-in ON: none"
+                cfg.last_party_opt_toggle_summary = "Team calls ON: none"
                 _log(
-                    f"Set team consume opt-in ON for 0 other party account(s). "
+                    f"Allowed team-call responses for 0 other party account(s). "
                     f"Detected accounts={len(accounts)} my_party_id={my_party_id} "
                     f"party_rows={party_rows_count}. No non-party accounts were modified.",
                     Console.MessageType.Warning
@@ -2445,8 +2369,8 @@ try:
             else:
                 unique_names = sorted(set(toggled_names), key=lambda s: s.lower())
                 names_str = ", ".join(unique_names) if unique_names else f"{updated} account(s)"
-                cfg.last_party_opt_toggle_summary = f"Opt-in ON: {names_str}"
-                _log(f"Set team consume opt-in ON for {updated} other party account(s).", Console.MessageType.Info)
+                cfg.last_party_opt_toggle_summary = f"Team calls ON: {names_str}"
+                _log(f"Allowed team-call responses for {updated} other party account(s).", Console.MessageType.Info)
             cfg.mark_dirty()
         except Exception as e:
             _debug(f"Failed setting opt-in for other party accounts: {e}", Console.MessageType.Warning)
@@ -2455,18 +2379,18 @@ try:
         try:
             self_email = str(Player.GetAccountEmail() or "")
             if not self_email:
-                _log("Could not set opt-out for others: local account email unavailable.", Console.MessageType.Warning)
+                _log("Could not update team-call responses for other accounts: local account email unavailable.", Console.MessageType.Warning)
                 return
             accounts, _my_party_id_unused, _party_rows_count_unused = _resolve_same_party_accounts_for_opt_toggle(self_email)
             updated, toggled_names = _set_team_opt_in_for_accounts(accounts, self_email, False)
             if updated == 0:
-                cfg.last_party_opt_toggle_summary = "Opt-in OFF: none"
-                _log("Set team consume opt-in OFF for 0 other party account(s). No non-party accounts were modified.", Console.MessageType.Warning)
+                cfg.last_party_opt_toggle_summary = "Team calls OFF: none"
+                _log("Blocked team-call responses for 0 other party account(s). No non-party accounts were modified.", Console.MessageType.Warning)
             else:
                 unique_names = sorted(set(toggled_names), key=lambda s: s.lower())
                 names_str = ", ".join(unique_names) if unique_names else f"{updated} account(s)"
-                cfg.last_party_opt_toggle_summary = f"Opt-in OFF: {names_str}"
-                _log(f"Set team consume opt-in OFF for {updated} other party account(s).", Console.MessageType.Info)
+                cfg.last_party_opt_toggle_summary = f"Team calls OFF: {names_str}"
+                _log(f"Blocked team-call responses for {updated} other party account(s).", Console.MessageType.Info)
             cfg.mark_dirty()
         except Exception as e:
             _debug(f"Failed setting opt-out for other party accounts: {e}", Console.MessageType.Warning)
@@ -3321,11 +3245,6 @@ try:
             self.tooltip_show_why = ini_handler.read_bool(INI_SECTION, "tooltip_show_why", True)
             self.last_applied_preset = str(ini_handler.read_key(INI_SECTION, "last_applied_preset", "None") or "None")
             self.last_party_opt_toggle_summary = str(ini_handler.read_key(INI_SECTION, "last_party_opt_toggle_summary", "None") or "None")
-            self.preset_slot_names = {}
-            for i in range(1, PRESET_SLOT_COUNT + 1):
-                default_name = _preset_slot_default_name(i)
-                name = str(ini_handler.read_key(INI_SECTION, f"preset_slot_{i}_name", default_name) or default_name).strip()
-                self.preset_slot_names[i] = name if name else default_name
 
             # Optional per-item min intervals
             self.show_advanced_intervals = ini_handler.read_bool(INI_SECTION, "show_advanced_intervals", False)
@@ -3508,8 +3427,6 @@ try:
             set_key("tooltip_show_why", bool(self.tooltip_show_why))
             set_key("last_applied_preset", self.last_applied_preset)
             set_key("last_party_opt_toggle_summary", self.last_party_opt_toggle_summary)
-            for i in range(1, PRESET_SLOT_COUNT + 1):
-                set_key(f"preset_slot_{i}_name", self.preset_slot_names.get(i, _preset_slot_default_name(i)))
 
             set_key("show_advanced_intervals", bool(self.show_advanced_intervals))
             set_key("persist_main_runtime_toggles", bool(self.persist_main_runtime_toggles))
@@ -7207,7 +7124,7 @@ try:
             _clear_remote_profile_apply_confirmation()
 
         _text_secondary("Select active multibox target accounts below. Both actions use the same target list.")
-        _text_secondary("Window layout, presets, filters, and runtime-only toggles stay local.")
+        _text_secondary("Window layout, presets, filters, and temporary ON/OFF changes stay local.")
         PyImGui.dummy(0, 4)
 
         _text_secondary(f"{len(active_accounts)} active account(s) | {len(selected_accounts)} selected")
@@ -7291,8 +7208,8 @@ try:
 
         PyImGui.separator()
         PyImGui.text("Copy selected settings categories to other accounts")
-        _text_secondary("Write only the checked settings categories into selected accounts' live Pycons config.")
-        _text_secondary("This is a partial copy tool, not a full saved-profile apply.")
+        _text_secondary("Copy only the checked settings groups to the selected accounts.")
+        _text_secondary("Use this for small setting changes. Use profiles below for a full setup.")
         PyImGui.dummy(0, 4)
 
         if PyImGui.small_button("Select All Categories##pycons_sync_categories_all"):
@@ -7325,11 +7242,11 @@ try:
             if selected_profile_summary:
                 _text_secondary(selected_profile_summary)
             if not selected_profile_matches_live:
-                _text_meta("Remote apply uses the selected saved profile, not the current live settings.")
+                _text_meta("This uses the selected saved profile, not your current unsaved changes.")
         else:
             PyImGui.text_disabled("No saved profile selected. Select one in Profiles.")
-        _text_secondary("Applies the full selected saved profile to selected accounts' live Pycons config, then requests reload.")
-        _text_secondary("Includes profile fields like Broadcast and Opt In.")
+        _text_secondary("Loads the full selected profile on the selected accounts and asks them to reload Pycons.")
+        _text_secondary("Includes team settings such as team calls and follower responses.")
 
         remote_apply_disabled = (not bool(selected_profile_id) or len(selected_accounts) == 0)
         remote_apply_confirm_required = bool(
@@ -7374,9 +7291,9 @@ try:
         if _badge_button("ON" if enabled else "OFF", enabled=bool(enabled), id_suffix=f"{id_prefix}_btn_{key}"):
             enabled = not enabled
         _tooltip_if_hovered(
-            "Runtime-only toggle (not saved). Use Settings to set persistent defaults."
+            "Temporary toggle for this session only. Use Settings to change saved defaults."
             if not _main_runtime_persist_enabled()
-            else "Runtime toggle is also saved as the persistent enabled default."
+            else "This toggle is active now and also saved as the default."
         )
         changed = (bool(enabled_now) != bool(enabled))
         return bool(enabled), bool(changed)
@@ -7554,7 +7471,7 @@ try:
 
         PyImGui.separator()
 
-        PyImGui.text("Consume interval (ms):")
+        PyImGui.text("How often to check items (ms):")
         _same_line(10)
         changed, val = ui_input_int("##pycons_interval", int(cfg.interval_ms))
         if changed:
@@ -7567,7 +7484,7 @@ try:
         PyImGui.separator()
 
         # --- Alcohol settings (collapsed dropdown for compactness) ---
-        if _styled_collapsing_header("Alcohol settings##pycons_alcohol_dropdown", False, "alcohol"):
+        if _styled_collapsing_header("Alcohol settings##pycons_alcohol_dropdown", False, "settings_alcohol"):
             PyImGui.text("Alcohol upkeep:")
             _same_line(10)
             if _badge_button("ON" if cfg.alcohol_enabled else "OFF", enabled=bool(cfg.alcohol_enabled), id_suffix="pycons_alcohol_toggle"):
@@ -7630,7 +7547,7 @@ try:
             "Selected consumables##pycons_list",
             force_open,
             bool(cfg.show_selected_list),
-            "general",
+            "settings_select",
         )
 
         if request_expand_selected[0]:
@@ -7643,15 +7560,15 @@ try:
             cfg.mark_dirty()
 
         if expanded:
-            _text_secondary("Selected in Settings -> shown here.")
+            _text_secondary("Items selected in Settings appear here.")
             if _main_runtime_persist_enabled():
-                _text_secondary("ON/OFF here -> active now and saved as the enabled default.")
+                _text_secondary("ON/OFF here changes this session and saves the new default.")
             else:
-                _text_secondary("ON/OFF here -> active now only. Enable persistence in Settings to save defaults.")
+                _text_secondary("ON/OFF here only changes this session. Turn on saving in Settings to keep changes.")
             if PyImGui.button(
-                "Enable all (runtime + save)##pycons_main_select_all"
+                "Enable all now and save##pycons_main_select_all"
                 if _main_runtime_persist_enabled()
-                else "Enable all (runtime)##pycons_main_select_all"
+                else "Enable all for this session##pycons_main_select_all"
             ):
                 for c in ALL_CONSUMABLES:
                     k = c["key"]
@@ -7663,9 +7580,9 @@ try:
                         _set_main_runtime_alcohol_enabled(k, True)
             _same_line(10)
             if PyImGui.button(
-                "Disable all (runtime + save)##pycons_main_clear_all"
+                "Disable all now and save##pycons_main_clear_all"
                 if _main_runtime_persist_enabled()
-                else "Disable all (runtime)##pycons_main_clear_all"
+                else "Disable all for this session##pycons_main_clear_all"
             ):
                 for c in ALL_CONSUMABLES:
                     k = c["key"]
@@ -7972,7 +7889,7 @@ try:
             "Explorable##pycons_hdr_explorable",
             explorable_force,
             bool(cfg.settings_explorable_open),
-            "explorable",
+            "settings_select_explorable",
         )
         if bool(cfg.settings_explorable_open) != bool(explorable_open):
             cfg.settings_explorable_open = bool(explorable_open)
@@ -8019,7 +7936,7 @@ try:
             "Morale Boost & Death Penalty##pycons_hdr_mbdp",
             mbdp_force,
             bool(cfg.settings_mbdp_open),
-            "mbdp",
+            "settings_select_mbdp",
         )
         if bool(cfg.settings_mbdp_open) != bool(mbdp_open):
             cfg.settings_mbdp_open = bool(mbdp_open)
@@ -8087,7 +8004,7 @@ try:
             "In-town speed boosts##pycons_hdr_outpost",
             outpost_force,
             bool(cfg.settings_outpost_open),
-            "outpost",
+            "settings_select_outpost",
         )
         if bool(cfg.settings_outpost_open) != bool(outpost_open):
             cfg.settings_outpost_open = bool(outpost_open)
@@ -8117,7 +8034,7 @@ try:
             "Summoning Stones/Items##pycons_hdr_summoning",
             summoning_force,
             bool(cfg.settings_summoning_open),
-            "summoning",
+            "settings_select_summoning",
         )
         if bool(cfg.settings_summoning_open) != bool(summoning_open):
             cfg.settings_summoning_open = bool(summoning_open)
@@ -8148,7 +8065,7 @@ try:
             "Alcohol##pycons_hdr_alcohol",
             alcohol_force,
             bool(cfg.settings_alcohol_open),
-            "alcohol",
+            "settings_select_alcohol",
         )
         if bool(cfg.settings_alcohol_open) != bool(alcohol_open):
             cfg.settings_alcohol_open = bool(alcohol_open)
@@ -8197,7 +8114,7 @@ try:
         _show_setting_tooltip("debug_logging")
 
         # Team settings
-        changed, v = ui_checkbox("Broadcast usage to team##pycons_team_broadcast", bool(cfg.team_broadcast))
+        changed, v = ui_checkbox("Tell team when this account uses team items##pycons_team_broadcast", bool(cfg.team_broadcast))
         if changed:
             cfg.team_broadcast = bool(v)
             _mark_mbdp_preset_custom()
@@ -8211,7 +8128,7 @@ try:
                 _debug(f"Failed to write team_broadcast: {e}", Console.MessageType.Warning)
         _show_setting_tooltip("team_broadcast")
 
-        changed, v = ui_checkbox("Opt in to team broadcasts (consume when others broadcast)##pycons_team_optin", bool(cfg.team_consume_opt_in))
+        changed, v = ui_checkbox("Use items when another account sends a team call##pycons_team_optin", bool(cfg.team_consume_opt_in))
         if changed:
             cfg.team_consume_opt_in = bool(v)
             _mark_mbdp_preset_custom()
@@ -8220,19 +8137,19 @@ try:
             try:
                 ini_handler = _get_ini_handler()
                 ini_handler.write_key(INI_SECTION, "team_consume_opt_in", str(bool(v)))
-                _log(f"Team opt-in setting changed to: {bool(v)} (saved to {_get_ini_path()})", Console.MessageType.Info)
+                _log(f"Team call response setting changed to: {bool(v)}.", Console.MessageType.Info)
             except Exception as e:
                 _debug(f"Failed to write team_consume_opt_in: {e}", Console.MessageType.Warning)
         _show_setting_tooltip("team_consume_opt_in")
 
-        changed, v = ui_checkbox("Advanced intervals##pycons_advint", bool(cfg.show_advanced_intervals))
+        changed, v = ui_checkbox("Show per-item timing controls##pycons_advint", bool(cfg.show_advanced_intervals))
         if changed:
             cfg.show_advanced_intervals = bool(v)
             cfg.mark_dirty()
         _show_setting_tooltip("advanced_intervals")
 
         changed, v = ui_checkbox(
-            "Persist main-window toggles to enabled defaults##pycons_persist_main_runtime_toggles",
+            "Save main-window ON/OFF changes as defaults##pycons_persist_main_runtime_toggles",
             bool(cfg.persist_main_runtime_toggles),
         )
         if changed:
@@ -8240,20 +8157,20 @@ try:
             cfg.mark_dirty()
         _show_setting_tooltip("persist_main_runtime_toggles")
 
-        if PyImGui.button("Set all other party accounts: Opt-in ON##pycons_preset_set_other_optin"):
+        if PyImGui.button("Let other party accounts use team calls##pycons_preset_set_other_optin"):
             _set_other_party_accounts_opt_in()
         _show_setting_tooltip("preset_set_others_optin")
 
-        if PyImGui.button("Set all other party accounts: Opt-in OFF##pycons_preset_set_other_optout"):
+        if PyImGui.button("Stop other party accounts using team calls##pycons_preset_set_other_optout"):
             _set_other_party_accounts_opt_out()
         _show_setting_tooltip("preset_set_others_optout")
-        PyImGui.text(f"Last party opt toggle: {str(cfg.last_party_opt_toggle_summary or 'None')}")
+        PyImGui.text(f"Last team-call change: {str(cfg.last_party_opt_toggle_summary or 'None')}")
 
         PyImGui.separator()
         presets_section_open = _styled_collapsing_header(
             "Profiles##pycons_settings_presets_dropdown",
             bool(cfg.settings_ui_presets_open),
-            "mbdp",
+            "settings_profiles",
         )
         if bool(cfg.settings_ui_presets_open) != bool(presets_section_open):
             cfg.settings_ui_presets_open = bool(presets_section_open)
@@ -8264,7 +8181,7 @@ try:
             PyImGui.separator()
             PyImGui.text("Saved profiles (shared across accounts):")
             if not _profiles_available_for_current_ini():
-                _text_secondary("Saved profiles are unavailable until Pycons is bound to the account-specific live INI.")
+                _text_secondary("Saved profiles are unavailable until Pycons knows which account config to use.")
             else:
                 profiles = _list_pycons_profiles()
                 selected_profile = _get_selected_profile_entry(profiles)
@@ -8345,16 +8262,16 @@ try:
                             _text_secondary(selected_profile_summary)
                         if selected_profile_matches_live:
                             if selected_profile_is_active:
-                                _text_meta("Selected profile is currently applied and already matches live settings.")
+                                _text_meta("This profile is already applied and matches the current settings.")
                             else:
                                 _text_meta("Matches selected profile.")
-                                _text_meta("Selected profile is not the currently active profile on this account.")
+                                _text_meta("This profile is not the active profile on this account.")
                         else:
                             _text_secondary("Live settings differ from selected profile.")
                             if selected_profile_is_active:
                                 _text_meta("Use Revert Live Settings to Selected Profile or Save Over Selected below.")
                             else:
-                                _text_meta("Selected profile is not the currently active profile on this account.")
+                                _text_meta("This profile is not the active profile on this account.")
                     else:
                         _text_secondary("Select a saved profile to load, rename, overwrite, or delete.")
                 else:
@@ -8489,7 +8406,7 @@ try:
         sync_section_open = _styled_collapsing_header(
             "Other Accounts##pycons_settings_sync_dropdown",
             bool(getattr(cfg, "settings_ui_sync_open", False)),
-            "general",
+            "settings_other_accounts",
         )
         if bool(getattr(cfg, "settings_ui_sync_open", False)) != bool(sync_section_open):
             cfg.settings_ui_sync_open = bool(sync_section_open)
@@ -8497,12 +8414,12 @@ try:
         if sync_section_open:
             _draw_pycons_sync_section()
             PyImGui.separator()
-        if _styled_collapsing_header("Select consumables to show in the main window##pycons_settings_consumables_dropdown", False, "general"):
-            _text_secondary("Selected here -> shown in the main window.")
+        if _styled_collapsing_header("Select consumables to show in the main window##pycons_settings_consumables_dropdown", False, "settings_select"):
+            _text_secondary("Items selected here appear in the main window.")
             if bool(cfg.persist_main_runtime_toggles):
                 _text_secondary("Main-window ON/OFF also updates saved enabled defaults.")
             else:
-                _text_secondary("Main-window ON/OFF is runtime-only unless persistence is enabled above.")
+                _text_secondary("Main-window ON/OFF changes are temporary unless saving is enabled above.")
             PyImGui.dummy(0, 4)
             PyImGui.text("Search:")
             _same_line(10)
@@ -8764,13 +8681,13 @@ try:
         mbdp_section_open = _styled_collapsing_header(
             "Morale Boost & Death Penalty settings##pycons_settings_mbdp_dropdown",
             bool(cfg.settings_ui_mbdp_open),
-            "mbdp",
+            "settings_mbdp",
         )
         if bool(cfg.settings_ui_mbdp_open) != bool(mbdp_section_open):
             cfg.settings_ui_mbdp_open = bool(mbdp_section_open)
             cfg.mark_dirty()
         if mbdp_section_open:
-            PyImGui.text("MB/DP upkeep:")
+            PyImGui.text("Morale and DP upkeep:")
             _same_line(10)
             if _badge_button("ON" if cfg.mbdp_enabled else "OFF", enabled=bool(cfg.mbdp_enabled), id_suffix="pycons_settings_mbdp_toggle"):
                 cfg.mbdp_enabled = not bool(cfg.mbdp_enabled)
@@ -8778,14 +8695,14 @@ try:
                 _mark_mbdp_preset_custom()
             _show_setting_tooltip("mbdp_enabled")
 
-            changed, v = ui_checkbox("Allow party-wide in human parties##pycons_mbdp_human", bool(cfg.mbdp_allow_partywide_in_human_parties))
+            changed, v = ui_checkbox("Allow party-wide items with extra human players##pycons_mbdp_human", bool(cfg.mbdp_allow_partywide_in_human_parties))
             if changed:
                 cfg.mbdp_allow_partywide_in_human_parties = bool(v)
                 cfg.mark_dirty()
                 _mark_mbdp_preset_custom()
             _show_setting_tooltip("mbdp_allow_partywide_in_human_parties")
 
-            changed, v = ui_checkbox("Receiver requires item enabled locally##pycons_mbdp_receiver_require_enabled", bool(cfg.mbdp_receiver_require_enabled))
+            changed, v = ui_checkbox("Followers only use items enabled on that account##pycons_mbdp_receiver_require_enabled", bool(cfg.mbdp_receiver_require_enabled))
             if changed:
                 cfg.mbdp_receiver_require_enabled = bool(v)
                 cfg.mark_dirty()
@@ -8799,7 +8716,7 @@ try:
                 _mark_mbdp_preset_custom()
             _show_setting_tooltip("mbdp_prefer_seal_for_recharge")
 
-            if PyImGui.button("Restore default MB/DP settings##pycons_mbdp_restore_defaults"):
+            if PyImGui.button("Restore default morale/DP settings##pycons_mbdp_restore_defaults"):
                 _apply_mbdp_defaults()
                 _mark_mbdp_preset_custom()
                 _debug("MB/DP settings restored to defaults.", Console.MessageType.Info)
@@ -8852,7 +8769,7 @@ try:
 
             PyImGui.separator()
 
-            PyImGui.text(f"Self minor DP trigger ({_fmt_effective(cfg.mbdp_self_dp_minor_threshold)}):")
+            PyImGui.text(f"Your light DP cleanup starts at ({_fmt_effective(cfg.mbdp_self_dp_minor_threshold)}):")
             _same_line(10)
             changed, val = ui_input_int_fixed("##pycons_mbdp_self_minor", int(cfg.mbdp_self_dp_minor_threshold))
             if changed:
@@ -8861,7 +8778,7 @@ try:
                 _mark_mbdp_preset_custom()
             _show_setting_tooltip("mbdp_self_dp_minor_threshold")
 
-            PyImGui.text(f"Self major DP trigger ({_fmt_effective(cfg.mbdp_self_dp_major_threshold)}):")
+            PyImGui.text(f"Your stronger DP cleanup starts at ({_fmt_effective(cfg.mbdp_self_dp_major_threshold)}):")
             _same_line(10)
             changed, val = ui_input_int_fixed("##pycons_mbdp_self_major", int(cfg.mbdp_self_dp_major_threshold))
             if changed:
@@ -8870,7 +8787,7 @@ try:
                 _mark_mbdp_preset_custom()
             _show_setting_tooltip("mbdp_self_dp_major_threshold")
 
-            PyImGui.text(f"Self target effective ({_fmt_effective(cfg.mbdp_self_morale_target_effective)}):")
+            PyImGui.text(f"Your morale target ({_fmt_effective(cfg.mbdp_self_morale_target_effective)}):")
             _same_line(10)
             changed, val = ui_input_int_fixed("##pycons_mbdp_self_target", int(cfg.mbdp_self_morale_target_effective))
             if changed:
@@ -8879,7 +8796,7 @@ try:
                 _mark_mbdp_preset_custom()
             _show_setting_tooltip("mbdp_self_morale_target_effective")
 
-            PyImGui.text("Self minimum useful morale benefit:")
+            PyImGui.text("Minimum useful morale gain for you:")
             _same_line(10)
             changed, val = ui_input_int_fixed("##pycons_mbdp_self_gain", int(cfg.mbdp_self_min_morale_gain))
             if changed:
@@ -8888,7 +8805,7 @@ try:
                 _mark_mbdp_preset_custom()
             _show_setting_tooltip("mbdp_self_min_morale_gain")
 
-            PyImGui.text("Party minimum eligible members:")
+            PyImGui.text("Party members needed before team items:")
             _same_line(10)
             changed, val = ui_input_int_fixed("##pycons_mbdp_party_members", int(cfg.mbdp_party_min_members))
             if changed:
@@ -8897,7 +8814,7 @@ try:
                 _mark_mbdp_preset_custom()
             _show_setting_tooltip("mbdp_party_min_members")
 
-            PyImGui.text("Party trigger interval (ms):")
+            PyImGui.text("Minimum time between team item uses (ms):")
             _same_line(10)
             changed, val = ui_input_int_fixed("##pycons_mbdp_party_interval", int(cfg.mbdp_party_min_interval_ms), width=150.0)
             if changed:
@@ -8906,7 +8823,7 @@ try:
                 _mark_mbdp_preset_custom()
             _show_setting_tooltip("mbdp_party_min_interval_ms")
 
-            PyImGui.text(f"Party target effective ({_fmt_effective(cfg.mbdp_party_target_effective)}):")
+            PyImGui.text(f"Party morale target ({_fmt_effective(cfg.mbdp_party_target_effective)}):")
             _same_line(10)
             changed, val = ui_input_int_fixed("##pycons_mbdp_party_target", int(cfg.mbdp_party_target_effective))
             if changed:
@@ -8915,7 +8832,7 @@ try:
                 _mark_mbdp_preset_custom()
             _show_setting_tooltip("mbdp_party_target_effective")
 
-            PyImGui.text("Party +5 minimum total benefit:")
+            PyImGui.text("Minimum party gain before +5 item:")
             _same_line(10)
             changed, val = ui_input_int_fixed("##pycons_mbdp_party_gain5", int(cfg.mbdp_party_min_total_gain_5))
             if changed:
@@ -8924,7 +8841,7 @@ try:
                 _mark_mbdp_preset_custom()
             _show_setting_tooltip("mbdp_party_min_total_gain_5")
 
-            PyImGui.text("Party +10 minimum total benefit:")
+            PyImGui.text("Minimum party gain before +10 item:")
             _same_line(10)
             changed, val = ui_input_int_fixed("##pycons_mbdp_party_gain10", int(cfg.mbdp_party_min_total_gain_10))
             if changed:
@@ -8933,7 +8850,7 @@ try:
                 _mark_mbdp_preset_custom()
             _show_setting_tooltip("mbdp_party_min_total_gain_10")
 
-            PyImGui.text(f"Party light DP trigger ({_fmt_effective(cfg.mbdp_party_light_dp_threshold)}):")
+            PyImGui.text(f"Party light DP cleanup starts at ({_fmt_effective(cfg.mbdp_party_light_dp_threshold)}):")
             _same_line(10)
             changed, val = ui_input_int_fixed("##pycons_mbdp_party_light", int(cfg.mbdp_party_light_dp_threshold))
             if changed:
@@ -8942,7 +8859,7 @@ try:
                 _mark_mbdp_preset_custom()
             _show_setting_tooltip("mbdp_party_light_dp_threshold")
 
-            PyImGui.text(f"Party heavy DP trigger ({_fmt_effective(cfg.mbdp_party_heavy_dp_threshold)}):")
+            PyImGui.text(f"Party heavy DP cleanup starts at ({_fmt_effective(cfg.mbdp_party_heavy_dp_threshold)}):")
             _same_line(10)
             changed, val = ui_input_int_fixed("##pycons_mbdp_party_heavy", int(cfg.mbdp_party_heavy_dp_threshold))
             if changed:
@@ -8951,7 +8868,7 @@ try:
                 _mark_mbdp_preset_custom()
             _show_setting_tooltip("mbdp_party_heavy_dp_threshold")
 
-            PyImGui.text(f"Powerstone emergency trigger ({_fmt_effective(cfg.mbdp_powerstone_dp_threshold)}):")
+            PyImGui.text(f"Powerstone emergency starts at ({_fmt_effective(cfg.mbdp_powerstone_dp_threshold)}):")
             _same_line(10)
             changed, val = ui_input_int_fixed("##pycons_mbdp_party_powerstone", int(cfg.mbdp_powerstone_dp_threshold))
             if changed:
@@ -8966,7 +8883,7 @@ try:
         alcohol_section_open = _styled_collapsing_header(
             "Alcohol settings##pycons_settings_alcohol_dropdown",
             bool(cfg.settings_ui_alcohol_open),
-            "alcohol",
+            "settings_alcohol",
         )
         if bool(cfg.settings_ui_alcohol_open) != bool(alcohol_section_open):
             cfg.settings_ui_alcohol_open = bool(alcohol_section_open)
@@ -9022,7 +8939,7 @@ try:
         restock_section_open = _styled_collapsing_header(
             "Restock Settings##pycons_settings_restock_dropdown",
             bool(cfg.settings_ui_restock_open),
-            "restock",
+            "settings_restock",
         )
         if bool(cfg.settings_ui_restock_open) != bool(restock_section_open):
             cfg.settings_ui_restock_open = bool(restock_section_open)
@@ -9040,7 +8957,7 @@ try:
                 cfg.mark_dirty()
             _show_setting_tooltip("restock_keep_target_on_deselect")
 
-            PyImGui.text("Restock interval (ms):")
+            PyImGui.text("How often to check Xunlai restock (ms):")
             _same_line(10)
             changed, v = ui_input_int_fixed("##pycons_restock_interval_ms", int(cfg.restock_interval_ms), width=120.0)
             if changed:
@@ -9054,7 +8971,7 @@ try:
                 cfg.mark_dirty()
             _show_setting_tooltip("restock_mode")
 
-            PyImGui.text("Per-cycle move cap:")
+            PyImGui.text("Most items to move at once:")
             _same_line(10)
             changed, cap_val = ui_input_int_fixed("##pycons_restock_move_cap", int(cfg.restock_move_cap_per_cycle), width=120.0)
             if changed:
@@ -9066,8 +8983,8 @@ try:
 
             PyImGui.separator()
             PyImGui.text_wrapped(
-                "Character participation only controls which characters on this account may perform vault restock. "
-                "Restock item targets and per-item restock toggles remain shared account-wide."
+                "Character participation only controls which characters on this account may use Xunlai restock. "
+                "Item targets and item restock toggles stay shared across the account."
             )
 
             changed, scope_mode_idx = ui_combo(
@@ -9080,7 +8997,7 @@ try:
                 cfg.mark_dirty()
             _show_setting_tooltip(
                 "restock_scope_mode",
-                "Controls which characters on this account may perform auto-vault-restock. "
+                "Controls which characters on this account may use auto-restock from Xunlai. "
                 "It does not change the shared restock item settings.",
             )
 
@@ -9094,7 +9011,7 @@ try:
                 cfg.mark_dirty()
             _show_setting_tooltip(
                 "restock_allowed_characters",
-                "Only used in Allow list mode. Only the listed characters may perform auto-vault-restock.",
+                "Only used in Allow list mode. Only the listed characters may use auto-restock from Xunlai.",
             )
 
             changed, new_block_list = ui_input_text(
@@ -9107,7 +9024,7 @@ try:
                 cfg.mark_dirty()
             _show_setting_tooltip(
                 "restock_blocked_characters",
-                "Only used in Block list mode. Listed characters are prevented from performing auto-vault-restock.",
+                "Only used in Block list mode. Listed characters cannot use auto-restock from Xunlai.",
             )
 
             current_character_name = _current_character_name()
@@ -9145,17 +9062,17 @@ try:
             allowed_now, current_character_display, participation_summary = _restock_current_character_participation()
             _text_secondary(
                 f"Current character: {current_character_display} | "
-                f"Auto-restock participation: {'Allowed' if allowed_now else 'Blocked'}"
+                f"Can use auto-restock: {'Yes' if allowed_now else 'No'}"
             )
             _text_meta(participation_summary)
 
-            PyImGui.text_wrapped("Choose target inventory amounts for selected items. Click an item icon to toggle whether that item participates in vault restock.")
-            PyImGui.text_wrapped("Main-window ON/OFF controls usage only. Restock uses the icon toggle below.")
+            PyImGui.text_wrapped("Choose how many of each selected item you want to keep in inventory. Click an item icon to include or exclude it from Xunlai restock.")
+            PyImGui.text_wrapped("Main-window ON/OFF controls item use only. Restock uses the icon toggle below.")
             selected_specs = _selected_restock_specs()
 
             disabled_selected = (int(len(selected_specs)) == 0)
             mode = _begin_disabled(disabled_selected)
-            if PyImGui.button("Enable all selected restock##pycons_restock_enable_all"):
+            if PyImGui.button("Restock all selected items##pycons_restock_enable_all"):
                 changed_any = False
                 for key, _spec in selected_specs:
                     if not _restock_item_enabled(key):
@@ -9165,7 +9082,7 @@ try:
                     cfg.mark_dirty()
             _show_setting_tooltip("restock_enable_all_selected")
             _same_line(10)
-            if PyImGui.button("Disable all selected restock##pycons_restock_disable_all"):
+            if PyImGui.button("Stop restocking all selected items##pycons_restock_disable_all"):
                 changed_any = False
                 for key, _spec in selected_specs:
                     if _restock_item_enabled(key):
@@ -9176,7 +9093,7 @@ try:
             _show_setting_tooltip("restock_disable_all_selected")
             _end_disabled(mode)
 
-            PyImGui.text("Set all selected targets to:")
+            PyImGui.text("Set inventory target for all selected items:")
             _same_line(10)
             changed_bulk, bulk_val = ui_input_int_fixed("##pycons_restock_bulk_target", int(restock_bulk_target[0]), width=90.0)
             if changed_bulk:
@@ -9235,7 +9152,7 @@ try:
         tooltip_section_open = _styled_collapsing_header(
             "Tooltip settings##pycons_settings_tooltip_dropdown",
             bool(cfg.settings_ui_tooltip_open),
-            "general",
+            "settings_tooltip",
         )
         if bool(cfg.settings_ui_tooltip_open) != bool(tooltip_section_open):
             cfg.settings_ui_tooltip_open = bool(tooltip_section_open)

@@ -17,29 +17,68 @@ class _Upkeepers:
         self._config = parent._config
         self._Events = parent.Events
         self.cancel_movement_triggered = False
+        self._hero_ai_pause_applied = False
+        self._hero_ai_pause_snapshot = None
         
     
-    def upkeep_auto_combat(self):
-        from ...Routines import Routines
-        while True:
-            #print (f"autocombat is: {self._config.upkeep.auto_combat.is_active()}")
-            if self._config.upkeep.auto_combat.is_active():
-                yield from self._config.build_handler.ProcessSkillCasting()
-            else:
-                yield from Routines.Yield.wait(250)       
-           
     def upkeep_hero_ai(self):
         from ...Routines import Routines
         from ...GlobalCache import GLOBAL_CACHE
         from Py4GW_widget_manager import get_widget_handler
         handler = get_widget_handler()
         while True:   
+            pause_requested = bool(getattr(self._config.upkeep, "hero_ai_paused", None) and self._config.upkeep.hero_ai_paused.is_active())
+
+            if pause_requested:
+                account_email = Player.GetAccountEmail()
+                current_options = GLOBAL_CACHE.ShMem.GetHeroAIOptionsFromEmail(account_email) if account_email else None
+                if current_options and not self._hero_ai_pause_applied:
+                    self._hero_ai_pause_snapshot = (
+                        current_options.Following,
+                        current_options.Targeting,
+                        current_options.Combat,
+                    )
+                    current_options.Following = False
+                    current_options.Targeting = False
+                    current_options.Combat = False
+                    GLOBAL_CACHE.ShMem.SetHeroAIOptionsByEmail(account_email, current_options)
+                    self._hero_ai_pause_applied = True
+
+                # If an interaction started while moving, stop once and let it settle.
+                if Agent.IsMoving(Player.GetAgentID()) and not self.cancel_movement_triggered:
+                    yield from Routines.Yield.Movement.StopMovement()
+                    self.cancel_movement_triggered = True
+
+                yield from Routines.Yield.wait(200)
+                continue
+            elif self._hero_ai_pause_applied:
+                account_email = Player.GetAccountEmail()
+                current_options = GLOBAL_CACHE.ShMem.GetHeroAIOptionsFromEmail(account_email) if account_email else None
+                if current_options and self._hero_ai_pause_snapshot is not None:
+                    current_options.Following = bool(self._hero_ai_pause_snapshot[0])
+                    current_options.Targeting = bool(self._hero_ai_pause_snapshot[1])
+                    current_options.Combat = bool(self._hero_ai_pause_snapshot[2])
+                    GLOBAL_CACHE.ShMem.SetHeroAIOptionsByEmail(account_email, current_options)
+                self._hero_ai_pause_applied = False
+                self._hero_ai_pause_snapshot = None
+                self.cancel_movement_triggered = False
+
             if not self._config.upkeep.hero_ai.is_active():
                 if handler.is_widget_enabled("HeroAI"):
                     handler.disable_widget("HeroAI")
                 yield from Routines.Yield.wait(500)
                 continue
-            
+
+            self.parent.ResetHeroAICombatState(
+                active=True,
+                following=True,
+                avoidance=True,
+                looting=True,
+                targeting=True,
+                combat=True,
+                skills=True,
+            )
+             
             if not (self.parent.config.pause_on_danger_fn()):
                 self.cancel_movement_triggered = False
             
@@ -51,9 +90,37 @@ class _Upkeepers:
                     
             if self._config.upkeep.hero_ai.is_active() and not handler.is_widget_enabled("HeroAI"):
                 handler.enable_widget("HeroAI")
+                self.parent.ResetHeroAICombatState(
+                    active=True,
+                    following=True,
+                    avoidance=True,
+                    looting=True,
+                    targeting=True,
+                    combat=True,
+                    skills=True,
+                )
             elif not self._config.upkeep.hero_ai.is_active() and handler.is_widget_enabled("HeroAI"):
                 handler.disable_widget("HeroAI")
             yield from Routines.Yield.wait(500)
+
+    def upkeep_build_ticker(self):
+        from ...BuildMgr import BuildMgr
+        from ...Routines import Routines
+
+        while True:
+            if not self._config.upkeep.build_ticker.is_active():
+                yield from Routines.Yield.wait(250)
+                continue
+
+            build = self._config.build_handler
+            if build is None or type(build) is BuildMgr:
+                yield from Routines.Yield.wait(250)
+                continue
+
+            try:
+                yield from build.ProcessSkillCasting()
+            except NotImplementedError:
+                yield from Routines.Yield.wait(250)
         
     def upkeep_auto_inventory_management(self):
         from ...py4gwcorelib_src.AutoInventoryHandler import AutoInventoryHandler

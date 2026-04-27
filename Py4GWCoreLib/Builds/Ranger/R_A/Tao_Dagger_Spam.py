@@ -77,10 +77,14 @@ class Tao_Dagger_Spam(BuildMgr):
         if self.IsSkillEquipped(Breath_of_the_Great_Dwarf_ID) and (yield from self.skills.Any.NoAttribute.Breath_of_the_Great_Dwarf()):
             return True
             
-        if self.IsSkillEquipped(Air_of_Superiority_ID) and (yield from self.skills.Any.PvE.Air_of_Superiority()):
+        if (
+            self.IsSkillEquipped(Air_of_Superiority_ID)
+            and (self.IsInAggro() or self.IsCloseToAggro())
+            and (yield from self.skills.Any.PvE.Air_of_Superiority())
+        ):
             return
 
-        if not Routines.Checks.Agents.InAggro():
+        if not self.IsInAggro():
             return False
 
         if self.IsSkillEquipped(Lightning_Reflexes_ID) and (yield from self.CastSkillID(

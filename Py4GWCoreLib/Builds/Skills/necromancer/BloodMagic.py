@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from Py4GWCoreLib.BuildMgr import BuildCoroutine
-from Py4GWCoreLib import ThrottledTimer
+from Py4GWCoreLib import AgentArray, GLOBAL_CACHE, Range, Routines, ThrottledTimer, Utils
 from Py4GWCoreLib.Agent import Agent
 from Py4GWCoreLib.Player import Player
 from Py4GWCoreLib.Skill import Skill
@@ -22,6 +22,57 @@ class BloodMagic:
         self.bip_throttle.Stop()
 
     #region B
+    def Blood_Bond(self) -> BuildCoroutine:
+        blood_bond_id: int = Skill.GetID("Blood_Bond")
+
+        if not self.build.IsSkillEquipped(blood_bond_id):
+            return False
+        if not self.build.IsInAggro():
+            return False
+
+        player_pos = Player.GetXY()
+        enemy_array = Routines.Agents.GetFilteredEnemyArray(
+            player_pos[0], player_pos[1], Range.Spellcast.value
+        )
+        candidates = AgentArray.Filter.ByCondition(
+            enemy_array,
+            lambda agent_id: (
+                Agent.IsValid(agent_id)
+                and not Agent.IsDead(agent_id)
+                and Agent.GetHealth(agent_id) < 0.5
+            ),
+        )
+        if not candidates:
+            return False
+
+        candidates = sorted(
+            candidates,
+            key=lambda agent_id: (
+                Agent.GetHealth(agent_id),
+                Utils.Distance(player_pos, Agent.GetXY(agent_id)),
+            ),
+        )
+
+        target_agent_id = candidates[0]
+        target_pos = Agent.GetXY(target_agent_id)
+        aoe_range = Range.Adjacent.value
+        nearby = Routines.Agents.GetFilteredEnemyArray(
+            target_pos[0], target_pos[1], aoe_range
+        )
+        nearby = AgentArray.Filter.ByCondition(
+            nearby,
+            lambda agent_id: Agent.IsValid(agent_id) and not Agent.IsDead(agent_id),
+        )
+        if max(0, len(nearby) - 1) < 2:
+            return False
+
+        return (yield from self.build.CastSkillIDAndRestoreTarget(
+            blood_bond_id,
+            target_agent_id,
+            log=False,
+            aftercast_delay=250,
+        ))
+
     def Blood_is_Power(self) -> BuildCoroutine:
         blood_is_power_id: int = Skill.GetID("Blood_is_Power")
         blood_is_power: CustomSkill = self.build.GetCustomSkill(blood_is_power_id)
@@ -30,7 +81,33 @@ class BloodMagic:
             return self.bip_throttle.IsStopped() or self.bip_throttle.IsExpired()
 
         def _can_safely_cast_bip() -> bool:
-            return Agent.GetHealth(Player.GetAgentID()) > blood_is_power.Conditions.SacrificeHealth
+            # Refuse if the caster's HP after the BiP sacrifice would land at or
+            # below the percent-of-max floor or the absolute-HP floor. Mirrors the
+            # post-sacrifice safety check in HeroAI/combat.py so the build path
+            # honors the same floors as the HeroAI fallback.
+            player_id = Player.GetAgentID()
+            conditions = blood_is_power.Conditions
+
+            current_hp_fraction = float(Agent.GetHealth(player_id))
+            sacrifice_floor = float(conditions.SacrificeHealth or 0.0)
+            if current_hp_fraction <= sacrifice_floor:
+                return False
+
+            sacrifice_pct = float(conditions.SacrificePercent or 0.0)
+            min_after_pct = float(conditions.MinHealthAfterSacrificePercent or 0.0)
+            min_after_abs = int(conditions.MinHealthAfterSacrificeAbsolute or 0)
+            if sacrifice_pct > 0 and (min_after_pct > 0 or min_after_abs > 0):
+                max_hp = Agent.GetMaxHealth(player_id)
+                if max_hp <= 0:
+                    return False
+                sacrifice_amount = max_hp * sacrifice_pct
+                hp_after_sacrifice = (current_hp_fraction * max_hp) - sacrifice_amount
+                if min_after_abs > 0 and hp_after_sacrifice <= min_after_abs:
+                    return False
+                if min_after_pct > 0 and (hp_after_sacrifice / max_hp) <= min_after_pct:
+                    return False
+
+            return True
 
         if not self.build.IsSkillEquipped(blood_is_power_id):
             return False

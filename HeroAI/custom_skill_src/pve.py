@@ -14,6 +14,15 @@ class PVESkills:
         skill.Nature = SkillNature.Resurrection.value
         skill.Conditions.IsAlive = False
         skill_data[skill.SkillID] = skill
+        
+        skill = CustomSkill()
+        skill.SkillID = GLOBAL_CACHE.Skill.GetID("Signet_of_Capture")
+        skill.SkillType = SkillType.Signet.value
+        skill.TargetAllegiance = Skilltarget.Self.value
+        skill.Nature = SkillNature.Neutral.value
+        skill.Conditions.IsOutOfCombat = True
+        skill.Conditions.LessLife = 0.01 #skill effectively disabled
+        skill_data[skill.SkillID] = skill
 
         #region ANNIVERSARY
 
@@ -90,6 +99,8 @@ class PVESkills:
         skill.SkillType = SkillType.WeaponSpell.value
         skill.TargetAllegiance = Skilltarget.Self.value
         skill.Nature = SkillNature.Buff.value
+        skill.Conditions.IsOutOfCombat = True
+        skill.Conditions.AllowOverlapWeaponSpell = False
         skill_data[skill.SkillID] = skill
 
         #region KURZICK_LUXON
@@ -442,7 +453,7 @@ class PVESkills:
         skill = CustomSkill()
         skill.SkillID = GLOBAL_CACHE.Skill.GetID("Technobabble")
         skill.SkillType = SkillType.Spell.value
-        skill.TargetAllegiance = Skilltarget.Enemy.value
+        skill.TargetAllegiance = Skilltarget.EnemyClustered.value
         skill.Nature = SkillNature.Offensive.value
         skill_data[skill.SkillID] = skill
 
@@ -528,6 +539,7 @@ class PVESkills:
         skill.SkillType = SkillType.WeaponSpell.value
         skill.TargetAllegiance = Skilltarget.AllyMartial.value
         skill.Nature = SkillNature.Buff.value
+        skill.Conditions.AllowOverlapWeaponSpell = True
         #skill.TargetAllegiance = Skilltarget.AllyNPCByModel.value
         #skill.Nature = SkillNature.CustomA.value
         skill.Conditions.TargetingStrict = True
@@ -769,7 +781,6 @@ class PVESkills:
         skill.TargetAllegiance = Skilltarget.Self.value
         skill.Nature = SkillNature.Buff.value
         skill.Conditions.IsMoving = True
-        skill.Conditions.IsOutOfCombat = True
         #skill.Conditions.UniqueProperty = True
         skill_data[skill.SkillID] = skill
 
@@ -781,6 +792,7 @@ class PVESkills:
         skill.Conditions.UniqueProperty = True
         skill_data[skill.SkillID] = skill
 
+        # Blood Washes Blood mission Ursan skills use different IDs than base Ursan.
         skill = CustomSkill()
         skill.SkillID = 2395  # Ursan Roar (Blood Washes Blood)
         skill.SkillType = SkillType.Skill.value
@@ -794,8 +806,16 @@ class PVESkills:
         skill.SkillType = SkillType.Skill.value
         skill.TargetAllegiance = Skilltarget.Self.value
         skill.Nature = SkillNature.Buff.value
+        skill.Conditions.IsMoving = True
+        skill_data[skill.SkillID] = skill
+
+        skill = CustomSkill()
+        skill.SkillID = GLOBAL_CACHE.Skill.GetID("Totem_of_Man")
+        skill.SkillType = SkillType.Form.value
+        skill.TargetAllegiance = Skilltarget.Self.value
+        skill.Nature = SkillNature.Neutral.value
         skill.Conditions.IsOutOfCombat = True
-        #skill.Conditions.UniqueProperty = True
+        skill.Conditions.LessLife = 0.01  # effectively disabled in all practical cases
         skill_data[skill.SkillID] = skill
 
         skill = CustomSkill()
@@ -983,7 +1003,7 @@ class PVESkills:
         skill = CustomSkill()
         skill.SkillID = GLOBAL_CACHE.Skill.GetID("Junundu_Feast")
         skill.SkillType = SkillType.Skill.value
-        skill.TargetAllegiance = Skilltarget.Corpse.value
+        skill.TargetAllegiance = Skilltarget.ExploitableCorpse.value
         skill.Nature = SkillNature.Offensive.value
         skill.Conditions.IsAlive = False
         skill_data[skill.SkillID] = skill

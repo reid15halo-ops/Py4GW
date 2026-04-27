@@ -225,6 +225,60 @@ class BuildMgr:
             return None
         return self.GetCustomSkill(skill_id)
 
+    def _get_shared_skill_toggle(self, slot: int) -> bool:
+        if not (1 <= int(slot) <= 8):
+            return False
+
+        options = getattr(self._cached_data, "account_options", None)
+        if options is None:
+            try:
+                from Py4GWCoreLib import GLOBAL_CACHE, Player
+
+                account_email = Player.GetAccountEmail()
+                if account_email:
+                    options = GLOBAL_CACHE.ShMem.GetHeroAIOptionsFromEmail(account_email)
+            except Exception:
+                options = None
+
+        if options is None:
+            return True
+
+        skills = getattr(options, "Skills", None)
+        if skills is None:
+            return True
+
+        try:
+            return bool(skills[int(slot) - 1])
+        except (IndexError, TypeError, ValueError):
+            return True
+
+    def IsSharedSkillToggleEnabled(self, slot: int) -> bool:
+        return self._get_shared_skill_toggle(slot)
+    
+    def GetActiveScanRange(self) -> float:
+        cached_data = getattr(self, "_cached_data", None)
+        if cached_data is not None and hasattr(cached_data, "GetActiveScanRange"):
+            return float(cached_data.GetActiveScanRange())
+        
+        try:
+            from HeroAI.cache_data import CacheData
+            cached_data = CacheData()
+            cached_data.Update()
+            return float(cached_data.GetActiveScanRange())
+        except Exception:
+            from Py4GWCoreLib import Range, Routines
+            return Range.Spellcast.value if Routines.Checks.Agents.InAggro() else Range.Earshot.value
+    
+    def IsInAggro(self) -> bool:
+        cached_data = getattr(self, "_cached_data", None)
+        if cached_data is not None:
+            data = getattr(cached_data, "data", None)
+            if data is not None:
+                return bool(data.in_aggro)
+        
+        from Py4GWCoreLib import Routines
+        return bool(Routines.Checks.Agents.InAggro(self.GetActiveScanRange()))
+
     def IsCloseToAggro(self) -> bool:
         """Returns True when combat is imminent but the player is not yet engaged."""
         from Py4GWCoreLib import Routines
@@ -239,6 +293,10 @@ class BuildMgr:
             TargetLowestAllyMartial,
             TargetLowestAllyMelee,
             TargetLowestAllyRanged,
+            TargetAllyNonEnchanted,
+            TargetMinionNonEnchanted,
+            TargetMinionOrAllyNonEnchanted,
+            TargetDeadPartyMember,
         )
         from HeroAI.types import Skilltarget, SkillType
         from Py4GWCoreLib import Agent, AgentArray, Player, Routines, Skill
@@ -250,6 +308,13 @@ class BuildMgr:
 
         target_allegiance = custom_skill.TargetAllegiance
         targeting_strict = bool(custom_skill.Conditions.TargetingStrict)
+
+        if target_allegiance == Skilltarget.MinionOrAllyNonEnchanted.value:
+            return TargetMinionOrAllyNonEnchanted(filter_skill_id=skill_id)
+        if target_allegiance == Skilltarget.MinionNonEnchanted.value:
+            return TargetMinionNonEnchanted()
+        if target_allegiance == Skilltarget.AllyNonEnchanted.value:
+            return TargetAllyNonEnchanted()
 
         if target_allegiance in (
             Skilltarget.Ally.value,
@@ -265,7 +330,14 @@ class BuildMgr:
             other_ally = target_allegiance == Skilltarget.OtherAlly.value
             base_target = 0
             if custom_skill.SkillType == SkillType.WeaponSpell.value:
-                weapon_spell_predicate = lambda agent_id: not Routines.Checks.Agents.IsWeaponSpelled(agent_id)
+                if custom_skill.Conditions.AllowOverlapWeaponSpell:
+                    weapon_spell_predicate = lambda agent_id: not Routines.Checks.Agents.HasEffect(
+                        agent_id,
+                        skill_id,
+                        exact_weapon_spell=True,
+                    )
+                else:
+                    weapon_spell_predicate = lambda agent_id: not Routines.Checks.Agents.IsWeaponSpelled(agent_id)
             if target_allegiance == Skilltarget.Ally.value:
                 base_target = TargetLowestAlly(other_ally=other_ally, filter_skill_id=skill_id)
             elif target_allegiance == Skilltarget.AllyCaster.value:
@@ -320,13 +392,7 @@ class BuildMgr:
             return 0
         if target_allegiance == Skilltarget.DeadAlly.value:
             from Py4GWCoreLib.enums_src.GameData_enums import Range
-            dead_ally_array = AgentArray.GetDeadAllyArray()
-            dead_ally_array = AgentArray.Filter.ByDistance(dead_ally_array, Player.GetXY(), Range.Spellcast.value)
-            spirit_pet_array = AgentArray.GetSpiritPetArray()
-            spirit_pet_array = AgentArray.Filter.ByDistance(spirit_pet_array, Player.GetXY(), Range.Spellcast.value)
-            dead_ally_array = AgentArray.Manipulation.Subtract(dead_ally_array, spirit_pet_array)
-            dead_ally_array = AgentArray.Sort.ByDistance(dead_ally_array, Player.GetXY())
-            return dead_ally_array[0] if dead_ally_array else 0
+            return TargetDeadPartyMember(Range.Spellcast.value)
         if target_allegiance == Skilltarget.Self.value:
             return Player.GetAgentID()
 
@@ -675,7 +741,7 @@ class BuildMgr:
     def _refresh_target_tracking(self) -> None:
         from Py4GWCoreLib import Routines
 
-        in_aggro = bool(Routines.Checks.Agents.InAggro())
+        in_aggro = self.IsInAggro()
         if self._was_in_aggro and not in_aggro:
             self.ResetTarget()
             self.ResetPartyHealthMonitor()
@@ -685,13 +751,17 @@ class BuildMgr:
         self,
         cluster_radius: float,
         preferred_condition: Callable[[int], bool] | None = None,
+        *,
+        filter_radius: float | None = None,
     ) -> int:
         from Py4GWCoreLib import Player, AgentArray
         from Py4GWCoreLib.Agent import Agent
 
+        effective_filter_radius = float(filter_radius if filter_radius is not None else cluster_radius)
+
         player_pos = Player.GetXY()
         enemy_array = AgentArray.GetEnemyArray()
-        enemy_array = AgentArray.Filter.ByDistance(enemy_array, player_pos, cluster_radius)
+        enemy_array = AgentArray.Filter.ByDistance(enemy_array, player_pos, effective_filter_radius)
         enemy_array = AgentArray.Filter.ByCondition(enemy_array, lambda agent_id: Agent.IsAlive(agent_id))
 
         if not enemy_array:
@@ -743,7 +813,8 @@ class BuildMgr:
         if not Routines.Checks.Agents.IsMelee(Player.GetAgentID()):
             return desired_target
 
-        nearest_enemy = Routines.Agents.GetNearestEnemy(Range.Spellcast.value)
+        combat_distance = self.GetActiveScanRange()
+        nearest_enemy = Routines.Agents.GetNearestEnemy(combat_distance)
         if not (Agent.IsValid(nearest_enemy) and not Agent.IsDead(nearest_enemy)):
             return desired_target
 
@@ -754,7 +825,7 @@ class BuildMgr:
         nearby_enemies = Routines.Agents.GetFilteredEnemyArray(
             player_pos[0],
             player_pos[1],
-            Range.Spellcast.value,
+            combat_distance,
         )
 
         contact_enemies = [
@@ -816,35 +887,35 @@ class BuildMgr:
     
     def _pick_fallback_target(self, target_type: str) -> int:
         from HeroAI.targeting import GetEnemyAttacking, GetEnemyInjured, TargetClusteredEnemy
-        from Py4GWCoreLib import Range
         from Py4GWCoreLib.Agent import Agent
         
+        combat_distance = self.GetActiveScanRange()
         return_target = 0
         if target_type == "EnemyClustered":
-            return_target = TargetClusteredEnemy(Range.Earshot.value)
+            return_target = TargetClusteredEnemy(combat_distance)
             if not (Agent.IsValid(return_target) and not Agent.IsDead(return_target)):
-                return_target = GetEnemyInjured(Range.Earshot.value)
+                return_target = GetEnemyInjured(combat_distance)
         elif target_type == "EnemyHexedOrEnchantedClustered":
             return_target = self._pick_clustered_target(
-                Range.Earshot.value,
+                combat_distance,
                 preferred_condition=lambda agent_id: Agent.IsHexed(agent_id) or Agent.IsEnchanted(agent_id),
             )
             if not (Agent.IsValid(return_target) and not Agent.IsDead(return_target)):
-                return_target = GetEnemyInjured(Range.Earshot.value)
+                return_target = GetEnemyInjured(combat_distance)
         elif target_type == "EnemyAttackingClustered":
             return_target = self._pick_clustered_target(
-                Range.Earshot.value,
+                combat_distance,
                 preferred_condition=lambda agent_id: Agent.IsAttacking(agent_id),
             )
             if not (Agent.IsValid(return_target) and not Agent.IsDead(return_target)):
-                return_target = GetEnemyInjured(Range.Earshot.value)
+                return_target = GetEnemyInjured(combat_distance)
         elif target_type == "EnemyAttacking":
-            return_target = GetEnemyAttacking(Range.Earshot.value)
+            return_target = GetEnemyAttacking(combat_distance)
             if not (Agent.IsValid(return_target) and not Agent.IsDead(return_target)):
-                return_target = GetEnemyInjured(Range.Earshot.value)
-                 
+                return_target = GetEnemyInjured(combat_distance)
+                  
         elif target_type == "EnemyInjured":
-            return_target = GetEnemyInjured(Range.Earshot.value)
+            return_target = GetEnemyInjured(combat_distance)
 
         return_target = self._prefer_melee_nearest_enemy(return_target)
 
@@ -1051,6 +1122,18 @@ class BuildMgr:
         if not self._is_spirit_skill(skill_id):
             return False
 
+        # Allow the skill's metadata to request HP-aware recast: when the spirit's
+        # current HP fraction drops below `MinSpiritHpFractionForRecast`, treat it
+        # as absent so the caller can refresh before the spirit naturally dies.
+        # 0.0 (default) keeps the pre-change binary alive/dead gate.
+        min_hp_fraction = 0.0
+        try:
+            custom_skill = self.GetCustomSkill(skill_id)
+            if custom_skill is not None:
+                min_hp_fraction = float(custom_skill.Conditions.MinSpiritHpFractionForRecast or 0.0)
+        except Exception:
+            min_hp_fraction = 0.0
+
         spirit_array = AgentArray.GetSpiritPetArray()
         spirit_array = AgentArray.Filter.ByDistance(spirit_array, Player.GetXY(), Range.Earshot.value)
         spirit_array = AgentArray.Filter.ByCondition(spirit_array, lambda agent_id: Agent.IsAlive(agent_id))
@@ -1062,6 +1145,8 @@ class BuildMgr:
 
             spirit_model_id = SpiritModelID(model_value)
             if SPIRIT_BUFF_MAP.get(spirit_model_id) == skill_id:
+                if min_hp_fraction > 0.0 and Agent.GetHealth(spirit_id) < min_hp_fraction:
+                    continue
                 return True
 
         return False
@@ -1312,7 +1397,10 @@ class BuildMgr:
                 return False
 
         if custom_skill.SkillType == SkillType.WeaponSpell.value:
-            if Routines.Checks.Agents.IsWeaponSpelled(target_agent_id):
+            if custom_skill.Conditions.AllowOverlapWeaponSpell:
+                if Routines.Checks.Agents.HasEffect(target_agent_id, skill_id, exact_weapon_spell=True):
+                    return False
+            elif Routines.Checks.Agents.IsWeaponSpelled(target_agent_id):
                 return False
 
         return True
@@ -1337,6 +1425,8 @@ class BuildMgr:
 
         slot = SkillBar.GetSlotBySkillID(skill_id)
         if not (1 <= slot <= 8):
+            return False
+        if not self.IsSharedSkillToggleEnabled(slot):
             return False
         if not Routines.Checks.Skills.HasEnoughAdrenalineBySlot(slot):
             return False
@@ -1363,6 +1453,8 @@ class BuildMgr:
 
         skill_id = SkillBar.GetSkillIDBySlot(slot)
         if not skill_id:
+            return False
+        if not self.IsSharedSkillToggleEnabled(slot):
             return False
         if not Routines.Checks.Skills.HasEnoughEnergy(Player.GetAgentID(), skill_id):
             return False
@@ -1454,7 +1546,26 @@ class BuildMgr:
                 aftercast_delay=aftercast_delay,
             ))
 
-        yield from self._move_for_spirit_cast()
+        # yield from self._move_for_spirit_cast()
+        #
+        # Pre-cast positioning disabled. Previously this path ran the line
+        # above, which issued Player.Move and interrupted any in-progress
+        # cast. When the player had not yet arrived at the destination by
+        # the time UseSkill ran, the cast silently failed - leaving the
+        # caster stuck in a cast-retry + reposition loop while HeroAI's
+        # follow behavior pulled them back. Post-cast step-away inside
+        # CastSkillID still runs and keeps the caster from standing inside
+        # the new spirit after it has actually spawned.
+        #
+        # The helpers _move_for_spirit_cast and _pick_spirit_precast_position
+        # are intentionally left in place. They do semi-work today (the move
+        # happens, the candidate search runs) but are mis-timed: the cast is
+        # fired before the player arrives at the destination, so the spirit
+        # spawns at an intermediate position or not at all. They can be re-
+        # enabled by uncommenting the line above after fixing the timing
+        # (arrival poll on Player.Move, widening the candidate search to
+        # avoid dead-ends in crowded spirit clusters, and decoupling the
+        # move-distance from the overlap radius).
         return (yield from self.CastSkillID(
             skill_id=skill_id,
             extra_condition=extra_condition,
@@ -1502,9 +1613,9 @@ class BuildMgr:
         if self._local_ooc_handler is None and self._local_combat_handler is None:
             raise NotImplementedError
 
-        from Py4GWCoreLib import Range, Routines
+        from Py4GWCoreLib.botting_src.helpers_src.HeroAICombatRange import hero_ai_combat_detected
 
-        if Routines.Checks.Agents.InDanger(Range.Earshot):
+        if hero_ai_combat_detected():
             yield from self.ProcessCombat()
         else:
             yield from self.ProcessOOC()

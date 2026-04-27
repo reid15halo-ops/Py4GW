@@ -218,7 +218,7 @@ class Targeting:
         return Utils.GetFirstFromArray(item_array)
 
     @staticmethod
-    def TargetClusteredEnemy(area=4500.0):
+    def TargetClusteredEnemy(area=4500.0, *, cluster_radius: float | None = None):
         from ..Agent import Agent
         from ..AgentArray import AgentArray
         from ..GlobalCache import GLOBAL_CACHE
@@ -227,8 +227,9 @@ class Targeting:
         enemy_array = AgentArray.GetEnemyArray()
         enemy_array = AgentArray.Filter.ByDistance(enemy_array, Player.GetXY(), distance)
         enemy_array = AgentArray.Filter.ByCondition(enemy_array, lambda agent_id: Agent.IsAlive(agent_id))
-        
-        clustered_agent = AgentArray.Routines.DetectLargestAgentCluster(enemy_array, area)
+
+        effective_cluster_radius = float(cluster_radius if cluster_radius is not None else area)
+        clustered_agent = AgentArray.Routines.DetectLargestAgentCluster(enemy_array, effective_cluster_radius)
         return clustered_agent
 
 
@@ -283,10 +284,32 @@ class Targeting:
         return Utils.GetFirstFromArray(enemy_array)
 
     @staticmethod
-    def GetEnemyInjured(max_distance=4500.0, aggressive_only = False): 
-        from ..Py4GWcorelib import Utils 
-        from ..AgentArray import AgentArray 
-        from ..GlobalCache import GLOBAL_CACHE 
+    def GetEnemyCastingSpellOrChant(max_distance=4500.0, aggressive_only=False):
+        from ..Py4GWcorelib import Utils
+        from ..AgentArray import AgentArray
+        from ..GlobalCache import GLOBAL_CACHE
+        from .Agents import Agents
+        from ..Agent import Agent
+        def _filter_spells_or_chants(enemy_array):
+            result_array = []
+            for enemy_id in enemy_array:
+                casting_skill_id = Agent.GetCastingSkillID(enemy_id)
+                if GLOBAL_CACHE.Skill.Flags.IsSpell(casting_skill_id) or GLOBAL_CACHE.Skill.Flags.IsChant(casting_skill_id):
+                    result_array.append(enemy_id)
+            return result_array
+
+        player_pos = Player.GetXY()
+        enemy_array = Agents.GetFilteredEnemyArray(player_pos[0], player_pos[1], max_distance, aggressive_only)
+        enemy_array = AgentArray.Filter.ByCondition(enemy_array, lambda agent_id: Agent.IsCasting(agent_id))
+        enemy_array = _filter_spells_or_chants(enemy_array)
+        enemy_array = AgentArray.Sort.ByDistance(enemy_array, player_pos)
+        return Utils.GetFirstFromArray(enemy_array)
+
+    @staticmethod
+    def GetEnemyInjured(max_distance=4500.0, aggressive_only = False):
+        from ..Py4GWcorelib import Utils
+        from ..AgentArray import AgentArray
+        from ..GlobalCache import GLOBAL_CACHE
         from .Agents import Agents 
         from ..Agent import Agent
         player_pos = Player.GetXY() 

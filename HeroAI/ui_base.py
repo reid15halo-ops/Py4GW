@@ -11,6 +11,7 @@ from Py4GWCoreLib.Player import Player
 
 from HeroAI.cache_data import CacheData
 from HeroAI.constants import NUMBER_OF_SKILLS
+from HeroAI.follow_movement import load_follow_movement_config, save_follow_movement_config
 from HeroAI.utils import DrawFlagAll, DrawHeroFlag, IsHeroFlagged
 from HeroAI.windows import HeroAI_FloatingWindows, HeroAI_Windows
 from .constants import MAX_NUM_PLAYERS, NUMBER_OF_SKILLS
@@ -54,7 +55,9 @@ class HeroAI_BaseUI:
     capture_flag_all = False
     follow_formations_ini_key = ""
     follow_formations_settings_key = ""
+    follow_runtime_ini_key = ""
     follow_window_ini_vars_registered = False
+    follow_window_ini_vars_registered_key = ""
     follow_formations_names: list[str] = []
     follow_formations_ids: list[str] = []
     follow_formations_selected_index = 0
@@ -1185,14 +1188,24 @@ class HeroAI_BaseUI:
             HeroAI_BaseUI.follow_formations_ini_key = im.ensure_global_key("HeroAI", "FollowModule_Formations.ini")
         if not HeroAI_BaseUI.follow_formations_settings_key:
             HeroAI_BaseUI.follow_formations_settings_key = im.ensure_global_key("HeroAI", "FollowModule_Settings.ini")
-        return bool(HeroAI_BaseUI.follow_formations_ini_key and HeroAI_BaseUI.follow_formations_settings_key)
+        if not HeroAI_BaseUI.follow_runtime_ini_key:
+            HeroAI_BaseUI.follow_runtime_ini_key = im.ensure_global_key("HeroAI", "FollowRuntime.ini")
+        return bool(
+            HeroAI_BaseUI.follow_formations_ini_key
+            and HeroAI_BaseUI.follow_formations_settings_key
+            and HeroAI_BaseUI.follow_runtime_ini_key
+        )
 
     @staticmethod
     def _ensure_follow_window_ini_vars(ini_key: str):
-        if not ini_key:
+        if not HeroAI_BaseUI._ensure_follow_module_ini_keys():
             return
+        ini_key = HeroAI_BaseUI.follow_runtime_ini_key
         im = IniManager()
-        if not HeroAI_BaseUI.follow_window_ini_vars_registered:
+        if (
+            not HeroAI_BaseUI.follow_window_ini_vars_registered
+            or HeroAI_BaseUI.follow_window_ini_vars_registered_key != ini_key
+        ):
             im.add_bool(ini_key, "show_broadcast_follow_positions", "FollowRuntime", "show_broadcast_follow_positions", True)
             im.add_bool(ini_key, "show_broadcast_follow_threshold_rings", "FollowRuntime", "show_broadcast_follow_threshold_rings", True)
             im.add_bool(ini_key, "show_flagging_window", "FollowRuntime", "show_flagging_window", False)
@@ -1203,12 +1216,14 @@ class HeroAI_BaseUI:
             im.add_str(ini_key, "follow_move_threshold_combat_mode", "FollowRuntime", "follow_move_threshold_combat_mode", "Touch")
             im.add_str(ini_key, "follow_move_threshold_flagged_mode", "FollowRuntime", "follow_move_threshold_flagged_mode", "Zero")
             HeroAI_BaseUI.follow_window_ini_vars_registered = True
+            HeroAI_BaseUI.follow_window_ini_vars_registered_key = ini_key
         im.load_once(ini_key)
 
     @staticmethod
     def _load_follow_runtime_config(ini_key: str):
-        if not HeroAI_BaseUI._ensure_follow_module_ini_keys() or not ini_key:
+        if not HeroAI_BaseUI._ensure_follow_module_ini_keys():
             return
+        ini_key = HeroAI_BaseUI.follow_runtime_ini_key
         HeroAI_BaseUI._ensure_follow_window_ini_vars(ini_key)
         im = IniManager()
         hero_globals.show_broadcast_follow_positions = bool(im.getBool(ini_key, "show_broadcast_follow_positions", True, section="FollowRuntime"))
@@ -1222,9 +1237,22 @@ class HeroAI_BaseUI:
         HeroAI_BaseUI.follow_move_threshold_flagged_mode = str(im.getStr(ini_key, "follow_move_threshold_flagged_mode", "Zero", section="FollowRuntime"))
 
     @staticmethod
+    def _write_follow_runtime_value(im: IniManager, ini_key: str, name: str, value) -> None:
+        section = "FollowRuntime"
+        im.write_key(ini_key, section, name, value)
+        node = im._get_node(ini_key)
+        if node:
+            text_value = str(value)
+            node.ini_handler.write_key(section, name, text_value)
+            node.cached_values[(section, name)] = text_value
+            node.pending_writes.pop((section, name), None)
+            node.needs_flush = bool(node.pending_writes)
+
+    @staticmethod
     def _save_follow_runtime_config(ini_key: str):
-        if not HeroAI_BaseUI._ensure_follow_module_ini_keys() or not ini_key:
+        if not HeroAI_BaseUI._ensure_follow_module_ini_keys():
             return
+        ini_key = HeroAI_BaseUI.follow_runtime_ini_key
         im = IniManager()
         HeroAI_BaseUI._ensure_follow_window_ini_vars(ini_key)
         im.set(ini_key, "show_broadcast_follow_positions", bool(hero_globals.show_broadcast_follow_positions), section="FollowRuntime")
@@ -1237,6 +1265,15 @@ class HeroAI_BaseUI:
         im.set(ini_key, "follow_move_threshold_combat_mode", str(HeroAI_BaseUI.follow_move_threshold_combat_mode), section="FollowRuntime")
         im.set(ini_key, "follow_move_threshold_flagged_mode", str(HeroAI_BaseUI.follow_move_threshold_flagged_mode), section="FollowRuntime")
         im.save_vars(ini_key)
+        HeroAI_BaseUI._write_follow_runtime_value(im, ini_key, "show_broadcast_follow_positions", bool(hero_globals.show_broadcast_follow_positions))
+        HeroAI_BaseUI._write_follow_runtime_value(im, ini_key, "show_broadcast_follow_threshold_rings", bool(hero_globals.show_broadcast_follow_threshold_rings))
+        HeroAI_BaseUI._write_follow_runtime_value(im, ini_key, "show_flagging_window", bool(hero_globals.show_flagging_window))
+        HeroAI_BaseUI._write_follow_runtime_value(im, ini_key, "follow_move_threshold_default", float(HeroAI_BaseUI.follow_move_threshold_default))
+        HeroAI_BaseUI._write_follow_runtime_value(im, ini_key, "follow_move_threshold_combat", float(HeroAI_BaseUI.follow_move_threshold_combat))
+        HeroAI_BaseUI._write_follow_runtime_value(im, ini_key, "follow_move_threshold_flagged", float(HeroAI_BaseUI.follow_move_threshold_flagged))
+        HeroAI_BaseUI._write_follow_runtime_value(im, ini_key, "follow_move_threshold_default_mode", str(HeroAI_BaseUI.follow_move_threshold_default_mode))
+        HeroAI_BaseUI._write_follow_runtime_value(im, ini_key, "follow_move_threshold_combat_mode", str(HeroAI_BaseUI.follow_move_threshold_combat_mode))
+        HeroAI_BaseUI._write_follow_runtime_value(im, ini_key, "follow_move_threshold_flagged_mode", str(HeroAI_BaseUI.follow_move_threshold_flagged_mode))
 
     @staticmethod
     def _load_follow_formations_quick_data():
@@ -1447,6 +1484,45 @@ class HeroAI_BaseUI:
                 if HeroAI_BaseUI.follow_move_threshold_flagged_mode != "Manual":
                     HeroAI_BaseUI.follow_move_threshold_flagged_mode = "Manual"
                 dirty_runtime_cfg = True
+
+            movement_cfg = load_follow_movement_config()
+            PyImGui.separator()
+            PyImGui.text("Combat Movement Mix")
+
+            new_recovery_distance = max(1.0, float(PyImGui.input_float("Slot Recovery Distance", float(movement_cfg.slot_recovery_distance))))
+            if abs(new_recovery_distance - movement_cfg.slot_recovery_distance) > 0.0001:
+                movement_cfg.slot_recovery_distance = new_recovery_distance
+                save_follow_movement_config(movement_cfg)
+
+            new_ally_radius = max(0.0, float(PyImGui.input_float("Ally Repulsion Radius", float(movement_cfg.ally_repulsion_radius))))
+            if abs(new_ally_radius - movement_cfg.ally_repulsion_radius) > 0.0001:
+                movement_cfg.ally_repulsion_radius = new_ally_radius
+                save_follow_movement_config(movement_cfg)
+
+            new_ally_weight = max(0.0, float(PyImGui.input_float("Ally Repulsion Weight", float(movement_cfg.ally_repulsion_weight))))
+            if abs(new_ally_weight - movement_cfg.ally_repulsion_weight) > 0.0001:
+                movement_cfg.ally_repulsion_weight = new_ally_weight
+                save_follow_movement_config(movement_cfg)
+
+            new_enemy_radius = max(0.0, float(PyImGui.input_float("Enemy Repulsion Radius", float(movement_cfg.enemy_repulsion_radius))))
+            if abs(new_enemy_radius - movement_cfg.enemy_repulsion_radius) > 0.0001:
+                movement_cfg.enemy_repulsion_radius = new_enemy_radius
+                save_follow_movement_config(movement_cfg)
+
+            new_enemy_weight = max(0.0, float(PyImGui.input_float("Enemy Repulsion Weight", float(movement_cfg.enemy_repulsion_weight))))
+            if abs(new_enemy_weight - movement_cfg.enemy_repulsion_weight) > 0.0001:
+                movement_cfg.enemy_repulsion_weight = new_enemy_weight
+                save_follow_movement_config(movement_cfg)
+
+            new_move_clamp = max(1.0, float(PyImGui.input_float("Local Move Clamp", float(movement_cfg.local_move_clamp))))
+            if abs(new_move_clamp - movement_cfg.local_move_clamp) > 0.0001:
+                movement_cfg.local_move_clamp = new_move_clamp
+                save_follow_movement_config(movement_cfg)
+
+            new_min_move = max(0.0, float(PyImGui.input_float("Local Min Move Threshold", float(movement_cfg.min_move_threshold))))
+            if abs(new_min_move - movement_cfg.min_move_threshold) > 0.0001:
+                movement_cfg.min_move_threshold = new_min_move
+                save_follow_movement_config(movement_cfg)
 
             if dirty_runtime_cfg:
                 HeroAI_BaseUI._save_follow_runtime_config(cached_data.formation_window_ini_key)
