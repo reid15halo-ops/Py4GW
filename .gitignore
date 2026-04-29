@@ -211,3 +211,25 @@ cython_debug/
 
 # macOS system files
 .DS_Store
+
+# Py4GW runtime artifacts
+Py4GW_injection_log.txt
+*.bak
+
+# === Sprint 2026-04-29 — runtime/binary artifacts that don't belong in repo ===
+# Python interpreter binaries (auto-extracted)
+DLLs/
+*.pyd
+*.dll
+!Py4GW.dll
+!*.updated.dll
+
+# Runtime logs + monitor state
+Logs/
+*.log
+
+# Agent / Claude Code working dir
+.claude/
+
+# Backup files from runtime tools
+*.backup
