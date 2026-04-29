@@ -674,16 +674,7 @@ class FollowFormationPublisher:
             if not (account.IsSlotActive and account.IsAccount) or all_accounts._is_slot_isolated_from_viewer(index, leader_index):
                 continue
 
-            # CRITICAL: slaves still transitioning between maps (their MapID
-            # hasn't caught up to leader's yet) must be put into an IDLE slot
-            # to wipe any stale FollowPos pointing at the old map. Previously
-            # this branch did `continue` which left stale targets in place,
-            # causing slow-loading slaves to walk back through the portal
-            # into the previous map. See _clear_follow_publish_state docstring
-            # for the full chain.
             if not self._same_party_and_map(leader_account, account):
-                options_slow: HeroAIOptionStruct = all_accounts.HeroAIOptions[index]
-                self._apply_idle_slot(options_slow)
                 continue
 
             party_pos = int(account.AgentPartyData.PartyPosition)
