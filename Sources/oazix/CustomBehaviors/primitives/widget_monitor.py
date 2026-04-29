@@ -21,10 +21,8 @@ class WidgetMonitor:
         self.handler = get_widget_handler()
         
     def act(self):
-        if self.throttler.IsExpired():
+        if self.throttler.IsExpired(): 
             self.throttler.Reset()
             if self.handler.is_widget_enabled("HeroAI"):
                 self.handler.disable_widget("HeroAI")
-                if not getattr(self, '_heroai_logged', False):
-                    self._heroai_logged = True
-                    Py4GW.Console.Log("CustomBehaviors", "Using CustomBehaviors - HeroAI has been disabled.", Py4GW.Console.MessageType.Error)
+                Py4GW.Console.Log("CustomBehaviors", "Using CustomBehaviors - HeroAI has been disabled.", Py4GW.Console.MessageType.Error)

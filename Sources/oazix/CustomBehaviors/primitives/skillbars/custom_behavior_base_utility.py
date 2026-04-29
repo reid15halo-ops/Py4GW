@@ -34,7 +34,6 @@ from Sources.oazix.CustomBehaviors.primitives import constants
 from Sources.oazix.CustomBehaviors.primitives.helpers.eval_profiler import EvalProfiler
 from Sources.oazix.CustomBehaviors.primitives.helpers.utility_skill_metrics import UtilitySkillMetrics
 from Sources.oazix.CustomBehaviors.skills.inventory.merchant_refill_if_needed_utility import MerchantRefillIfNeededUtility
-from Sources.oazix.CustomBehaviors.skills.inventory.kit_restock_utility import KitRestockUtility
 from Sources.oazix.CustomBehaviors.skills.looting.loot_utility import LootUtility
 from Sources.oazix.CustomBehaviors.skills.looting.open_near_chest_utility import OpenNearChestUtility
 from Sources.oazix.CustomBehaviors.skills.looting.open_near_dungeon_chest_utility import OpenNearDungeonChestUtility
@@ -93,7 +92,6 @@ class CustomBehaviorBaseUtility():
 
             # INVENTORY_MANAGEMENT
             MerchantRefillIfNeededUtility(event_bus=self.event_bus, current_build=self.in_game_build),
-            KitRestockUtility(event_bus=self.event_bus, current_build=self.in_game_build),
         ]
         
         self.utility_generator: Generator[Any | None, Any | None, BehaviorResult] | None = None

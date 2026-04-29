@@ -45,39 +45,14 @@ class BlessingNpcV2(Enum):
         self.display_name = display_name
 
 
-# Model IDs (primary identification, stable across game updates).
-# Source: Sources/aC_Scripts/aC_api/Blessing_Core.py `BlessingNpc` enum.
-BLESSING_MODEL_IDS: Dict[BlessingNpcV2, tuple[int, ...]] = {
-    BlessingNpcV2.Sunspear_Scout:      (4778, 4776),
-    BlessingNpcV2.Wandering_Priest:    (5384, 5383),
-    BlessingNpcV2.Vabbian_Scout:       (5632,),
-    BlessingNpcV2.Ghostly_Scout:       (5547, 5548),
-    BlessingNpcV2.Ghostly_Priest:      (5615,),
-    BlessingNpcV2.Whispers_Informants: (5218, 5683),
-    BlessingNpcV2.Forgotten_Warden:    (5002,),
-    BlessingNpcV2.Kurzick_Priest:      (593, 912, 3426),
-    BlessingNpcV2.Luxon_Priest:        (1947, 3641),
-    BlessingNpcV2.Beacons_of_Droknar:  (5865,),
-    BlessingNpcV2.Ascalonian_Refugees: (1986, 1987, 6044, 6045, 6043),
-    BlessingNpcV2.Asuran_Krewe:        (6755, 6756, 6775, 6779),
-    BlessingNpcV2.Norn_Hunters:        (6374, 6380),
-}
-
-
 def _match_encoded_name(agent_id: int, npc: BlessingNpcV2) -> bool:
-    """Match an agent to a blessing NPC type.
-
-    Primary: model ID (covers all 13 NPC types via BLESSING_MODEL_IDS).
-    Fallback: encoded-name bytes (only the 3 NPCs with populated lists).
-    """
-    model_id = Agent.GetModelID(agent_id)
-    if model_id and model_id in BLESSING_MODEL_IDS.get(npc, ()):
-        return True
-    if npc.encoded_names:
-        agent_enc_name = PyAgent.PyAgent.GetAgentEncName(agent_id)
-        for enc_name in npc.encoded_names:
-            if agent_enc_name == enc_name:
-                return True
+    """Check if an agent's encoded name matches any of the NPC's known encoded names."""
+    if not npc.encoded_names:
+        return False
+    agent_enc_name = PyAgent.PyAgent.GetAgentEncName(agent_id)
+    for enc_name in npc.encoded_names:
+        if agent_enc_name == enc_name:
+            return True
     return False
 
 
@@ -112,20 +87,17 @@ def wait_npc_dialog_visible(timeout_ms: int) -> Generator[Any, None, bool]:
 
 
 def _generic_dialog_sequence(npc_result: tuple[BlessingNpcV2, int], timeout_ms: int) -> Generator[Any, None, bool]:
-    """Generic dialog sequence: just click button 1 once (retry while dialog not yet ready)."""
+    """Generic dialog sequence: just click button 1."""
     throttle_timer = ThrottledTimer(timeout_ms)
-    for sequence_choice in [1]:
-        clicked = False
+    sequence_choices = [1]
+    for sequence_choice in sequence_choices:
         while not throttle_timer.IsExpired():
-            if UIManager.ClickDialogButton(choice=sequence_choice, debug=constants.DEBUG):
-                clicked = True
-                break
-            yield from custom_behavior_helpers.Helpers.wait_for(100)
-        if not clicked:
-            if constants.DEBUG:
-                print(f"impossible to click_dialog_button {sequence_choice} within timeout.")
-            return False
-        yield from custom_behavior_helpers.Helpers.wait_for(500)
+            click_result = UIManager.ClickDialogButton(choice=sequence_choice, debug=constants.DEBUG)
+            if not click_result:
+                if constants.DEBUG:
+                    print(f"impossible to click_dialog_button {sequence_choice}.")
+                return False
+            yield from custom_behavior_helpers.Helpers.wait_for(500)
     return True
 
 

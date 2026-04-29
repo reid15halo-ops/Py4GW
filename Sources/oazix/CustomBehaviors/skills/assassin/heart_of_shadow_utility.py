@@ -52,15 +52,8 @@ class HeartofShadowUtility(CustomSkillUtilityBase):
                     range_to_count_enemies=None)
         return targets
 
-    # USER KILL-SWITCH — global disable. Flip to True to re-enable HoS in all
-    # CB evaluations. Added because HoS was scattering the vaettir kill ball
-    # and build-handler gates didn't cover the CB path.
-    HOS_UTILITY_ENABLED = False
-
     @override
     def _evaluate(self, current_state: BehaviorState, previously_attempted_skills: list[CustomSkill]) -> float | None:
-        if not HeartofShadowUtility.HOS_UTILITY_ENABLED:
-            return None
 
         if Agent.GetHealth(Player.GetAgentID()) < 0.05:
             return 97
@@ -71,7 +64,7 @@ class HeartofShadowUtility(CustomSkillUtilityBase):
         if self.is_player_stuck:
             return 97
 
-        return self.score_definition.get_score()
+        return self.score_definition.get_score() 
 
     @override
     def _execute(self, state: BehaviorState) -> Generator[Any, None, BehaviorResult]:
