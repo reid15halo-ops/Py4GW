@@ -78,6 +78,12 @@ class EbonBattleStandardOfHonorUtility(CustomSkillUtilityBase):
             # if self.DEBUG: print("EbonBattleStandardOfHonorUtility: moving to a better place (gravity center).")
             return None # it doesn't worth moving, we are too far
 
+        # Only cast when at least 3 enemies are within melee attack range
+        enemy_count = len(custom_behavior_helpers.Targets.get_all_possible_enemies_ordered_by_priority_raw(
+            within_range=Range.Adjacent))
+        if enemy_count < 3:
+            return None
+
         if gravity_center.agent_covered_count >= 1: return self.score_definition.get_score(gravity_center.agent_covered_count)
         return None
 

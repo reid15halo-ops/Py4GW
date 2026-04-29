@@ -13,8 +13,23 @@ from Py4GWCoreLib.Builds.Assassin.A_Me.SF_Ass_vaettir import SF_Ass_vaettir
 
 from typing import List, Tuple
 
-bot = Botting("YAVB 2.0", 
+from Widgets.Automation.Helpers.FarmStats import FarmRunTracker
+
+bot = Botting("YAVB 2.0",
               upkeep_birthday_cupcake_restock=1)
+
+_yavb_tracker = FarmRunTracker("YAVB 2.0 Jaga Moraine")
+
+
+def TrackStartRun(bot: Botting):
+    _yavb_tracker.start_run(strategy="jaga_moraine", hard_mode=True)
+    yield
+
+
+def TrackEndRunSuccess(bot: Botting):
+    if _yavb_tracker._run_active:
+        _yavb_tracker.end_run(success=True)
+    yield
   
 MODULE_ICON = "Textures\\Module_Icons\\YAVB 2.0 mascot.png"
 
@@ -38,7 +53,148 @@ def InitializeBot(bot: Botting) -> None:
     bot.Properties.Enable("birthday_cupcake")
     bot.Properties.Enable("identify_kits")
     bot.Properties.Enable("salvage_kits")
+    bot.Properties.Set("leave_empty_inventory_slots", value=10)
     
+    # Configure loot settings directly via the LootConfig singleton.
+    # NOTE: bot.Items.AddModelToLootBlacklist() does NOT work here because
+    # it is a @_yield_step generator that is never executed when called
+    # synchronously inside InitializeBot(). We must call LootConfig directly.
+    from Py4GWCoreLib.py4gwcorelib_src.Lootconfig_src import LootConfig
+    loot_cfg = LootConfig()
+    
+    # Set rarity filters: loot blues, purples, and golds (all salvageable drops)
+    # Whites and greens are skipped to reduce clutter.
+    loot_cfg.SetProperties(loot_whites=False, loot_blues=True, loot_purples=True, loot_golds=True, loot_greens=False, loot_gold_coins=True)
+    
+    # Blacklist map pieces, dyes, and festive items so they are never picked up
+    _BLOCKED_MODELS = {
+        ModelID.Map_Piece_Bottom_Left.value,
+        ModelID.Map_Piece_Bottom_Right.value,
+        ModelID.Map_Piece_Top_Left.value,
+        ModelID.Map_Piece_Top_Right.value,
+        ModelID.Vial_Of_Dye.value,
+        # Festive items (tonics, fireworks, etc.) — non-salvageable clutter
+        ModelID.Bottle_Rocket.value,
+        ModelID.Champagne_Popper.value,
+        ModelID.Ghost_In_The_Box.value,
+        ModelID.Snowman_Summoner.value,
+        ModelID.Sparkler.value,
+        ModelID.Squash_Serum.value,
+        ModelID.Beetle_Juice_Tonic.value,
+        ModelID.Cottontail_Tonic.value,
+        ModelID.Frosty_Tonic.value,
+        ModelID.Mischievious_Tonic.value,
+        ModelID.Sinister_Automatonic_Tonic.value,
+        ModelID.Transmogrifier_Tonic.value,
+        ModelID.Yuletide_Tonic.value,
+        ModelID.Cerebral_Tonic.value,
+        ModelID.Searing_Tonic.value,
+        ModelID.Abyssal_Tonic.value,
+        ModelID.Unseen_Tonic.value,
+        ModelID.Phantasmal_Tonic.value,
+        ModelID.Automatonic_Tonic.value,
+        ModelID.Boreal_Tonic.value,
+        ModelID.Trapdoor_Tonic.value,
+        ModelID.Macabre_Tonic.value,
+        ModelID.Skeletonic_Tonic.value,
+        ModelID.Gelatinous_Tonic.value,
+        ModelID.Abominable_Tonic.value,
+        ModelID.Crate_Of_Fireworks.value,
+        ModelID.Minutely_Mad_King_Tonic.value,
+        ModelID.Zaishen_Tonic.value,
+        ModelID.Mysterious_Tonic.value,
+        ModelID.Disco_Ball.value,
+        ModelID.Party_Beacon.value,
+        ModelID.Spooky_Tonic.value,
+    }
+    for mid in _BLOCKED_MODELS:
+        loot_cfg.AddToBlacklist(mid)
+    
+    # Also add a custom check as a safety net
+    def _yavb_loot_filter(item_id: int):
+        from Py4GWCoreLib.Item import Item
+        model_id = Item.GetModelID(item_id)
+        if model_id in _BLOCKED_MODELS:
+            return False
+        return None
+    loot_cfg.AddCustomItemCheck(_yavb_loot_filter)
+
+def DisconnectGuard(bot: Botting):
+    """Monitors connection status and forces resign if the client disconnects.
+
+    Three-poll requirement: skips during map load/transition AND requires 3
+    consecutive 5s-spaced failed polls (=15s of continuous IsPlayerLoaded=False
+    with map ready) before triggering. Also resets counter on any map_id
+    change to handle Bjora->Longeyes brief loading-gap windows that bypassed
+    the 2-poll threshold.
+    """
+    ConsoleLog("DisconnectGuard", "Started monitoring connection status.", Py4GW.Console.MessageType.Info)
+    consecutive_failures = 0
+    last_map_id = -1
+    while True:
+        if not bot.config.fsm_running:
+            consecutive_failures = 0
+            yield from Routines.Yield.wait(2000)
+            continue
+
+        # Reset counter on any map change — covers transient gaps between
+        # IsMapLoading=False and Player agent fully populated.
+        try:
+            current_map_id = Map.GetMapID()
+        except Exception:
+            current_map_id = last_map_id
+        if current_map_id != last_map_id:
+            consecutive_failures = 0
+            last_map_id = current_map_id
+            yield from Routines.Yield.wait(5000)
+            continue
+
+        # Skip detection during legitimate map transitions
+        if Map.IsMapLoading() or not Map.IsMapReady():
+            consecutive_failures = 0
+            yield from Routines.Yield.wait(5000)
+            continue
+
+        if not Player.IsPlayerLoaded():
+            consecutive_failures += 1
+            if consecutive_failures >= 3:
+                ConsoleLog("DisconnectGuard", "DISCONNECTED detected! Resigning.", Py4GW.Console.MessageType.Error)
+                Player.SendChatCommand("resign")
+                consecutive_failures = 0
+                yield from Routines.Yield.wait(5000)
+                continue
+        else:
+            consecutive_failures = 0
+
+        yield from Routines.Yield.wait(5000)
+
+
+def UseHoneycombIfNeeded(bot: Botting):
+    """Consume a honeycomb if the player does not have the +10% morale buff (morale >= 110)."""
+    current_morale = Player.GetMorale()
+    ConsoleLog("Morale Check", f"Current morale: {current_morale}", Py4GW.Console.MessageType.Debug)
+    
+    if current_morale >= 110:
+        ConsoleLog("Morale Check", "Already at +10% morale boost, skipping honeycomb.", Py4GW.Console.MessageType.Debug)
+        yield
+        return
+    
+    honeycomb_item_id = GLOBAL_CACHE.Inventory.GetFirstModelID(ModelID.Honeycomb.value)
+    if honeycomb_item_id:
+        ConsoleLog("Morale Check", f"Using honeycomb (item_id={honeycomb_item_id}) to reach +10% morale.", Py4GW.Console.MessageType.Info)
+        GLOBAL_CACHE.Inventory.UseItem(honeycomb_item_id)
+        # Wait up to 6 seconds for the morale buff to apply (server lag can push past 3s)
+        start = Utils.GetBaseTimestamp()
+        while Player.GetMorale() < 110:
+            if Utils.GetBaseTimestamp() - start > 6000:
+                ConsoleLog("Morale Check", "Timeout waiting for honeycomb buff.", Py4GW.Console.MessageType.Warning)
+                break
+            yield from Routines.Yield.wait(250)
+    else:
+        ConsoleLog("Morale Check", "No honeycomb in inventory! Cannot get +10% morale boost.", Py4GW.Console.MessageType.Warning)
+        yield
+
+
 def TownRoutines(bot: Botting) -> None:
     bot.States.AddHeader("Town Routines")
     bot.Map.Travel(target_map_id=650) #target_map_name="Longeyes Ledge")
@@ -78,6 +234,32 @@ def printEach(bot: Botting, seconds: int):
         yield from Routines.Yield.wait(seconds * 1000)
    
     
+def PeriodicAutoSalvage(bot: Botting):
+    """Coroutine that runs auto-id and auto-salvage every 20 seconds.
+    
+    This prevents disconnects caused by overwhelming the client with
+    too many rapid inventory actions immediately after looting.
+    """
+    _SALVAGE_INTERVAL_MS = 20 * 1000  # 20 seconds
+    
+    while True:
+        if not bot.config.fsm_running:
+            yield from Routines.Yield.wait(2000)
+            continue
+            
+        if Map.IsOutpost():
+            yield from Routines.Yield.wait(5000)
+            continue
+            
+        if not Player.IsPlayerLoaded():
+            yield from Routines.Yield.wait(5000)
+            continue
+            
+        ConsoleLog("AutoSalvage", "Running periodic auto-id and salvage...", Py4GW.Console.MessageType.Debug)
+        bot.Items.AutoIDAndSalvageItems()
+        yield from Routines.Yield.wait(_SALVAGE_INTERVAL_MS)
+
+
 def JagaMoraineFarmRoutine(bot: Botting) -> None:
     def _follow_and_wait(path_points: List[Tuple[float, float]], wait_state_name: str, cycle_timeout: int = 150):
         bot.Move.FollowPath(path_points)
@@ -86,7 +268,11 @@ def JagaMoraineFarmRoutine(bot: Botting) -> None:
 
     bot.States.AddHeader("Jaga Moraine Farm Routine")
     InitializeBot(bot)
+    bot.States.AddManagedCoroutine("DisconnectGuard", lambda: DisconnectGuard(bot))
+    bot.States.AddManagedCoroutine("PeriodicAutoSalvage", lambda: PeriodicAutoSalvage(bot))
+    bot.States.AddCustomState(lambda: UseHoneycombIfNeeded(bot), "Use Honeycomb for Morale")
     bot.States.AddCustomState(lambda: AssignBuild(bot), "Assign Build")
+    bot.States.AddCustomState(lambda: TrackStartRun(bot), "Track: Run Start")
     bot.Move.XY(13372.44, -20758.50)
     bot.Dialogs.AtXY(13367, -20771,0x84)
     bot.States.AddManagedCoroutine("HandleStuckJagaMoraine", lambda: HandleStuckJagaMoraine(bot))
@@ -125,32 +311,74 @@ def JagaMoraineFarmRoutine(bot: Botting) -> None:
     bot.States.RemoveManagedCoroutine("HandleStuckJagaMoraine")
     bot.States.AddHeader("Loot Items")
     bot.Items.LootItems()
-    bot.Items.AutoIDAndSalvageItems()
     bot.States.AddCustomState(lambda: NeedsInventoryManagement(bot), "Needs Inventory Management")
+    bot.States.AddCustomState(lambda: TrackEndRunSuccess(bot), "Track: Run End (success)")
+    bot.States.RemoveManagedCoroutine("PeriodicAutoSalvage")
     bot.Properties.Disable("birthday_cupcake")
     bot.Move.XYAndExitMap(15850,-20550, target_map_id=482) # target_map_name="Bjora Marches")
     
     
 def NeedsInventoryManagement(bot: Botting):
+    # Guard against disconnects
+    if not Player.IsPlayerLoaded():
+        ConsoleLog("Inventory Check", "Player disconnected! Aborting inventory check.", Py4GW.Console.MessageType.Error)
+        yield from Routines.Yield.wait(2000)
+        return
+        
     free_slots_in_inventory = GLOBAL_CACHE.Inventory.GetFreeSlotCount()
     leave_empty_slots = bot.Properties.Get("leave_empty_inventory_slots", "value")
+    if leave_empty_slots is None:
+        leave_empty_slots = 10
+    else:
+        try:
+            leave_empty_slots = int(leave_empty_slots)
+        except (ValueError, TypeError):
+            leave_empty_slots = 10
 
     count_of_id_kits = GLOBAL_CACHE.Inventory.GetModelCount(ModelID.Superior_Identification_Kit.value)
     count_of_salvage_kits = GLOBAL_CACHE.Inventory.GetModelCount(ModelID.Salvage_Kit.value)
+
+    ConsoleLog("Inventory Check",
+               f"Free slots: {free_slots_in_inventory} (need >= {leave_empty_slots}), "
+               f"ID kits: {count_of_id_kits}, Salvage kits: {count_of_salvage_kits}",
+               Py4GW.Console.MessageType.Debug)
 
     if (
         free_slots_in_inventory < leave_empty_slots
         or count_of_id_kits == 0
         or count_of_salvage_kits == 0
     ):
-        Player.SendChatCommand("resign") 
-        yield from Routines.Yield.wait(500)
+        ConsoleLog("Inventory Check", "Inventory full or kits missing - resigning!", Py4GW.Console.MessageType.Notice)
+        if _yavb_tracker._run_active:
+            _yavb_tracker.end_run(success=False)
+        Player.SendChatCommand("resign")
+        yield from Routines.Yield.wait(1000)
     yield
     
     
+def SmartResetDecision(bot: Botting):
+    """Conditional: route through Town Routines only when inventory is getting
+    full. Otherwise skip Town and go direct to next Jaga run (faster cycle).
+    Threshold default 15 free slots — well above the resign threshold of 10."""
+    free_slots = GLOBAL_CACHE.Inventory.GetFreeSlotCount()
+    threshold = 15
+    if free_slots < threshold:
+        ConsoleLog("SmartReset", f"Free slots {free_slots} < {threshold} — routing through Town for deposit/restock.", Py4GW.Console.MessageType.Info)
+        bot.States.JumpToStepName("[H]Town Routines_1")
+    else:
+        ConsoleLog("SmartReset", f"Free slots {free_slots} >= {threshold} — skip Town, direct next run.", Py4GW.Console.MessageType.Info)
+    yield
+
+
 def ResetFarmLoop(bot: Botting) -> None:
+    # Smart reset: only route through Town Routines (deposit + restock) when
+    # inventory is actually getting full. Otherwise direct back to Jaga.
+    # Eliminates inv-full death loop AND avoids unnecessary Longeyes detours
+    # when slots are still plenty.
     bot.States.AddHeader("Reset Farm Loop")
-    bot.Move.XYAndExitMap(-20300, 5600 , target_map_id=546) #target_map_name="Jaga Moraine")
+    bot.States.AddCustomState(lambda: SmartResetDecision(bot), "Smart Reset Decision")
+    # Fall-through path (only runs if SmartResetDecision did NOT JumpToStepName):
+    bot.Move.XYAndExitMap(-20300, 5600, target_map_id=546)  # Bjora -> Jaga
     bot.States.JumpToStepName("[H]Jaga Moraine Farm Routine_6")
     
 def KillEnemies(bot: Botting):
@@ -201,7 +429,7 @@ def AssignBuild(bot: Botting):
             bot.OverrideBuild(SF_Mes_vaettir())  # Placeholder for Mesmer build 
         case _:
             ConsoleLog("Unsupported Profession", f"The profession '{profession}' is not supported by this bot.", Py4GW.Console.MessageType.Error, True)
-            bot.Stop()
+            yield from Routines.Yield.wait(500)
             return
     yield
     
@@ -217,18 +445,86 @@ def _set_build_stuck_signal(build: BuildMgr, stuck_counter: int) -> None:
 
 def HandleInventory(bot: Botting) -> None:
     bot.States.AddHeader("Inventory Handling")
-    bot.Items.AutoIDAndSalvageAndDepositItems() #sort bags, auto id, salvage, deposit to bank
+    # Slow down inventory management to prevent disconnects from action spam
+    bot.Items.AutoIDAndSalvageAndDepositItems()
+    bot.Wait.ForTime(1000)
     bot.Move.XYAndInteractNPC(-23110, 14942) # Merchant in Longeyes Ledge
+    bot.Wait.ForTime(1000)
+    bot.Merchant.SellMaterialsToMerchant()
     bot.Wait.ForTime(500)
-    bot.Merchant.SellMaterialsToMerchant() # Sell materials to merchant, make space in inventory
-    bot.Merchant.Restock.IdentifyKits() #restock identify kits
-    bot.Merchant.Restock.SalvageKits() #restock salvage kits
-    bot.Items.AutoIDAndSalvageAndDepositItems() #sort bags again to make sure everything is deposited
-    bot.Merchant.SellMaterialsToMerchant() #Sell remaining materials again to make sure inventory is clear
-    bot.Merchant.Restock.IdentifyKits() #restock identify kits
-    bot.Merchant.Restock.SalvageKits() #restock salvage kits
-    bot.Items.Restock.BirthdayCupcake() #restock birthday cupcake
+    bot.States.AddCustomState(lambda: SellWoodPlanksFromStorage(bot), "Sell Wood Planks from Storage")
+    bot.Merchant.Restock.IdentifyKits()
+    bot.Wait.ForTime(250)
+    bot.Merchant.Restock.SalvageKits()
+    bot.Wait.ForTime(250)
+    bot.Items.Restock.Honeycomb()
+    bot.Wait.ForTime(250)
+    bot.Items.AutoIDAndSalvageAndDepositItems()
+    bot.Wait.ForTime(1000)
+    bot.Merchant.SellMaterialsToMerchant()
+    bot.Wait.ForTime(500)
+    bot.States.AddCustomState(lambda: SellWoodPlanksFromStorage(bot), "Sell Wood Planks from Storage 2")
+    bot.Merchant.Restock.IdentifyKits()
+    bot.Wait.ForTime(250)
+    bot.Merchant.Restock.SalvageKits()
+    bot.Wait.ForTime(250)
+    bot.Items.Restock.BirthdayCupcake()
     
+def SellWoodPlanksFromStorage(bot: Botting):
+    """If storage is nearly full, withdraw and sell all Wood Planks from storage."""
+    total_items, bag_size = GLOBAL_CACHE.Inventory.GetStorageSpace()
+    free_slots = bag_size - total_items
+    
+    ConsoleLog("Storage Check", f"Storage space: {total_items}/{bag_size} ({free_slots} free)", Py4GW.Console.MessageType.Debug)
+    
+    if free_slots > 10:
+        yield
+        return
+    
+    ConsoleLog("Storage Check", "Storage nearly full! Selling Wood Planks from inventory and storage.", Py4GW.Console.MessageType.Notice)
+    
+    # Step 1: Sell any Wood Planks still in inventory
+    wood_plank_ids = GLOBAL_CACHE.Inventory.GetAllItemIdsByModelID(ModelID.Wood_Plank.value)
+    if wood_plank_ids:
+        ConsoleLog("Storage Check", f"Selling {len(wood_plank_ids)} Wood Plank stack(s) from inventory.", Py4GW.Console.MessageType.Info)
+        for item_id in wood_plank_ids:
+            value = GLOBAL_CACHE.Item.Properties.GetValue(item_id)
+            if value > 0:
+                GLOBAL_CACHE.Trading.Merchant.SellItem(item_id, value)
+                yield from Routines.Yield.wait(75)
+    
+    # Step 2: Withdraw and sell from storage in batches
+    max_iterations = 20  # Safety limit
+    for _ in range(max_iterations):
+        storage_count = GLOBAL_CACHE.Inventory.GetModelCountInStorage(ModelID.Wood_Plank.value)
+        if storage_count <= 0:
+            break
+        
+        # Make sure we have free inventory space
+        inv_free = GLOBAL_CACHE.Inventory.GetFreeSlotCount()
+        if inv_free <= 0:
+            ConsoleLog("Storage Check", "Inventory full, cannot withdraw more Wood Planks.", Py4GW.Console.MessageType.Warning)
+            break
+        
+        # Withdraw (one stack at a time to be safe)
+        to_withdraw = min(storage_count, 250)
+        ConsoleLog("Storage Check", f"Withdrawing up to {to_withdraw} Wood Planks from storage.", Py4GW.Console.MessageType.Info)
+        GLOBAL_CACHE.Inventory.WithdrawItemFromStorageByModelID(ModelID.Wood_Plank.value, to_withdraw)
+        yield from Routines.Yield.wait(750)
+        
+        # Sell what we just withdrew
+        wood_plank_ids = GLOBAL_CACHE.Inventory.GetAllItemIdsByModelID(ModelID.Wood_Plank.value)
+        if wood_plank_ids:
+            ConsoleLog("Storage Check", f"Selling {len(wood_plank_ids)} Wood Plank stack(s) from storage.", Py4GW.Console.MessageType.Info)
+            for item_id in wood_plank_ids:
+                value = GLOBAL_CACHE.Item.Properties.GetValue(item_id)
+                if value > 0:
+                    GLOBAL_CACHE.Trading.Merchant.SellItem(item_id, value)
+                    yield from Routines.Yield.wait(75)
+    
+    ConsoleLog("Storage Check", "Done selling Wood Planks.", Py4GW.Console.MessageType.Info)
+    yield
+
 def _wait_for_aggro_ball(bot: Botting, side_label: str, cycle_timeout: int = 150):
     from Py4GWCoreLib.Agent import Agent
     """
@@ -310,6 +606,8 @@ def _on_death(bot: "Botting"):
     
 def on_death(bot: "Botting"):
     ConsoleLog("Death detected", "Player Died - Run Failed, Restarting...", Py4GW.Console.MessageType.Notice)
+    if _yavb_tracker._run_active:
+        _yavb_tracker.end_run(success=False)
     ActionQueueManager().ResetAllQueues()
     fsm = bot.config.FSM
     fsm.pause()
@@ -321,8 +619,14 @@ finished_routine = False
 stuck_counter = 0
 stuck_timer = ThrottledTimer(5000)
 stuck_timer.Start()
-BJORA_MARCHES = Map.GetMapIDByName("Bjora Marches")
-JAGA_MORAINE = Map.GetMapIDByName("Jaga Moraine")
+try:
+    BJORA_MARCHES = Map.GetMapIDByName("Bjora Marches")
+except Exception:
+    BJORA_MARCHES = 0
+try:
+    JAGA_MORAINE = Map.GetMapIDByName("Jaga Moraine")
+except Exception:
+    JAGA_MORAINE = 0
 movement_check_timer = ThrottledTimer(3000)
 old_player_position = (0,0)
 in_killing_routine = False
@@ -394,6 +698,12 @@ def HandleStuckJagaMoraine(bot: Botting):
             continue
 
         # Jaga Moraine map check
+        global JAGA_MORAINE
+        if JAGA_MORAINE == 0:
+            try:
+                JAGA_MORAINE = Map.GetMapIDByName("Jaga Moraine")
+            except Exception:
+                pass
         if Map.GetMapID() == JAGA_MORAINE:
             if stuck_timer.IsExpired():
                 ConsoleLog("HandleStuck", "Issuing scheduled /stuck command.", Py4GW.Console.MessageType.Debug, log_actions)

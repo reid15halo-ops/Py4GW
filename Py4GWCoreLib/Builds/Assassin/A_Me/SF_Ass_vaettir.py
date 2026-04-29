@@ -153,17 +153,9 @@ class SF_Ass_vaettir(BuildMgr):
             return
 
         if not Map.GetMapID() == Map.GetMapIDByName("Jaga Moraine"):
-            from Py4GWCoreLib import AgentArray
-            from Py4GWCoreLib.enums import AgentModelID
-            agent_array = AgentArray.GetEnemyArray()
-            agent_array = AgentArray.Filter.ByCondition(agent_array, lambda agent: Agent.GetModelID(agent) in (AgentModelID.FROZEN_ELEMENTAL.value, AgentModelID.FROST_WURM.value))
-            agent_array = AgentArray.Filter.ByDistance(agent_array, Player.GetXY(), Range.Spellcast.value)
-            if len(agent_array) > 0:
-                    yield from self.DefensiveActions()
-                    
-            if Routines.Checks.Agents.InDanger(Range.Earshot):
-                yield from self.DefensiveActions()
-            yield from Routines.Yield.wait(1000)
+            # PROACTIVE SF maintenance. Synced from Py4GW\.
+            yield from self.DefensiveActions()
+            yield from Routines.Yield.wait(250)
             return
 
         if Agent.IsDead(Player.GetAgentID()):
@@ -210,7 +202,10 @@ class SF_Ass_vaettir(BuildMgr):
             ConsoleLog(self.build_name, "Casting Way of Perfection.", Py4GW.Console.MessageType.Info, log=False)
             return
 
-        if not self.in_killing_routine or Agent.GetHealth(player_agent_id) < 0.05:
+        # Heart of Shadow NEVER during kill phase — even the <5% HP escape was
+        # teleporting the player off the ball spot and breaking the kill. Gate
+        # strictly on running/balling phase only.
+        if not self.in_killing_routine:
             health = Agent.GetHealth(player_agent_id)
             if health < 0.35 or self.stuck_signal:
                 center_point1 = (10980, -21532)

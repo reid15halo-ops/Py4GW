@@ -1,0 +1,3 @@
+{"type": "client", "ts": "2026-04-07T11:28:33", "account": "ESurge", "kind": "SPAWN", "pid": 35568, "path": "C:\\Program Files\\GUILD WARS ESurge\\Gw.exe", "title": "Guild Wars Reforged", "memory_mb": 595.9}
+{"type": "client", "ts": "2026-04-07T11:46:59", "account": "ESurge", "kind": "MEM_UP", "pid": 35568, "delta_mb": 58.7, "now_mb": 644.4}
+{"type": "client", "ts": "2026-04-07T12:16:19", "account": "ESurge", "kind": "EXIT", "pid": 35568, "reason": "process_gone", "last_title": "Guild Wars Reforged", "last_memory_mb": 504.8}

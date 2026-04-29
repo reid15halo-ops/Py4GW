@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Py4GW Framework Deep Research | Guild Wars 1 Automation</title>
+<style>
+:root {
+    --atn-green: #B8C400;
+    --atn-green-dark: #8A9300;
+    --atn-orange: #E86A10;
+    --atn-dark-grey: #666666;
+    --atn-light-grey: #DCDCDC;
+    --atn-vlight-grey: #F4F4F4;
+    --atn-light-blue: #69BBFF;
+    --atn-black: #1a1a1a;
+    --atn-white: #FFFFFF;
+    --font: Arial, Helvetica, sans-serif;
+    --max-width: 1200px;
+    --radius: 6px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font);
+    font-size: 11pt;
+    line-height: 1.6;
+    color: var(--atn-black);
+    background: var(--atn-vlight-grey);
+}
+
+/* --- CLASSIFICATION --- */
+.classification {
+    background: var(--atn-orange);
+    color: white;
+    text-align: center;
+    padding: 4px;
+    font-size: 9pt;
+    font-style: italic;
+    letter-spacing: 2px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+/* --- HERO SECTION --- */
+.hero {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+    color: white;
+    padding: 80px 40px 120px;
+    position: relative;
+    overflow: hidden;
+}
+.hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: var(--atn-green);
+}
+.hero-content {
+    max-width: var(--max-width);
+    margin: 0 auto;
+}
+.hero h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--atn-green);
+}
+.hero .subtitle {
+    font-size: 18px;
+    color: #ccc;
+    margin-bottom: 16px;
+}
+.hero .meta {
+    font-size: 10pt;
+    color: #999;
+}
+
+/* --- STAT GRID (KEY NUMBERS) --- */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0;
+    max-width: var(--max-width);
+    margin: -60px auto 40px;
+    position: relative;
+    z-index: 10;
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    overflow: hidden;
+}
+.stat-item {
+    padding: 24px 16px;
+    text-align: center;
+    border-right: 1px solid var(--atn-light-grey);
+}
+.stat-item:last-child { border-right: none; }
+.stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--atn-green);
+    display: block;
+}
+.stat-label {
+    font-size: 9pt;
+    color: var(--atn-dark-grey);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+}
+
+/* --- CONTENT SECTIONS --- */
+.content-wrapper {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 20px 60px;
+}
+
+.section {
+    background: white;
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+    border: 1px solid var(--atn-light-grey);
+    border-left: 4px solid var(--atn-green);
+    overflow: hidden;
+    animation: fadeInUp 0.4s ease-out;
+}
+.section-header {
+    padding: 20px 24px 12px;
+    border-bottom: 1px solid var(--atn-vlight-grey);
+}
+.section-header h2 {
+    font-size: 18px;
+    color: var(--atn-black);
+}
+.section-header h2 .num {
+    color: var(--atn-green);
+    margin-right: 8px;
+}
+.section-body {
+    padding: 20px 24px;
+}
+.section-body p {
+    margin-bottom: 12px;
+}
+.section-body h3 {
+    font-size: 14px;
+    color: var(--atn-green-dark);
+    margin: 20px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--atn-vlight-grey);
+}
+.section-body h4 {
+    font-size: 12px;
+    color: var(--atn-dark-grey);
+    margin: 14px 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.section-body ul, .section-body ol {
+    margin: 8px 0 12px 20px;
+}
+.section-body li {
+    margin-bottom: 4px;
+}
+.section-body code {
+    background: var(--atn-vlight-grey);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10pt;
+    font-family: 'Consolas', 'Courier New', monospace;
+}
+.section-body pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 16px;
+    border-radius: var(--radius);
+    overflow-x: auto;
+    font-size: 10pt;
+    line-height: 1.5;
+    margin: 12px 0;
+    font-family: 'Consolas', 'Courier New', monospace;
+}
+.section-body pre .kw { color: #569cd6; }
+.section-body pre .fn { color: #dcdcaa; }
+.section-body pre .str { color: #ce9178; }
+.section-body pre .cmt { color: #6a9955; }
+.section-body pre .cls { color: #4ec9b0; }
+
+/* --- TABLES --- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 10pt;
+}
+thead th {
+    background: var(--atn-green);
+    color: white;
+    font-weight: 700;
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 10pt;
+}
+tbody td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--atn-light-grey);
+    vertical-align: top;
+}
+tbody tr:nth-child(even) { background: var(--atn-vlight-grey); }
+tbody tr:hover { background: #f0f0e0; }
+
+/* --- CARDS GRID --- */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+}
+.card {
+    border: 1px solid var(--atn-light-grey);
+    border-radius: var(--radius);
+    padding: 16px;
+    background: var(--atn-vlight-grey);
+}
+.card h4 {
+    color: var(--atn-green-dark);
+    margin: 0 0 8px !important;
+    text-transform: none !important;
+    font-size: 13px !important;
+    letter-spacing: 0 !important;
+}
+.card p { font-size: 10pt; margin: 0; }
+.card .tag {
+    display: inline-block;
+    background: var(--atn-green);
+    color: white;
+    font-size: 8pt;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-top: 8px;
+}
+
+/* --- FLOW DIAGRAM --- */
+.flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding: 16px 0;
+}
+.flow-step {
+    background: var(--atn-green);
+    color: white;
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    font-size: 10pt;
+    font-weight: 700;
+    white-space: nowrap;
+    text-align: center;
+    min-width: 120px;
+}
+.flow-arrow {
+    font-size: 20px;
+    color: var(--atn-dark-grey);
+    padding: 0 6px;
+    flex-shrink: 0;
+}
+
+/* --- CONFIDENCE BADGES --- */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 8pt; font-weight: 700; }
+.badge-high { background: #4caf50; color: white; }
+.badge-medium { background: var(--atn-orange); color: white; }
+.badge-low { background: #e53935; color: white; }
+
+/* --- TOC --- */
+.toc {
+    background: white;
+    border: 1px solid var(--atn-light-grey);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+}
+.toc h3 {
+    margin-bottom: 12px;
+    color: var(--atn-green-dark);
+}
+.toc ol {
+    columns: 2;
+    margin-left: 20px;
+}
+.toc li {
+    margin-bottom: 4px;
+    font-size: 10pt;
+}
+.toc a {
+    color: var(--atn-black);
+    text-decoration: none;
+}
+.toc a:hover {
+    color: var(--atn-green);
+    text-decoration: underline;
+}
+
+/* --- FOOTER --- */
+.footer {
+    background: var(--atn-black);
+    color: #999;
+    text-align: center;
+    padding: 24px;
+    font-size: 9pt;
+}
+.footer a { color: var(--atn-green); }
+
+/* --- ANIMATIONS --- */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+    .stat-grid { grid-template-columns: repeat(3, 1fr); }
+    .hero { padding: 40px 20px 80px; }
+    .hero h1 { font-size: 24px; }
+    .toc ol { columns: 1; }
+    .flow { flex-wrap: wrap; }
+}
+
+/* --- PRINT --- */
+@media print {
+    .classification { position: static; }
+    .hero { padding: 40px 20px; background: #333 !important; -webkit-print-color-adjust: exact; }
+    .stat-grid { margin-top: 0; box-shadow: none; }
+    .section { break-inside: avoid; page-break-inside: avoid; }
+    body { background: white; }
+    .footer { break-before: page; }
+}
+</style>
+</head>
+<body>
+
+<!-- CLASSIFICATION -->
+<div class="classification">- CONFIDENTIAL -</div>
+
+<!-- HERO -->
+<div class="hero">
+    <div class="hero-content">
+        <h1>Py4GW Framework Deep Research</h1>
+        <div class="subtitle">Guild Wars 1 Python Automation Library &mdash; Complete API Reference &amp; Asterius Farming Analysis</div>
+        <div class="meta">Generated: 2026-03-30 | Research Scope: Py4GW v3.0 (apoguita/Py4GW) | Classification: Personal / Non-Production</div>
+    </div>
+</div>
+
+<!-- KEY NUMBERS -->
+<div class="stat-grid">
+    <div class="stat-item">
+        <span class="stat-value">37+</span>
+        <span class="stat-label">Core API Modules</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-value">3,476</span>
+        <span class="stat-label">Commits</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-value">18</span>
+        <span class="stat-label">Botting Subclasses</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-value">10</span>
+        <span class="stat-label">Routine Modules</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-value">v3.0</span>
+        <span class="stat-label">Latest Release</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-value">94</span>
+        <span class="stat-label">GitHub Forks</span>
+    </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content-wrapper">
+
+<!-- TOC -->
+<div class="toc">
+    <h3>Table of Contents</h3>
+    <ol>
+        <li><a href="#s1">Executive Summary</a></li>
+        <li><a href="#s2">Architecture Overview</a></li>
+        <li><a href="#s3">Py4GWCoreLib API Reference</a></li>
+        <li><a href="#s4">BottingClass Deep Dive</a></li>
+        <li><a href="#s5">FSM &amp; Coroutine System</a></li>
+        <li><a href="#s6">Movement &amp; Pathfinding</a></li>
+        <li><a href="#s7">Combat &amp; Targeting</a></li>
+        <li><a href="#s8">AgentArray Filters &amp; Sorting</a></li>
+        <li><a href="#s9">Inventory &amp; Loot Management</a></li>
+        <li><a href="#s10">Multibox Coordination</a></li>
+        <li><a href="#s11">Speed Optimization Techniques</a></li>
+        <li><a href="#s12">Asterius the Mighty Farming Analysis</a></li>
+        <li><a href="#s13">Example Bot Architecture</a></li>
+        <li><a href="#s14">Community Ecosystem</a></li>
+        <li><a href="#s15">Source Appendix</a></li>
+    </ol>
+</div>
+
+<!-- S1: EXECUTIVE SUMMARY -->
+<div class="section" id="s1">
+    <div class="section-header"><h2><span class="num">01</span>Executive Summary</h2></div>
+    <div class="section-body">
+        <ul>
+            <li><strong>Py4GW</strong> is a Python 3.13 (32-bit) framework that interfaces with the Guild Wars 1 client via a DLL injection layer (<code>Py4GW.dll</code>), exposing game memory structures as Python classes. Latest release: v3.0 (December 2025). <span class="badge badge-high">HIGH</span></li>
+            <li>The framework provides a comprehensive API covering 37+ modules: Agent management, Inventory, Skillbar, Map navigation, Party control, Effects, Pathfinding (A* + NavMesh), and a full FSM/Coroutine system for bot state management. <span class="badge badge-high">HIGH</span></li>
+            <li>The <strong>BottingClass</strong> is the high-level orchestrator with 18 subclasses (Move, Wait, States, Templates, Events, Multibox, Party, Player, SkillBar, Items, Merchant, Dialogs, Interact, Map, Properties, UI, Target, Quest) that encapsulate all bot operations. <span class="badge badge-high">HIGH</span></li>
+            <li>Movement uses a dual system: <code>FollowXY</code> for waypoint-based movement and <code>FollowAutoPath</code> for A*-based pathfinding with NavMesh, Chaikin smoothing, and LOS optimization. <span class="badge badge-high">HIGH</span></li>
+            <li><strong>Asterius the Mighty</strong> in Varajar Fells is farmable with E/A Shadow Form + Sliver Armor builds at approximately 8 kills/hour. Drop rate for Asterius' Scythe is extremely low (green drop standard). Heroes must be flagged outside radar range to prevent item assignment to NPCs. <span class="badge badge-medium">MEDIUM</span></li>
+        </ul>
+    </div>
+</div>
+
+<!-- S2: ARCHITECTURE OVERVIEW -->
+<div class="section" id="s2">
+    <div class="section-header"><h2><span class="num">02</span>Architecture Overview</h2></div>
+    <div class="section-body">
+        <h3>System Architecture</h3>
+        <div class="flow">
+            <div class="flow-step">GW Client<br>(Memory)</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step">Py4GW.dll<br>(C++ Bridge)</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step">PyAgent, PyPlayer<br>PySkillbar, etc.</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step">Py4GWCoreLib<br>(Python Wrapper)</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step">BottingClass<br>(Bot Framework)</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step">User Bot<br>Scripts</div>
+        </div>
+
+        <h3>Repository Structure</h3>
+        <table>
+            <thead><tr><th>Directory</th><th>Purpose</th><th>Key Contents</th></tr></thead>
+            <tbody>
+                <tr><td><code>Py4GWCoreLib/</code></td><td>Core Python API library</td><td>37+ modules: Agent, Player, Map, Skillbar, Inventory, Item, Party, Effects, Pathing, Routines, Botting, FSM, etc.</td></tr>
+                <tr><td><code>Py4GWCoreLib/botting_src/</code></td><td>BottingClass internals</td><td>config.py, event.py, helpers.py, property.py + subclases_src/ (18 files) + helpers_src/</td></tr>
+                <tr><td><code>Py4GWCoreLib/routines_src/</code></td><td>Routine implementations</td><td>Movement.py, Targeting.py, Agents.py, Items.py, Party.py, Checks.py, Sequential.py, Yield.py, Transition.py, BehaviourTrees.py</td></tr>
+                <tr><td><code>Py4GWCoreLib/py4gwcorelib_src/</code></td><td>Utility classes</td><td>FSM.py, Timer, ActionQueue, BehaviorTree, LootConfig, AutoInventoryHandler, etc.</td></tr>
+                <tr><td><code>HeroAI/</code></td><td>Hero automation system</td><td>combat.py, following.py, targeting.py, commands.py, settings.py, custom_skill_src/ (18 files)</td></tr>
+                <tr><td><code>Bots/</code></td><td>Community bot scripts</td><td>Example Bots/, BDS/, Challenge Missions/, Elite Tome Farm/, Halloween/, modular_bot/</td></tr>
+                <tr><td><code>Widgets/</code></td><td>UI overlay widgets</td><td>Hero Helper, Inventory+, Pcons, Titles, Travel, etc.</td></tr>
+                <tr><td><code>Addons/</code></td><td>Extension modules</td><td>Add-on extensions for Py4GW</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Prerequisites</h3>
+        <ul>
+            <li><strong>Python 3.13.0 32-bit</strong> (other versions may crash the GW client)</li>
+            <li>Guild Wars client installed</li>
+            <li>Clone repo + <code>pip install -r requirements.txt</code></li>
+            <li>Launch via <code>Py4GW_Launcher.exe</code></li>
+        </ul>
+    </div>
+</div>
+
+<!-- S3: API REFERENCE -->
+<div class="section" id="s3">
+    <div class="section-header"><h2><span class="num">03</span>Py4GWCoreLib API Reference</h2></div>
+    <div class="section-body">
+
+        <h3>Complete Module Index</h3>
+        <table>
+            <thead><tr><th>Module</th><th>Class</th><th>Category</th><th>Method Count (approx.)</th></tr></thead>
+            <tbody>
+                <tr><td>Agent.py</td><td><code>Agent</code></td><td>Entity Data</td><td>~100+ methods</td></tr>
+                <tr><td>AgentArray.py</td><td><code>AgentArray</code></td><td>Collections</td><td>~20 methods</td></tr>
+                <tr><td>Player.py</td><td><code>Player</code></td><td>Character</td><td>~60 methods</td></tr>
+                <tr><td>Map.py</td><td><code>Map</code></td><td>World/Navigation</td><td>~80+ methods (incl. nested)</td></tr>
+                <tr><td>Skillbar.py</td><td><code>SkillBar</code></td><td>Skills</td><td>~18 methods</td></tr>
+                <tr><td>Skill.py</td><td><code>Skill</code></td><td>Skill Data</td><td>~50+ methods (nested)</td></tr>
+                <tr><td>Inventory.py</td><td><code>Inventory</code></td><td>Items</td><td>~40+ methods</td></tr>
+                <tr><td>Item.py</td><td><code>Item</code></td><td>Item Data</td><td>~60+ methods (nested)</td></tr>
+                <tr><td>Party.py</td><td><code>Party</code></td><td>Group</td><td>~30+ methods (nested)</td></tr>
+                <tr><td>Effect.py</td><td><code>Effects</code></td><td>Buffs</td><td>~12 methods</td></tr>
+                <tr><td>Pathing.py</td><td><code>NavMesh, AStar, AutoPathing</code></td><td>Navigation</td><td>~20 methods</td></tr>
+                <tr><td>Routines.py</td><td><code>Routines</code></td><td>Facade</td><td>10 sub-modules</td></tr>
+                <tr><td>Botting.py</td><td><code>BottingClass</code></td><td>Bot Framework</td><td>18 subclasses</td></tr>
+                <tr><td>BuildMgr.py</td><td><code>BuildMgr</code></td><td>Build Management</td><td>~30+ methods</td></tr>
+                <tr><td>Camera.py</td><td><code>Camera</code></td><td>View Control</td><td>Camera manipulation</td></tr>
+                <tr><td>Merchant.py</td><td><code>Merchant</code></td><td>Trading</td><td>Buy/sell operations</td></tr>
+                <tr><td>Quest.py</td><td><code>Quest</code></td><td>Quest Data</td><td>Quest management</td></tr>
+                <tr><td>GWUI.py</td><td><code>GWUI</code></td><td>UI Framework</td><td>UI frame access</td></tr>
+                <tr><td>UIManager.py</td><td><code>UIManager</code></td><td>UI Control</td><td>UI manipulation</td></tr>
+                <tr><td>Scanner.py</td><td><code>Scanner</code></td><td>Memory</td><td>Memory scanning</td></tr>
+                <tr><td>CombatEvents.py</td><td><code>CombatEvents</code></td><td>Events</td><td>Combat event hooks</td></tr>
+                <tr><td>SkillManager.py</td><td><code>SkillManager</code></td><td>Skill Logic</td><td>Skill management</td></tr>
+                <tr><td>Context.py</td><td><code>Context, GWContext</code></td><td>Game State</td><td>Global state access</td></tr>
+                <tr><td>enums.py</td><td>Various</td><td>Constants</td><td>Game enumerations</td></tr>
+                <tr><td>model_data.py</td><td>Data</td><td>Reference</td><td>Model ID mappings</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Agent Class &mdash; Complete Method Reference</h3>
+        <p>The <code>Agent</code> class provides static methods for reading game entity data. All methods take <code>agent_id: int</code> as the first parameter.</p>
+
+        <h4>Position &amp; Movement</h4>
+        <table>
+            <thead><tr><th>Method</th><th>Returns</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>GetXY(agent_id)</code></td><td>tuple(float, float)</td><td>Current X, Y coordinates</td></tr>
+                <tr><td><code>GetXYZ(agent_id)</code></td><td>tuple(float, float, float)</td><td>Full 3D position</td></tr>
+                <tr><td><code>GetZPlane(agent_id)</code></td><td>int</td><td>Z-plane value</td></tr>
+                <tr><td><code>GetRotationAngle(agent_id)</code></td><td>float</td><td>Facing direction</td></tr>
+                <tr><td><code>GetVelocityXY(agent_id)</code></td><td>tuple(float, float)</td><td>Movement velocity vector</td></tr>
+                <tr><td><code>IsMoving(agent_id)</code></td><td>bool</td><td>Movement state check</td></tr>
+                <tr><td><code>GetGround(agent_id)</code></td><td>float</td><td>Ground level at position</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Health &amp; Energy</h4>
+        <table>
+            <thead><tr><th>Method</th><th>Returns</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>GetHealth(agent_id)</code></td><td>float</td><td>Current HP percentage</td></tr>
+                <tr><td><code>GetMaxHealth(agent_id)</code></td><td>int</td><td>Maximum HP</td></tr>
+                <tr><td><code>GetHealthRegen(agent_id)</code></td><td>float</td><td>HP regeneration rate</td></tr>
+                <tr><td><code>GetEnergy(agent_id)</code></td><td>float</td><td>Current energy percentage</td></tr>
+                <tr><td><code>GetMaxEnergy(agent_id)</code></td><td>int</td><td>Maximum energy</td></tr>
+                <tr><td><code>GetEnergyRegen(agent_id)</code></td><td>float</td><td>Energy regen rate</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Status Conditions</h4>
+        <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>IsAlive / IsDead</code></td><td>Life state checks</td></tr>
+                <tr><td><code>IsBleeding / IsCrippled / IsPoisoned / IsDeepWounded</code></td><td>Condition checks</td></tr>
+                <tr><td><code>IsConditioned / IsEnchanted / IsHexed / IsDegenHexed</code></td><td>Broad state checks</td></tr>
+                <tr><td><code>IsWeaponSpelled / IsKnockedDown</code></td><td>Special states</td></tr>
+                <tr><td><code>IsInCombatStance / IsAttacking / IsCasting / IsAggressive / IsIdle</code></td><td>Combat posture</td></tr>
+                <tr><td><code>HasBossGlow</code></td><td>Boss identification</td></tr>
+                <tr><td><code>GetCastingSkillID</code></td><td>Currently casting skill</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Identity &amp; Type</h4>
+        <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>GetModelID / GetPlayerNumber / GetLoginNumber</code></td><td>Identification numbers</td></tr>
+                <tr><td><code>GetLevel / GetProfessions / GetProfessionNames</code></td><td>Character data</td></tr>
+                <tr><td><code>IsPlayer / IsNPC / IsSpirit / IsPet / IsMinion</code></td><td>Type classification</td></tr>
+                <tr><td><code>GetAllegiance / GetOwnerID / GetTeamID</code></td><td>Faction/ownership</td></tr>
+                <tr><td><code>IsLiving / IsItem / IsGadget</code></td><td>Agent type checks</td></tr>
+                <tr><td><code>IsMartial / IsCaster / IsMelee / IsRanged</code></td><td>Weapon classification</td></tr>
+                <tr><td><code>HasQuest / IsFemale / IsSpawned</code></td><td>Special properties</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Player Class &mdash; Key Methods</h3>
+        <table>
+            <thead><tr><th>Category</th><th>Methods</th></tr></thead>
+            <tbody>
+                <tr><td>Identity</td><td><code>GetAgentID(), GetName(), GetPlayerNumber(), GetLoginNumber(), GetPartyNumber()</code></td></tr>
+                <tr><td>Position</td><td><code>GetXY(), IsPlayerLoaded(), GetAgent()</code></td></tr>
+                <tr><td>Targeting</td><td><code>GetTargetID(), ChangeTarget(agent_id), GetObservingID()</code></td></tr>
+                <tr><td>Actions</td><td><code>Move(x, y), Interact(agent_id), SendDialog(dialog_id), SendRawDialog(dialog_id)</code></td></tr>
+                <tr><td>Chat</td><td><code>SendChat(channel, msg), SendWhisper(name, msg), SendChatCommand(cmd), SendFakeChat(channel, msg)</code></td></tr>
+                <tr><td>Progression</td><td><code>GetLevel(), GetExperience(), GetSkillPointData(), GetMorale()</code></td></tr>
+                <tr><td>Skills</td><td><code>BuySkill(id), UnlockBalthazarSkill(id), GetLearnableCharacterSkills()</code></td></tr>
+                <tr><td>Faction</td><td><code>GetKurzickData(), GetLuxonData(), GetImperialData(), GetBalthazarData()</code></td></tr>
+                <tr><td>Titles</td><td><code>GetActiveTitleID(), SetActiveTitle(id), GetTitleArray(), GetTitle(id)</code></td></tr>
+            </tbody>
+        </table>
+
+        <h3>Map Class &mdash; Key Methods</h3>
+        <table>
+            <thead><tr><th>Category</th><th>Methods</th></tr></thead>
+            <tbody>
+                <tr><td>State</td><td><code>IsMapReady(), IsMapLoading(), IsOutpost(), IsExplorable(), GetInstanceType()</code></td></tr>
+                <tr><td>Data</td><td><code>GetMapID(), GetMapName(id), GetMapIDByName(name), GetRegion(), GetDistrict()</code></td></tr>
+                <tr><td>Travel</td><td><code>Travel(map_id), TravelToDistrict(), TravelToRegion(), TravelGH(), LeaveGH()</code></td></tr>
+                <tr><td>Challenge</td><td><code>EnterChallenge(), CancelEnterChallenge(), ConfirmEnterChallenge()</code></td></tr>
+                <tr><td>Vanquish</td><td><code>GetFoesKilled(), GetFoesToKill(), IsVanquishCompleted()</code></td></tr>
+                <tr><td>Cinematic</td><td><code>IsInCinematic(), SkipCinematic()</code></td></tr>
+                <tr><td>Properties</td><td><code>IsPVP(), IsGuildHall(), GetCampaign(), IsMapUnlocked(id)</code></td></tr>
+                <tr><td>Nested: Pathing</td><td><code>GetPathingMaps(), GetSpawns(), GetTravelPortals(), IsPointInPathing()</code></td></tr>
+                <tr><td>Nested: MiniMap</td><td><code>GamePosToScreen(), ScreenToGamePos(), GetZoom(), GetRotation()</code></td></tr>
+                <tr><td>Nested: MissionMap</td><td><code>GamePosToWorldMap(), WorldMapToScreen(), GetScale(), GetPanOffset()</code></td></tr>
+                <tr><td>Nested: Pregame</td><td><code>GetCharList(), GetChosenCharacterIndex(), LogoutToCharacterSelect()</code></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- S4: BOTTING CLASS -->
+<div class="section" id="s4">
+    <div class="section-header"><h2><span class="num">04</span>BottingClass Deep Dive</h2></div>
+    <div class="section-body">
+        <p>The <code>BottingClass</code> is the highest-level abstraction for building bots. It integrates FSM state management, coroutine scheduling, upkeep systems, and 18 specialized subclasses.</p>
+
+        <h3>Constructor Configuration</h3>
+        <pre><span class="cls">BottingClass</span>(
+    bot_name=<span class="str">"MyBot"</span>,
+    config_halt_on_death=<span class="kw">True</span>,
+    config_pause_on_danger=<span class="kw">True</span>,
+    config_movement_timeout=<span class="str">15000</span>,      <span class="cmt"># ms</span>
+    config_movement_tolerance=<span class="str">150</span>,      <span class="cmt"># game units</span>
+    config_draw_path=<span class="kw">True</span>,
+    config_use_occlusion=<span class="kw">True</span>,
+    config_snap_to_ground=<span class="kw">True</span>,
+    custom_build=<span class="kw">None</span>,                   <span class="cmt"># BuildMgr instance</span>
+    <span class="cmt"># Upkeep system (all have _active and _restock params)</span>
+    upkeep_alcohol_active=<span class="kw">False</span>,
+    upkeep_essence_of_celerity_active=<span class="kw">False</span>,
+    upkeep_grail_of_might_active=<span class="kw">False</span>,
+    upkeep_armor_of_salvation_active=<span class="kw">False</span>,
+    upkeep_auto_combat_active=<span class="kw">True</span>,
+    upkeep_auto_loot_active=<span class="kw">True</span>,
+    upkeep_hero_ai_active=<span class="kw">True</span>,
+    <span class="cmt"># ... many more consumable upkeep options</span>
+)</pre>
+
+        <h3>18 Subclasses</h3>
+        <div class="cards-grid">
+            <div class="card">
+                <h4>States</h4>
+                <p><code>AddCustomState(fn, name)</code>, <code>AddHeader(name)</code>, <code>JumpToStepName(name)</code>, <code>AddManagedCoroutine(name, fn)</code>, <code>RemoveManagedCoroutine(name)</code></p>
+                <span class="tag">FSM Control</span>
+            </div>
+            <div class="card">
+                <h4>Move</h4>
+                <p><code>XY(x,y)</code>, <code>FollowPath(points)</code>, <code>FollowAutoPath(points)</code>, <code>ToModel(id)</code>, <code>XYAndDialog()</code>, <code>XYAndExitMap()</code>, <code>XYAndInteractNPC()</code></p>
+                <span class="tag">Navigation</span>
+            </div>
+            <div class="card">
+                <h4>Wait</h4>
+                <p><code>ForTime(ms)</code>, <code>UntilCondition(fn)</code>, <code>UntilOutOfCombat()</code>, <code>UntilOnCombat()</code>, <code>UntilOnOutpost()</code>, <code>UntilOnExplorable()</code>, <code>ForMapLoad()</code>, <code>ForMapToChange()</code></p>
+                <span class="tag">Timing</span>
+            </div>
+            <div class="card">
+                <h4>Templates</h4>
+                <p><code>Pacifist()</code> &mdash; disables combat. <code>Aggressive()</code> &mdash; enables combat with configurable params. <code>Multibox_Aggressive()</code> &mdash; enables HeroAI + auto-loot.</p>
+                <span class="tag">Presets</span>
+            </div>
+            <div class="card">
+                <h4>Events</h4>
+                <p><code>OnDeathCallback()</code>, <code>OnPartyWipeCallback()</code>, <code>OnPartyDefeatedCallback()</code>, <code>OnPartyMemberBehindCallback()</code>, <code>OnPartyMemberInDangerCallback()</code></p>
+                <span class="tag">Event Hooks</span>
+            </div>
+            <div class="card">
+                <h4>Multibox</h4>
+                <p><code>InviteAllAccounts()</code>, <code>SummonAllAccounts()</code>, <code>UseConset()</code>, <code>UsePcons()</code>, <code>PixelStack()</code>, <code>ApplyWidgetPolicy()</code>, <code>ResignParty()</code></p>
+                <span class="tag">Multi-Client</span>
+            </div>
+            <div class="card">
+                <h4>Party</h4>
+                <p>Delegates to <code>Party</code> class: hero management, henchman control, flagging, behavior modes (Fight/Guard/Avoid)</p>
+                <span class="tag">Group Control</span>
+            </div>
+            <div class="card">
+                <h4>SkillBar</h4>
+                <p><code>LoadSkillBar(template)</code>, <code>LoadHeroSkillBar(hero_index, template)</code>, <code>UseSkill(skill_id)</code>, <code>UseSkillSlot(slot)</code></p>
+                <span class="tag">Skills</span>
+            </div>
+            <div class="card">
+                <h4>Items / Merchant / Dialogs</h4>
+                <p>Inventory management, trading, identification, salvage, gold management, and dialog automation</p>
+                <span class="tag">Economy</span>
+            </div>
+            <div class="card">
+                <h4>Target / Interact / Player</h4>
+                <p>Target selection by model ID, agent interaction, player state queries, and character control</p>
+                <span class="tag">Interaction</span>
+            </div>
+            <div class="card">
+                <h4>Map / Quest</h4>
+                <p>Map travel, instance management, quest tracking, and zone transition handling</p>
+                <span class="tag">Navigation</span>
+            </div>
+            <div class="card">
+                <h4>UI / Properties</h4>
+                <p>UI frame access, property management, bot configuration, and display settings</p>
+                <span class="tag">Configuration</span>
+            </div>
+        </div>
+
+        <h3>Lifecycle Methods</h3>
+        <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>Routine()</code></td><td>Override in subclass for custom bot logic</td></tr>
+                <tr><td><code>SetMainRoutine(routine_fn)</code></td><td>Inject custom routine function at runtime</td></tr>
+                <tr><td><code>Start()</code></td><td>Activate FSM and start all upkeep coroutines</td></tr>
+                <tr><td><code>Stop()</code></td><td>Halt FSM and cleanup all coroutines</td></tr>
+                <tr><td><code>StartAtStep(step_name)</code></td><td>Resume FSM from a specific named state</td></tr>
+                <tr><td><code>Update()</code></td><td>Main loop tick &mdash; handles initialization, FSM updates, coroutine scheduling</td></tr>
+                <tr><td><code>OverrideBuild(build)</code></td><td>Replace active BuildMgr configuration</td></tr>
+                <tr><td><code>Travel_To_Random_District(map_id, name, region_pool)</code></td><td>Navigate to random district</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Upkeep System</h3>
+        <p>The BottingClass has a built-in consumable upkeep system that runs as managed coroutines. Each consumable has <code>_active</code> (bool) and <code>_restock</code> (int) parameters:</p>
+        <table>
+            <thead><tr><th>Consumable Category</th><th>Items</th></tr></thead>
+            <tbody>
+                <tr><td>Conset Buffs</td><td>Essence of Celerity, Grail of Might, Armor of Salvation</td></tr>
+                <tr><td>Candy/Food</td><td>Blue/Green/Red Rock Candy, Birthday Cupcake, Candy Apple, Candy Corn</td></tr>
+                <tr><td>Alcohol</td><td>Generic alcohol upkeep</td></tr>
+                <tr><td>Combat</td><td>Auto-combat, auto-loot, HeroAI</td></tr>
+                <tr><td>Utilities</td><td>ID kits, salvage kits, morale, imp summon</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- S5: FSM & COROUTINE -->
+<div class="section" id="s5">
+    <div class="section-header"><h2><span class="num">05</span>FSM &amp; Coroutine System</h2></div>
+    <div class="section-body">
+        <h3>FSM Class Overview</h3>
+        <p>The <code>FSM</code> class (located in <code>py4gwcorelib_src/FSM.py</code>) is a full-featured finite state machine with coroutine integration, event handling, and nested subroutine support.</p>
+
+        <h4>State Types</h4>
+        <table>
+            <thead><tr><th>State Type</th><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td>Standard</td><td><code>AddState(name, execute_fn, exit_condition)</code></td><td>Runs execute_fn each tick, transitions when exit_condition is True</td></tr>
+                <tr><td>Wait</td><td><code>AddWaitState(name, condition_fn, timeout_ms)</code></td><td>Blocks until condition met or timeout expires</td></tr>
+                <tr><td>Subroutine</td><td><code>AddSubroutine(name, condition_fn, sub_fsm)</code></td><td>Nests a complete FSM within a state</td></tr>
+                <tr><td>Yield Routine</td><td><code>AddYieldRoutineStep(name, coroutine_fn)</code></td><td>Integrates Python generator via GLOBAL_CACHE</td></tr>
+                <tr><td>Self-Managed Yield</td><td><code>AddSelfManagedYieldStep(name, coroutine_fn)</code></td><td>Generator tracked by FSM internally</td></tr>
+                <tr><td>Managed Coroutine Step</td><td><code>AddManagedCoroutineStep(name, coroutine_fn)</code></td><td>Creates state that triggers a managed routine</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Navigation &amp; Control</h4>
+        <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>start() / stop() / reset() / restart()</code></td><td>Lifecycle control</td></tr>
+                <tr><td><code>pause() / resume()</code></td><td>Suspend/continue execution</td></tr>
+                <tr><td><code>jump_to_state_by_name(name)</code></td><td>Skip to named state</td></tr>
+                <tr><td><code>ResetAndStartAtStep(name)</code></td><td>Full reset then resume at target</td></tr>
+                <tr><td><code>update()</code></td><td>Advance one tick</td></tr>
+                <tr><td><code>trigger_event(event_name)</code></td><td>Event-driven transition</td></tr>
+                <tr><td><code>set_transition_callback(fn)</code></td><td>Hook into state changes</td></tr>
+                <tr><td><code>set_completion_callback(fn)</code></td><td>Hook into FSM completion</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Managed Coroutines</h4>
+        <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>AddManagedCoroutine(name, routine_or_fn)</code></td><td>Register named generator for FSM-tracked execution</td></tr>
+                <tr><td><code>RemoveManagedCoroutine(name)</code></td><td>Detach generator</td></tr>
+                <tr><td><code>RemoveAllManagedCoroutines()</code></td><td>Clear all generators</td></tr>
+                <tr><td><code>HasManagedCoroutine(name)</code></td><td>Check existence</td></tr>
+                <tr><td><code>AdoptGlobalCoroutine(routine)</code></td><td>Transfer from GLOBAL_CACHE</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Coroutine / Yield Patterns</h3>
+        <p>Py4GW uses Python generators (<code>yield</code>) for cooperative multitasking. The three main paradigms:</p>
+
+        <h4>1. Yield-Based Bot (Recommended)</h4>
+        <pre><span class="cmt"># Each bot step is a generator that yields control back</span>
+<span class="kw">def</span> <span class="fn">my_step</span>():
+    <span class="kw">yield from</span> Yield.wait(<span class="str">1000</span>)              <span class="cmt"># Wait 1 second</span>
+    <span class="kw">yield from</span> Yield.FollowPath(path_points)  <span class="cmt"># Follow path</span>
+    <span class="kw">yield from</span> Yield.CastSkillID(<span class="str">123</span>, target) <span class="cmt"># Cast skill</span>
+
+<span class="cmt"># Register with FSM</span>
+bot.States.AddCustomState(my_step, <span class="str">"Farm Step"</span>)</pre>
+
+        <h4>2. Sequential Bot (Simpler but Blocking)</h4>
+        <pre><span class="cmt"># Uses blocking Sequential routines (polling loops + sleep)</span>
+Sequential.FollowPath(path_points)
+Sequential.CastSkillID(<span class="str">123</span>, target)
+Sequential.TravelToOutpost(outpost_id)</pre>
+
+        <h4>3. Async/BottingClass (Highest Level)</h4>
+        <pre><span class="cmt"># Define FSM steps using BottingClass subclass methods</span>
+bot.States.AddHeader(<span class="str">"Travel"</span>)
+bot.Move.XY(<span class="str">-12000</span>, <span class="str">5000</span>)
+bot.Wait.ForMapLoad(target_map_id)
+bot.Move.FollowAutoPath(waypoints)
+bot.States.AddHeader(<span class="str">"Farm"</span>)
+bot.Wait.UntilOutOfCombat()
+bot.Move.XYAndInteractNPC(npc_x, npc_y)
+bot.States.JumpToStepName(<span class="str">"Travel"</span>)</pre>
+
+        <h3>Yield Utility Methods</h3>
+        <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>Yield.wait(ms, break_on_map_transition)</code></td><td>Cooperative wait with optional map-change abort</td></tr>
+                <tr><td><code>Yield.FollowPath(points, exit_condition, tolerance, timeout)</code></td><td>Traverse waypoints with stuck-detection and recovery strafing</td></tr>
+                <tr><td><code>Yield.CastSkillID(skill_id, target, extra_condition, aftercast_delay)</code></td><td>Cast skill with validation</td></tr>
+                <tr><td><code>Yield.CastSkillSlot(slot, extra_condition, aftercast_delay)</code></td><td>Cast by slot position</td></tr>
+                <tr><td><code>Yield.Move(x, y)</code></td><td>Simple coordinate movement</td></tr>
+                <tr><td><code>Yield.InteractAgent(agent_id)</code></td><td>Agent interaction</td></tr>
+                <tr><td><code>Yield.TravelToOutpost(outpost_id, timeout)</code></td><td>Map travel with load wait</td></tr>
+                <tr><td><code>Yield.WaitforMapLoad(map_id, timeout)</code></td><td>Wait for zone load</td></tr>
+                <tr><td><code>Yield.SetHardMode(hard_mode)</code></td><td>Difficulty toggle</td></tr>
+                <tr><td><code>Yield.LoadSkillbar(template)</code></td><td>Load skill template</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- S6: MOVEMENT -->
+<div class="section" id="s6">
+    <div class="section-header"><h2><span class="num">06</span>Movement &amp; Pathfinding</h2></div>
+    <div class="section-body">
+
+        <h3>Movement Systems Comparison</h3>
+        <table>
+            <thead><tr><th>System</th><th>Class</th><th>Best For</th><th>Features</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><strong>FollowXY</strong></td>
+                    <td><code>FollowXY</code> in routines_src/Movement.py</td>
+                    <td>Simple waypoint following</td>
+                    <td>Tolerance-based arrival, pause/resume, distance tracking, elapsed time</td>
+                </tr>
+                <tr>
+                    <td><strong>PathHandler</strong></td>
+                    <td><code>PathHandler</code> in routines_src/Movement.py</td>
+                    <td>Multi-waypoint path traversal</td>
+                    <td>Bidirectional traversal, index management, direction toggle</td>
+                </tr>
+                <tr>
+                    <td><strong>AutoPathing (A*)</strong></td>
+                    <td><code>AutoPathing</code> in Pathing.py</td>
+                    <td>Obstacle-aware navigation</td>
+                    <td>NavMesh + A* search, Chaikin smoothing, LOS optimization, path densification</td>
+                </tr>
+                <tr>
+                    <td><strong>FollowAutoPath</strong></td>
+                    <td><code>_MOVE._coro_follow_auto_path</code></td>
+                    <td>Multi-point autopath sequences</td>
+                    <td>Iterates waypoints, autopaths between each pair</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>NavMesh System</h3>
+        <p>The pathfinding system is built on the game's trapezoid-based collision geometry:</p>
+        <ul>
+            <li><code>NavMesh.find_trapezoid_id_by_coord(x, y)</code> &mdash; locates which trapezoid contains the given coordinates</li>
+            <li><code>NavMesh.contains(x, y)</code> &mdash; checks if point is on the navigation mesh</li>
+            <li><code>NavMesh.find_nearest_reachable(x, y)</code> &mdash; snaps to closest walkable position</li>
+            <li><code>NavMesh.has_line_of_sight(x1, y1, x2, y2)</code> &mdash; validates direct path</li>
+            <li><code>NavMesh.get_neighbors(trap_id)</code> &mdash; retrieves adjacent trapezoids</li>
+        </ul>
+
+        <h3>Path Optimization</h3>
+        <table>
+            <thead><tr><th>Technique</th><th>Method</th><th>Effect</th></tr></thead>
+            <tbody>
+                <tr><td>Chaikin Smoothing</td><td><code>chaikin_smooth_path(points, iterations=1)</code></td><td>Reduces angular transitions for smoother paths</td></tr>
+                <tr><td>Path Densification</td><td><code>densify_path2d(points, threshold=500.0)</code></td><td>Subdivides long segments for finer control</td></tr>
+                <tr><td>LOS Optimization</td><td><code>smooth_path_by_los()</code></td><td>Removes waypoints with unobstructed visibility</td></tr>
+                <tr><td>Ground Snapping</td><td>config_snap_to_ground=True</td><td>Snaps character to terrain height</td></tr>
+                <tr><td>Occlusion Culling</td><td>config_use_occlusion=True</td><td>Considers visibility for path planning</td></tr>
+            </tbody>
+        </table>
+
+        <h3>FollowPath Stuck Detection</h3>
+        <p>The Yield-based <code>FollowPath</code> includes sophisticated stuck-detection with recovery:</p>
+        <ul>
+            <li>Monitors position delta over time windows</li>
+            <li>If stuck, attempts recovery strafing (random direction)</li>
+            <li>Falls back to random offset retries</li>
+            <li>Supports <code>custom_pause_fn</code> for conditional pausing (e.g., during combat)</li>
+            <li>Aborts on party wipe or map transition (configurable)</li>
+            <li><code>progress_callback</code> for real-time path progress reporting</li>
+        </ul>
+
+        <h3>Movement Primitives</h3>
+        <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>Yield.StopMovement()</code></td><td>Halt character motion</td></tr>
+                <tr><td><code>Yield.WalkBackwards(ms)</code></td><td>Reverse movement for duration</td></tr>
+                <tr><td><code>Yield.WalkForwards(ms)</code></td><td>Forward movement for duration</td></tr>
+                <tr><td><code>Yield.StrafeLeft/Right(ms)</code></td><td>Lateral movement</td></tr>
+                <tr><td><code>Yield.TurnLeft/Right(ms)</code></td><td>Rotation control</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- S7: COMBAT & TARGETING -->
+<div class="section" id="s7">
+    <div class="section-header"><h2><span class="num">07</span>Combat &amp; Targeting</h2></div>
+    <div class="section-body">
+
+        <h3>Targeting System (Routines.Targeting)</h3>
+
+        <h4>Enemy Selection</h4>
+        <table>
+            <thead><tr><th>Method</th><th>Selection Strategy</th></tr></thead>
+            <tbody>
+                <tr><td><code>TargetClusteredEnemy(area)</code></td><td>Enemy within the largest concentration (AoE optimization)</td></tr>
+                <tr><td><code>GetEnemyAttacking()</code></td><td>Nearest actively attacking enemy</td></tr>
+                <tr><td><code>GetEnemyCasting()</code></td><td>Closest enemy performing any cast</td></tr>
+                <tr><td><code>GetEnemyCastingSpell()</code></td><td>Spell-casting enemies only (excludes other skills)</td></tr>
+                <tr><td><code>GetEnemyInjured()</code></td><td>Lowest HP + nearest</td></tr>
+                <tr><td><code>GetEnemyHealthy()</code></td><td>Highest HP nearby</td></tr>
+                <tr><td><code>GetEnemyConditioned/Bleeding/Poisoned/Crippled()</code></td><td>Condition-based selection</td></tr>
+                <tr><td><code>GetEnemyHexed/DegenHexed/Enchanted()</code></td><td>Effect-based selection</td></tr>
+                <tr><td><code>GetEnemyMoving/KnockedDown()</code></td><td>State-based selection</td></tr>
+                <tr><td><code>GetEnemyWithEffect(skill_id)</code></td><td>Generic effect-based targeting</td></tr>
+            </tbody>
+        </table>
+        <p>All enemy methods support <code>max_distance</code> and <code>aggressive_only</code> parameters.</p>
+
+        <h4>Ally Selection</h4>
+        <table>
+            <thead><tr><th>Method</th><th>Selection Strategy</th></tr></thead>
+            <tbody>
+                <tr><td><code>TargetLowestAlly()</code></td><td>Injured ally with lowest HP%</td></tr>
+                <tr><td><code>TargetLowestAllyEnergy()</code></td><td>Ally with lowest energy (excludes buffed)</td></tr>
+                <tr><td><code>TargetLowestAllyCaster/Martial/Melee/Ranged()</code></td><td>Class-specific ally targeting</td></tr>
+                <tr><td><code>GetNearestSpirit(distance)</code></td><td>Closest spirit summon</td></tr>
+                <tr><td><code>FilterAllyArray(array, distance, other_ally, skill_id)</code></td><td>Custom ally filtering</td></tr>
+            </tbody>
+        </table>
+
+        <h3>BuildMgr Combat System</h3>
+        <p>The <code>BuildMgr</code> class provides a complete combat processing pipeline:</p>
+
+        <div class="flow">
+            <div class="flow-step">AcquireTarget()</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step">CanCastSkillID()</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step">CastSkillID()</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step">ProcessCombat()</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step">AutoAttack()</div>
+        </div>
+
+        <h4>Key BuildMgr Combat Methods</h4>
+        <ul>
+            <li><code>ProcessCombat()</code> / <code>ProcessOOC()</code> &mdash; Phase-based combat handlers</li>
+            <li><code>ProcessSkillCasting()</code> &mdash; Routes to appropriate phase</li>
+            <li><code>CanCastSkillID(id)</code> / <code>CanCastSkillSlot(slot)</code> &mdash; Validates energy, cooldown, and prerequisites</li>
+            <li><code>CastSkillIDAndRestoreTarget()</code> &mdash; Casts while maintaining target focus (useful for self-buffs)</li>
+            <li><code>CastSpiritSkillID()</code> &mdash; Handles spirit skill positioning</li>
+            <li><code>ResolveAllyTarget()</code> &mdash; Identifies ally for healing/support</li>
+            <li><code>UpdatePartyHealthMonitor()</code> &mdash; Tracks health changes over time windows</li>
+            <li><code>GetPartySpikeCandidates()</code> &mdash; Identifies allies taking spike damage</li>
+        </ul>
+
+        <h3>SkillBar API</h3>
+        <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>LoadSkillTemplate(template)</code></td><td>Load skill template string</td></tr>
+                <tr><td><code>GetSkillbar()</code></td><td>Returns list of 8 skill IDs</td></tr>
+                <tr><td><code>UseSkill(slot, target_id)</code></td><td>Execute skill with target</td></tr>
+                <tr><td><code>UseSkillTargetless(slot)</code></td><td>Execute without target</td></tr>
+                <tr><td><code>HeroUseSkill(target, skill_num, hero_num)</code></td><td>Command hero skill usage</td></tr>
+                <tr><td><code>GetSkillData(slot)</code></td><td>Detailed skill information</td></tr>
+                <tr><td><code>GetSlotBySkillID(skill_id)</code></td><td>Find slot by skill</td></tr>
+                <tr><td><code>IsSkillUnlocked/IsSkillLearnt(id)</code></td><td>Availability checks</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Skill Data API</h3>
+        <table>
+            <thead><tr><th>Category</th><th>Methods</th></tr></thead>
+            <tbody>
+                <tr><td>Timing</td><td><code>GetRecharge(), GetActivation(), GetAftercast()</code></td></tr>
+                <tr><td>Cost</td><td><code>GetEnergyCost(), GetHealthCost(), GetAdrenaline()</code></td></tr>
+                <tr><td>Combat</td><td><code>GetAoERange(), GetWeaponReq(), GetCombo()</code></td></tr>
+                <tr><td>Info</td><td><code>GetName(), GetType(), GetProfession(), GetCampaign(), GetDescription()</code></td></tr>
+                <tr><td>Flags</td><td><code>IsElite(), IsPvP(), IsPlayable()</code> + 40+ type checkers</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Effects API</h3>
+        <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>GetBuffs(agent_id)</code></td><td>List of active buffs</td></tr>
+                <tr><td><code>GetEffects(agent_id)</code></td><td>List of active effects</td></tr>
+                <tr><td><code>BuffExists(agent_id, skill_id)</code></td><td>Check specific buff</td></tr>
+                <tr><td><code>EffectExists(agent_id, skill_id)</code></td><td>Check specific effect</td></tr>
+                <tr><td><code>HasEffect(agent_id, skill_id)</code></td><td>Combined buff + effect check</td></tr>
+                <tr><td><code>GetEffectTimeRemaining(agent_id, skill_id)</code></td><td>Remaining duration</td></tr>
+                <tr><td><code>EffectAttributeLevel(agent_id, skill_id)</code></td><td>Effect attribute level</td></tr>
+                <tr><td><code>DropBuff(buff_id)</code></td><td>Remove a buff</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- S8: AGENT ARRAY -->
+<div class="section" id="s8">
+    <div class="section-header"><h2><span class="num">08</span>AgentArray Filters &amp; Sorting</h2></div>
+    <div class="section-body">
+
+        <h3>Array Retrieval</h3>
+        <table>
+            <thead><tr><th>Method</th><th>Returns</th><th>Pre-Filter</th></tr></thead>
+            <tbody>
+                <tr><td><code>GetAgentArray()</code></td><td>list[int]</td><td>All agents (unfiltered)</td></tr>
+                <tr><td><code>GetAllyArray()</code></td><td>list[int]</td><td>Allies</td></tr>
+                <tr><td><code>GetEnemyArray()</code></td><td>list[int]</td><td>Enemies</td></tr>
+                <tr><td><code>GetNeutralArray()</code></td><td>list[int]</td><td>Neutrals</td></tr>
+                <tr><td><code>GetSpiritPetArray()</code></td><td>list[int]</td><td>Spirits &amp; pets</td></tr>
+                <tr><td><code>GetMinionArray()</code></td><td>list[int]</td><td>Minions</td></tr>
+                <tr><td><code>GetNPCMinipetArray()</code></td><td>list[int]</td><td>NPCs &amp; minipets</td></tr>
+                <tr><td><code>GetItemArray()</code></td><td>list[int]</td><td>Items on ground</td></tr>
+                <tr><td><code>GetOwnedItemArray()</code></td><td>list[int]</td><td>Player-owned items</td></tr>
+                <tr><td><code>GetGadgetArray()</code></td><td>list[int]</td><td>Gadgets (chests, levers)</td></tr>
+                <tr><td><code>GetDeadAllyArray()</code></td><td>list[int]</td><td>Dead allies</td></tr>
+                <tr><td><code>GetDeadEnemyArray()</code></td><td>list[int]</td><td>Dead enemies</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Filter Methods</h3>
+        <table>
+            <thead><tr><th>Method</th><th>Parameters</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><code>Filter.ByCondition</code></td>
+                    <td><code>(agent_array, filter_func)</code></td>
+                    <td>Custom filter function &mdash; pass any lambda/callable that takes agent_id and returns bool</td>
+                </tr>
+                <tr>
+                    <td><code>Filter.ByAttribute</code></td>
+                    <td><code>(agent_array, attribute, condition_func=None, negate=False)</code></td>
+                    <td>Filter by any Agent attribute, optional condition function, optional negation</td>
+                </tr>
+                <tr>
+                    <td><code>Filter.ByDistance</code></td>
+                    <td><code>(agent_array, pos, max_distance, negate=False)</code></td>
+                    <td>Keep agents within (or outside if negate=True) distance from position</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h4>Filter.ByCondition Examples</h4>
+        <pre><span class="cmt"># Filter enemies by model ID</span>
+enemies = AgentArray.GetEnemyArray()
+minotaurs = AgentArray.Filter.ByCondition(
+    enemies,
+    <span class="kw">lambda</span> aid: Agent.GetModelID(aid) == <span class="str">4645</span>
+)
+
+<span class="cmt"># Filter alive enemies within range</span>
+nearby_alive = AgentArray.Filter.ByCondition(
+    enemies,
+    <span class="kw">lambda</span> aid: Agent.IsAlive(aid) <span class="kw">and not</span> Agent.HasBossGlow(aid)
+)
+
+<span class="cmt"># Filter by distance from player</span>
+player_pos = Player.GetXY()
+close_enemies = AgentArray.Filter.ByDistance(enemies, player_pos, <span class="str">1200</span>)</pre>
+
+        <h3>Sort Methods</h3>
+        <table>
+            <thead><tr><th>Method</th><th>Parameters</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>Sort.ByAttribute</code></td><td><code>(array, attribute, descending=False)</code></td><td>Sort by any Agent attribute</td></tr>
+                <tr><td><code>Sort.ByCondition</code></td><td><code>(array, condition_func, reverse=False)</code></td><td>Sort by custom key function</td></tr>
+                <tr><td><code>Sort.ByDistance</code></td><td><code>(array, pos, descending=False)</code></td><td>Sort by distance from position</td></tr>
+                <tr><td><code>Sort.ByHealth</code></td><td><code>(array, descending=False)</code></td><td>Sort by HP percentage</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Set Operations</h3>
+        <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>Manipulation.Merge(a, b)</code></td><td>Union (remove duplicates)</td></tr>
+                <tr><td><code>Manipulation.Subtract(a, b)</code></td><td>Set difference</td></tr>
+                <tr><td><code>Manipulation.Intersect(a, b)</code></td><td>Intersection</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Cluster Detection</h3>
+        <pre><span class="cmt"># Find the largest enemy cluster for AoE targeting</span>
+enemies = AgentArray.GetEnemyArray()
+center_agent = AgentArray.Routines.DetectLargestAgentCluster(
+    enemies,
+    cluster_radius=<span class="str">600</span>  <span class="cmt"># adjacent range</span>
+)</pre>
+    </div>
+</div>
+
+<!-- S9: INVENTORY & LOOT -->
+<div class="section" id="s9">
+    <div class="section-header"><h2><span class="num">09</span>Inventory &amp; Loot Management</h2></div>
+    <div class="section-body">
+
+        <h3>Bag Structure</h3>
+        <table>
+            <thead><tr><th>Bag ID</th><th>Type</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td>1-4</td><td>Main Inventory</td><td>Standard bags, backpack</td></tr>
+                <tr><td>5</td><td>Anniversary Panel</td><td>Additional storage</td></tr>
+                <tr><td>8-14</td><td>Xunlai Storage</td><td>Standard storage panes</td></tr>
+                <tr><td>15-21</td><td>Extended Storage</td><td>Expanded storage panes</td></tr>
+                <tr><td>22</td><td>Equipped Items</td><td>Currently worn gear</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Inventory Class &mdash; Key Methods</h3>
+        <table>
+            <thead><tr><th>Category</th><th>Methods</th></tr></thead>
+            <tbody>
+                <tr><td>Space</td><td><code>GetInventorySpace()</code> &rarr; (items, capacity), <code>GetFreeSlotCount()</code>, <code>GetStorageSpace()</code></td></tr>
+                <tr><td>Search</td><td><code>GetItemCount(item_id)</code>, <code>GetModelCount(model_id)</code>, <code>FindItemBagAndSlot(item_id)</code></td></tr>
+                <tr><td>ID/Salvage Kits</td><td><code>GetFirstIDKit()</code>, <code>GetFirstSalvageKit(use_lesser)</code>, <code>GetFirstUnidentifiedItem()</code>, <code>GetFirstSalvageableItem()</code></td></tr>
+                <tr><td>Operations</td><td><code>IdentifyItem(item_id, kit_id)</code>, <code>SalvageItem(item_id, kit_id)</code>, <code>PickUpItem(item_id)</code>, <code>DropItem(item_id, qty)</code>, <code>UseItem(item_id)</code>, <code>DestroyItem(item_id)</code></td></tr>
+                <tr><td>Automation</td><td><code>IdentifyFirst()</code>, <code>SalvageFirst()</code></td></tr>
+                <tr><td>Gold</td><td><code>GetGoldOnCharacter()</code>, <code>GetGoldInStorage()</code>, <code>DepositGold(amount)</code>, <code>WithdrawGold(amount)</code></td></tr>
+                <tr><td>Storage</td><td><code>DepositItemToStorage(item_id)</code>, <code>WithdrawItemFromStorage(item_id)</code>, <code>IsStorageOpen()</code>, <code>OpenXunlaiWindow()</code></td></tr>
+                <tr><td>Transfer</td><td><code>MoveItem(item_id, bag_id, slot, qty)</code>, <code>EquipItem(item_id, agent_id)</code></td></tr>
+            </tbody>
+        </table>
+
+        <h3>Item Class &mdash; Property Queries</h3>
+        <table>
+            <thead><tr><th>Nested Class</th><th>Key Methods</th></tr></thead>
+            <tbody>
+                <tr><td>Rarity</td><td><code>GetRarity()</code>, <code>IsWhite/Blue/Purple/Gold/Green()</code></td></tr>
+                <tr><td>Properties</td><td><code>GetValue()</code>, <code>GetQuantity()</code>, <code>IsCustomized()</code>, <code>IsEquipped()</code>, <code>GetProfession()</code></td></tr>
+                <tr><td>Type</td><td><code>IsWeapon/Armor/Material/RareMaterial/Tome/ZCoin()</code></td></tr>
+                <tr><td>Usage</td><td><code>IsUsable()</code>, <code>GetUses()</code>, <code>IsSalvageable()</code>, <code>IsIdentified()</code>, <code>IsSalvageKit/IDKit()</code></td></tr>
+                <tr><td>Customization</td><td><code>IsInscription/Inscribable()</code>, <code>IsPrefixUpgradable/SuffixUpgradable()</code>, <code>IsStackable()</code></td></tr>
+                <tr><td>Modifiers</td><td><code>GetModifiers()</code>, <code>ModifierExists()</code>, <code>GetModifierValues()</code></td></tr>
+            </tbody>
+        </table>
+
+        <h3>Yield Loot Routines</h3>
+        <table>
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>Yield.LootItems(item_array, pickup_timeout)</code></td><td>Traverse and collect items with progress callback</td></tr>
+                <tr><td><code>Yield.LootItemsWithMaxAttempts(array, max_attempts)</code></td><td>Resilient pickup with retry logic</td></tr>
+                <tr><td><code>Yield.IdentifyItems(item_array)</code></td><td>Batch identification</td></tr>
+                <tr><td><code>Yield.SalvageItems(item_array)</code></td><td>Batch salvage with confirmation handling</td></tr>
+                <tr><td><code>Yield.DepositItems(item_array)</code></td><td>Move items to storage</td></tr>
+                <tr><td><code>Yield.DepositGold(gold_to_leave)</code></td><td>Balance gold character/storage</td></tr>
+                <tr><td><code>Yield.DepositAllInventory()</code></td><td>Clear all bags to storage</td></tr>
+                <tr><td><code>Yield.BuyIDKits(qty)</code></td><td>Purchase ID kits from merchant</td></tr>
+                <tr><td><code>Yield.BuySalvageKits(qty)</code></td><td>Purchase salvage kits</td></tr>
+                <tr><td><code>Yield.SellMaterialsAtTrader(x, y, models, ...)</code></td><td>Bulk material selling with gold management</td></tr>
+                <tr><td><code>Yield.DepositMaterials(models, quantity)</code></td><td>Deposit materials to storage</td></tr>
+                <tr><td><code>Yield.RestockItems(model_id, desired_qty)</code></td><td>Ensure minimum stock from storage</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- S10: MULTIBOX -->
+<div class="section" id="s10">
+    <div class="section-header"><h2><span class="num">10</span>Multibox Coordination</h2></div>
+    <div class="section-body">
+
+        <h3>MULTIBOX Subclass API</h3>
+        <table>
+            <thead><tr><th>Category</th><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td>Party</td><td><code>InviteAllAccounts()</code></td><td>Add all accounts to party</td></tr>
+                <tr><td>Party</td><td><code>InviteAccount(email)</code></td><td>Add specific account</td></tr>
+                <tr><td>Party</td><td><code>KickAllAccounts()</code></td><td>Remove all from party</td></tr>
+                <tr><td>Party</td><td><code>KickAccount(email)</code></td><td>Remove specific account</td></tr>
+                <tr><td>Party</td><td><code>LeavePartyOnAllAccounts()</code></td><td>Disconnect all</td></tr>
+                <tr><td>Party</td><td><code>ResignParty()</code></td><td>Resign character</td></tr>
+                <tr><td>Summon</td><td><code>SummonAllAccounts()</code></td><td>Call all to location</td></tr>
+                <tr><td>Summon</td><td><code>SummonAccount(email)</code></td><td>Call specific account</td></tr>
+                <tr><td>Consumables</td><td><code>UseConset()</code></td><td>Apply conset (3 buffs)</td></tr>
+                <tr><td>Consumables</td><td><code>UsePcons()</code></td><td>Apply 9 consumables</td></tr>
+                <tr><td>Consumables</td><td><code>UseAllConsumables()</code></td><td>Apply all buffs</td></tr>
+                <tr><td>Restock</td><td><code>RestockAllPcons(qty)</code></td><td>Replenish consumables</td></tr>
+                <tr><td>Restock</td><td><code>RestockConset(qty)</code></td><td>Replenish conset items</td></tr>
+                <tr><td>Widget</td><td><code>EnableWidget(name)</code> / <code>DisableWidget(name)</code></td><td>UI widget control</td></tr>
+                <tr><td>Widget</td><td><code>ApplyWidgetPolicy(enable, disable, local)</code></td><td>Batch widget management</td></tr>
+                <tr><td>Interaction</td><td><code>PixelStack()</code></td><td>Execute stacking maneuver</td></tr>
+                <tr><td>Interaction</td><td><code>InteractWithTarget()</code></td><td>Target engagement</td></tr>
+                <tr><td>Interaction</td><td><code>SendDialogToTarget(id)</code></td><td>Dialog automation</td></tr>
+                <tr><td>Interaction</td><td><code>DonateFaction()</code></td><td>Faction donation</td></tr>
+                <tr><td>Quest</td><td><code>AbandonQuest(quest_id)</code></td><td>Cancel active quest</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Templates for Multibox</h3>
+        <p>The <code>Templates.Multibox_Aggressive()</code> preset enables:</p>
+        <ul>
+            <li>Danger pausing (auto-pause on low party HP)</li>
+            <li>HeroAI enabled (AI controls hero characters)</li>
+            <li>Auto-looting enabled</li>
+            <li>Inventory management active</li>
+            <li>Death halting disabled (continue after death)</li>
+            <li>Standard auto-combat disabled (delegated to HeroAI)</li>
+        </ul>
+
+        <h3>Event Callbacks for Multibox</h3>
+        <p>The Events subclass provides crucial callbacks for multi-client coordination:</p>
+        <ul>
+            <li><code>OnPartyMemberBehindCallback()</code> &mdash; Pauses FSM, uses PixelStack to unstick lagging accounts</li>
+            <li><code>OnPartyMemberInDangerCallback()</code> &mdash; Navigates leader to endangered party member</li>
+            <li><code>OnPartyMemberDeadBehindCallback()</code> &mdash; Moves to dead party member for resurrection</li>
+        </ul>
+
+        <h3>Templates.Routines.PrepareForFarm()</h3>
+        <p>Orchestrates complete farm preparation sequence:</p>
+        <div class="flow">
+            <div class="flow-step">Set Callbacks</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step">Manage Party</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step">Travel to Map</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step">Sync Accounts</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-step">Start Farm</div>
+        </div>
+    </div>
+</div>
+
+<!-- S11: SPEED OPTIMIZATION -->
+<div class="section" id="s11">
+    <div class="section-header"><h2><span class="num">11</span>Speed Optimization Techniques</h2></div>
+    <div class="section-body">
+
+        <h3>Pathfinding Optimization</h3>
+        <table>
+            <thead><tr><th>Technique</th><th>Implementation</th><th>Impact</th></tr></thead>
+            <tbody>
+                <tr><td>LOS Path Smoothing</td><td><code>smooth_path_by_los()</code></td><td>Removes redundant waypoints &rarr; shorter paths</td></tr>
+                <tr><td>Chaikin Smoothing</td><td><code>chaikin_smooth_path(iterations=1)</code></td><td>Reduces angular turns &rarr; smoother movement</td></tr>
+                <tr><td>NavMesh Caching</td><td><code>AutoPathing</code> singleton</td><td>One-time mesh load per map</td></tr>
+                <tr><td>Agent Property Caching</td><td><code>Agent._agent_cache</code></td><td>Per-frame invalidation, avoids redundant reads</td></tr>
+                <tr><td>Throttled Timers</td><td><code>ThrottledTimer</code></td><td>Limits API call frequency</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Movement Speed</h3>
+        <table>
+            <thead><tr><th>Technique</th><th>Implementation</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td>Skip Cinematics</td><td><code>Map.SkipCinematic()</code></td><td>Automatic on mission entry</td></tr>
+                <tr><td>Speed Buffs</td><td>Upkeep system: Essence of Celerity, city speed</td><td>Maintained via coroutines</td></tr>
+                <tr><td>Tight Tolerances</td><td><code>config_movement_tolerance=150</code></td><td>Reduce to 100 for tighter movement</td></tr>
+                <tr><td>Auto-Travel</td><td><code>Travel_To_Random_District()</code></td><td>Avoids populated districts</td></tr>
+                <tr><td>Movement Primitives</td><td>StrafeLeft/Right, WalkBackwards</td><td>Useful for body-blocking, wall hugging</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Combat Speed</h3>
+        <ul>
+            <li><strong>Aftercast Management:</strong> <code>CastSkillID(skill_id, aftercast_delay=0)</code> &mdash; minimize delays between casts</li>
+            <li><strong>Cluster Targeting:</strong> <code>DetectLargestAgentCluster()</code> &mdash; maximize AoE efficiency</li>
+            <li><strong>Auto-Attack Reissue:</strong> <code>BuildMgr.AutoAttack()</code> with reissue management</li>
+            <li><strong>Skill Queue:</strong> Pre-validate with <code>CanCastSkillID()</code> before casting</li>
+            <li><strong>Action Queues:</strong> <code>ActionQueueManager</code> for parallel item operations</li>
+        </ul>
+
+        <h3>Inventory Speed</h3>
+        <ul>
+            <li><strong>Batch Operations:</strong> <code>Yield.IdentifyItems(array)</code>, <code>Yield.SalvageItems(array)</code> &mdash; process multiple items</li>
+            <li><strong>Material Auto-Sell:</strong> <code>Yield.SellMaterialsAtTrader()</code> with deposit thresholds</li>
+            <li><strong>Gold Management:</strong> Automatic deposit when exceeding threshold</li>
+            <li><strong>Kit Restocking:</strong> <code>Yield.BuyIDKits()</code>, <code>Yield.BuySalvageKits()</code> &mdash; automated procurement</li>
+        </ul>
+
+        <h3>Coroutine Efficiency</h3>
+        <ul>
+            <li><strong>Throttle Control:</strong> <code>throttle_ms=100</code> parameter on behavior tree execution</li>
+            <li><strong>Cooperative Scheduling:</strong> All coroutines yield periodically to prevent lockup</li>
+            <li><strong>Map-Aware Cancellation:</strong> Automatic abort on zone transition</li>
+            <li><strong>Managed Coroutine Lifecycle:</strong> FSM tracks and cleans up generators automatically</li>
+        </ul>
+    </div>
+</div>
+
+<!-- S12: ASTERIUS FARMING -->
+<div class="section" id="s12">
+    <div class="section-header"><h2><span class="num">12</span>Asterius the Mighty &mdash; Farming Analysis</h2></div>
+    <div class="section-body">
+
+        <h3>Target Profile</h3>
+        <table>
+            <thead><tr><th>Property</th><th>Value</th></tr></thead>
+            <tbody>
+                <tr><td>Name</td><td>Asterius the Mighty</td></tr>
+                <tr><td>Species</td><td>Minotaur (Boss)</td></tr>
+                <tr><td>Profession</td><td>Dervish</td></tr>
+                <tr><td>Level</td><td>26 (NM) / 30 (HM)</td></tr>
+                <tr><td>Location</td><td>Varajar Fells, Far Shiverpeaks (Eye of the North)</td></tr>
+                <tr><td>Exit Outpost</td><td>Olafstead</td></tr>
+                <tr><td>Patrol Route</td><td>Wide circuit around SW Varajar Fells, circling Olafstead</td></tr>
+                <tr><td>NM Patrol Time</td><td>8-10 minutes per circuit</td></tr>
+                <tr><td>HM Patrol Time</td><td>~2 minutes per circuit</td></tr>
+                <tr><td>Attributes</td><td>14 Mysticism, 16 Wind Prayers</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Skills</h4>
+        <table>
+            <thead><tr><th>Skill</th><th>Type</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td>Reaper's Sweep (Elite)</td><td>Scythe Attack</td><td>Bonus damage vs. &lt;50% HP</td></tr>
+                <tr><td>Victorious Sweep</td><td>Scythe Attack</td><td>Heal on hit if HP higher</td></tr>
+                <tr><td>Harrier's Grasp</td><td>Spell</td><td>Cripple nearby foes</td></tr>
+                <tr><td>Harrier's Haste</td><td>Enchantment</td><td>Speed buff</td></tr>
+                <tr><td>Mystic Vigor</td><td>Enchantment</td><td>Heal on enchantment application</td></tr>
+                <tr><td>Zealous Renewal</td><td>Enchantment</td><td>Energy management</td></tr>
+                <tr><td>Berserk</td><td>Monster Skill</td><td>Damage boost</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Drops</h4>
+        <table>
+            <thead><tr><th>Item</th><th>Type</th><th>Drop Rate</th></tr></thead>
+            <tbody>
+                <tr><td>Asterius' Scythe</td><td>Unique (Green) Scythe</td><td>Very low (~1-2% per kill, standard green drop rate) <span class="badge badge-low">LOW confidence</span></td></tr>
+                <tr><td>Berserker Horn</td><td>Trophy</td><td>Common</td></tr>
+                <tr><td>Standard Loot</td><td>Gold, materials, runes</td><td>Normal rates</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Farming Builds</h3>
+
+        <h4>Build 1: E/A Shadow Form + Sliver Armor (Recommended)</h4>
+        <table>
+            <thead><tr><th>Property</th><th>Value</th></tr></thead>
+            <tbody>
+                <tr><td>Primary</td><td>Elementalist</td></tr>
+                <tr><td>Secondary</td><td>Assassin</td></tr>
+                <tr><td>Attributes</td><td>Earth Magic 16 (sup+head), Shadow Arts 12, Energy Storage 6 (sup)</td></tr>
+                <tr><td>Equipment</td><td>Radiant Armor, Insightful Earth Staff of Enchanting</td></tr>
+            </tbody>
+        </table>
+        <p><strong>Skill Bar:</strong></p>
+        <ol>
+            <li>Glyph of Elemental Power</li>
+            <li>Dark Escape</li>
+            <li>Shadow Form</li>
+            <li>Death's Charge</li>
+            <li>Sliver Armor</li>
+            <li>Obsidian Flame</li>
+            <li>Crystal Wave</li>
+            <li>Tenai's Crystals</li>
+        </ol>
+
+        <h4>Build 2: A/E Perma Boss Farmer</h4>
+        <p>Assassin primary with Shadow Form maintained permanently. Uses Sliver Armor and earth magic for damage. More complex execution but higher survivability.</p>
+
+        <h3>Farming Strategy</h3>
+        <ol>
+            <li>Exit Olafstead into Varajar Fells</li>
+            <li>Run to the resurrection shrine near Asterius' patrol route (SW area)</li>
+            <li>Cast Shadow Form + buffs before engaging</li>
+            <li><strong>Critical:</strong> Aggro at least 3 additional mob groups alongside Asterius' group to maximize Sliver Armor damage throughput</li>
+            <li>Use Death's Charge to teleport into the group</li>
+            <li>Maintain Shadow Form uptime (recast before expiry)</li>
+            <li>Apply Sliver Armor for AoE damage</li>
+            <li>Use Obsidian Flame, Crystal Wave, Tenai's Crystals for additional damage</li>
+        </ol>
+
+        <h4>Key Warnings</h4>
+        <ul>
+            <li><strong>Berserking Bison:</strong> Use Intimidating Aura (strips enchantments) and Zealous Renewal (AoE spike). The bison are the primary difficulty, not Asterius himself.</li>
+            <li><strong>Vaettir Popups:</strong> Mist Vaettirs use Illusionary Weaponry and Shadow Vaettirs use Unholy Feast &mdash; both damage through Shadow Form.</li>
+            <li><strong>Aurochs:</strong> Do NOT aggro Aurochs &mdash; they will kill you through Shadow Form.</li>
+            <li><strong>Heroes:</strong> Flag heroes outside radar range before killing the boss. Green items can be assigned to heroes, making them invisible to you.</li>
+        </ul>
+
+        <h3>Performance Metrics</h3>
+        <table>
+            <thead><tr><th>Metric</th><th>Value</th><th>Confidence</th></tr></thead>
+            <tbody>
+                <tr><td>Kills per Hour</td><td>~8 (E/A build)</td><td><span class="badge badge-medium">MEDIUM</span></td></tr>
+                <tr><td>Time per Kill</td><td>~7-8 minutes (including run)</td><td><span class="badge badge-medium">MEDIUM</span></td></tr>
+                <tr><td>Green Drop Rate</td><td>~1-2% per kill</td><td><span class="badge badge-low">LOW</span></td></tr>
+                <tr><td>Expected Greens per Hour</td><td>~0.08-0.16</td><td><span class="badge badge-low">LOW</span></td></tr>
+                <tr><td>Scythe Market Value</td><td>Variable &mdash; collector item</td><td><span class="badge badge-low">LOW</span></td></tr>
+            </tbody>
+        </table>
+
+        <h3>Py4GW Bot Architecture for Asterius Farm</h3>
+        <pre><span class="cmt"># Conceptual Asterius Farm Bot using Py4GW BottingClass</span>
+<span class="kw">from</span> Py4GWCoreLib <span class="kw">import</span> *
+
+<span class="kw">class</span> <span class="cls">AsteriusFarmBot</span>(BottingClass):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        <span class="kw">super</span>().__init__(
+            bot_name=<span class="str">"AsteriusFarm"</span>,
+            config_halt_on_death=<span class="kw">True</span>,
+            config_pause_on_danger=<span class="kw">False</span>,
+            config_movement_tolerance=<span class="str">100</span>,
+        )
+
+    <span class="kw">def</span> <span class="fn">Routine</span>(self):
+        <span class="cmt"># Step 1: Travel to Olafstead</span>
+        self.States.AddHeader(<span class="str">"Travel"</span>)
+        self.Wait.ForMapLoad(OLAFSTEAD_MAP_ID)
+
+        <span class="cmt"># Step 2: Set Hard Mode</span>
+        <span class="cmt"># (HM = 2min patrol vs NM = 8-10min)</span>
+
+        <span class="cmt"># Step 3: Exit to Varajar Fells</span>
+        self.Move.XYAndExitMap(exit_x, exit_y)
+        self.Wait.ForMapLoad(VARAJAR_FELLS_MAP_ID)
+
+        <span class="cmt"># Step 4: Run to farm spot</span>
+        self.Move.FollowAutoPath(path_to_asterius_area)
+
+        <span class="cmt"># Step 5: Buff up (Shadow Form + Sliver)</span>
+        self.States.AddCustomState(self.buff_sequence, <span class="str">"Buff"</span>)
+
+        <span class="cmt"># Step 6: Engage and kill</span>
+        self.States.AddCustomState(self.combat_sequence, <span class="str">"Combat"</span>)
+
+        <span class="cmt"># Step 7: Loot</span>
+        self.States.AddCustomState(self.loot_sequence, <span class="str">"Loot"</span>)
+
+        <span class="cmt"># Step 8: Return to outpost</span>
+        self.Map.Travel(OLAFSTEAD_MAP_ID)
+
+        <span class="cmt"># Loop</span>
+        self.States.JumpToStepName(<span class="str">"Travel"</span>)</pre>
+    </div>
+</div>
+
+<!-- S13: EXAMPLE BOT ARCHITECTURE -->
+<div class="section" id="s13">
+    <div class="section-header"><h2><span class="num">13</span>Example Bot Architecture</h2></div>
+    <div class="section-body">
+
+        <h3>Available Example Bots</h3>
+        <table>
+            <thead><tr><th>Bot Script</th><th>Pattern</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td>BorealBot_Async_example.py</td><td>Async/BottingClass</td><td>Boreal chest runner using BottingClass FSM</td></tr>
+                <tr><td>Boreal_Sequential.py</td><td>Sequential</td><td>Boreal runner using blocking Sequential calls</td></tr>
+                <tr><td>Boreal_yield.py</td><td>Yield/Coroutine</td><td>Boreal runner using yield-based coroutines</td></tr>
+                <tr><td>Vaettir Async v2.4.py</td><td>Async/BottingClass</td><td>Vaettir farm using BottingClass</td></tr>
+                <tr><td>VaettirBot (Sequential).py</td><td>Sequential</td><td>Vaettir farm using Sequential</td></tr>
+                <tr><td>VaettirBot (yield).py</td><td>Yield/Coroutine</td><td>Vaettir farm using yield</td></tr>
+                <tr><td>YAVB 1.0 by Apo (Vaettir bot).py</td><td>Advanced</td><td>Yet Another Vaettir Bot by framework author</td></tr>
+                <tr><td>runbot (Sequential).py</td><td>Sequential</td><td>Generic run bot template</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Three Bot Paradigms Compared</h3>
+        <table>
+            <thead><tr><th>Feature</th><th>Sequential</th><th>Yield/Coroutine</th><th>Async/BottingClass</th></tr></thead>
+            <tbody>
+                <tr><td>Complexity</td><td>Low</td><td>Medium</td><td>High</td></tr>
+                <tr><td>Flexibility</td><td>Low</td><td>High</td><td>Highest</td></tr>
+                <tr><td>Blocking</td><td>Yes (sleep-based)</td><td>No (cooperative yield)</td><td>No (FSM + coroutines)</td></tr>
+                <tr><td>Upkeep System</td><td>Manual</td><td>Manual</td><td>Automatic (managed coroutines)</td></tr>
+                <tr><td>Multibox</td><td>No</td><td>No</td><td>Yes (built-in)</td></tr>
+                <tr><td>Event Handling</td><td>Polling</td><td>Generator-based</td><td>Callback + coroutine</td></tr>
+                <tr><td>Stuck Recovery</td><td>Basic</td><td>Advanced (strafe recovery)</td><td>Advanced + event callbacks</td></tr>
+                <tr><td>Best For</td><td>Simple single-task bots</td><td>Medium complexity farms</td><td>Full automation, multibox, complex runs</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Community Bots</h3>
+        <div class="cards-grid">
+            <div class="card">
+                <h4>HeroAI (by Apoguita)</h4>
+                <p>Complete combat AI for hero characters. Features automatic targeting, skill usage, following, looting. 18 source files. 100% customizable builds.</p>
+                <span class="tag">Official</span>
+            </div>
+            <div class="card">
+                <h4>Presearing Bible/LDoA (by Th3KuM1Ko)</h4>
+                <p>Fully automated LDoA farming from level 1 to 10. Includes nick item farming and map unlocking with skill optimization.</p>
+                <span class="tag">Farming</span>
+            </div>
+            <div class="card">
+                <h4>Kabob / Scalefin Farmer (by Nikon)</h4>
+                <p>Fully automated 100% stable farming with inventory management, ID, salvage, and crafting routines.</p>
+                <span class="tag">Farming</span>
+            </div>
+            <div class="card">
+                <h4>Vaettir Bot (Community)</h4>
+                <p>Community-maintained Vaettir farm. Available in Sequential, Yield, and Async variants for learning.</p>
+                <span class="tag">Example</span>
+            </div>
+            <div class="card">
+                <h4>CoF Bone Farmer (by _mosh_jele_)</h4>
+                <p>Cathedral of Flames dust farming bot.</p>
+                <span class="tag">Farming</span>
+            </div>
+            <div class="card">
+                <h4>Salvager (by Nikon)</h4>
+                <p>Mass identification and mass salvage utility with full inventory management.</p>
+                <span class="tag">Utility</span>
+            </div>
+        </div>
+
+        <h3>BotsHub (AutoIt Alternative)</h3>
+        <p>For reference, the <strong>BotsHub</strong> framework (AutoIt-based) provides an extensive collection of farm bots: Raptors, Vaettirs, Cathedral of Flames, Jaya Bluffs, Drazach Thicket, Wajjun Bazaar, Moddok Crevice, plus dungeon bots (Bogroot, Sepulchre, Slaver's Exile), chest runners, and vanquish bots (including Varajar Fells for Norn points). This demonstrates the breadth of automation possible with GW1 botting frameworks.</p>
+    </div>
+</div>
+
+<!-- S14: COMMUNITY -->
+<div class="section" id="s14">
+    <div class="section-header"><h2><span class="num">14</span>Community Ecosystem</h2></div>
+    <div class="section-body">
+
+        <h3>Primary Resources</h3>
+        <table>
+            <thead><tr><th>Resource</th><th>URL</th><th>Type</th></tr></thead>
+            <tbody>
+                <tr><td>Main Repository</td><td>github.com/apoguita/Py4GW</td><td>Source Code</td></tr>
+                <tr><td>Fork (ShivaTheLynch)</td><td>github.com/ShivaTheLynch/Py4GW-Fork</td><td>Alternative Fork</td></tr>
+                <tr><td>BotsHub</td><td>github.com/caustic-kronos/BotsHub</td><td>AutoIt Bot Collection</td></tr>
+                <tr><td>ElitePvPers Thread</td><td>elitepvpers.com (see source appendix)</td><td>Community Discussion</td></tr>
+                <tr><td>ElitePvPers Bot Directory</td><td>elitepvpers.com (see source appendix)</td><td>Bot Index</td></tr>
+                <tr><td>GW Legacy Forums</td><td>guildwarslegacy.com</td><td>Farming Guides</td></tr>
+                <tr><td>PvX Wiki</td><td>gwpvx.fandom.com</td><td>Build Database</td></tr>
+                <tr><td>GW Wiki (Official)</td><td>wiki.guildwars.com</td><td>Game Data</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Repository Statistics</h3>
+        <table>
+            <thead><tr><th>Metric</th><th>Value</th><th>Date</th></tr></thead>
+            <tbody>
+                <tr><td>Stars</td><td>53</td><td>March 2026</td></tr>
+                <tr><td>Forks</td><td>94</td><td>March 2026</td></tr>
+                <tr><td>Commits</td><td>3,476</td><td>March 2026</td></tr>
+                <tr><td>Language</td><td>Python 99.4%</td><td>-</td></tr>
+                <tr><td>Latest Release</td><td>v3.0</td><td>December 12, 2025</td></tr>
+                <tr><td>Python Requirement</td><td>3.13.0 32-bit</td><td>Strict</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Available Widgets</h3>
+        <ul>
+            <li><strong>Hero Helper</strong> &mdash; Hero management UI overlay</li>
+            <li><strong>Inventory+</strong> &mdash; Enhanced inventory display</li>
+            <li><strong>Pcons Widget</strong> &mdash; Consumable management</li>
+            <li><strong>Titles Widget</strong> &mdash; Title tracking</li>
+            <li><strong>Travel Widget</strong> &mdash; Quick travel interface</li>
+            <li>Auto-acceptance, character loading, bounty collection, timers, vanquish monitoring</li>
+        </ul>
+    </div>
+</div>
+
+<!-- S15: SOURCE APPENDIX -->
+<div class="section" id="s15">
+    <div class="section-header"><h2><span class="num">15</span>Source Appendix</h2></div>
+    <div class="section-body">
+
+        <table>
+            <thead><tr><th>Source</th><th>URL</th><th>Tier</th><th>Data Points</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td>Py4GW GitHub Repository</td>
+                    <td><a href="https://github.com/apoguita/Py4GW" target="_blank">github.com/apoguita/Py4GW</a></td>
+                    <td><span class="badge badge-high">T1</span></td>
+                    <td>Source code, API, architecture, examples, releases</td>
+                </tr>
+                <tr>
+                    <td>Py4GW Fork (ShivaTheLynch)</td>
+                    <td><a href="https://github.com/ShivaTheLynch/Py4GW-Fork" target="_blank">github.com/ShivaTheLynch/Py4GW-Fork</a></td>
+                    <td><span class="badge badge-high">T1</span></td>
+                    <td>Alternative implementation</td>
+                </tr>
+                <tr>
+                    <td>BotsHub Repository</td>
+                    <td><a href="https://github.com/caustic-kronos/BotsHub" target="_blank">github.com/caustic-kronos/BotsHub</a></td>
+                    <td><span class="badge badge-high">T1</span></td>
+                    <td>AutoIt bot framework, farm list, architecture reference</td>
+                </tr>
+                <tr>
+                    <td>ElitePvPers - Py4GW Thread</td>
+                    <td><a href="https://www.elitepvpers.com/forum/gw-exploits-hacks-bots-tools-macros/5254947-py4gw-python-based-scripting-library-guild-wars.html" target="_blank">elitepvpers.com/.../5254947</a></td>
+                    <td><span class="badge badge-medium">T3</span></td>
+                    <td>Community discussion, features overview</td>
+                </tr>
+                <tr>
+                    <td>ElitePvPers - Bot Directory</td>
+                    <td><a href="https://www.elitepvpers.com/forum/gw-exploits-hacks-bots-tools-macros/5288076-py4gw-bot-directory.html" target="_blank">elitepvpers.com/.../5288076</a></td>
+                    <td><span class="badge badge-medium">T3</span></td>
+                    <td>Available bots listing, widget inventory</td>
+                </tr>
+                <tr>
+                    <td>GW Wiki - Asterius the Mighty</td>
+                    <td><a href="https://wiki.guildwars.com/wiki/Asterius_the_Mighty" target="_blank">wiki.guildwars.com/wiki/Asterius_the_Mighty</a></td>
+                    <td><span class="badge badge-high">T1</span></td>
+                    <td>Boss stats, skills, patrol route, location</td>
+                </tr>
+                <tr>
+                    <td>GW Wiki - Asterius' Scythe</td>
+                    <td><a href="https://wiki.guildwars.com/wiki/Asterius'_Scythe" target="_blank">wiki.guildwars.com/wiki/Asterius'_Scythe</a></td>
+                    <td><span class="badge badge-high">T1</span></td>
+                    <td>Weapon stats, drop info</td>
+                </tr>
+                <tr>
+                    <td>GW Wiki - Varajar Fells</td>
+                    <td><a href="https://wiki.guildwars.com/wiki/Varajar_Fells" target="_blank">wiki.guildwars.com/wiki/Varajar_Fells</a></td>
+                    <td><span class="badge badge-high">T1</span></td>
+                    <td>Map data, NPCs, quests</td>
+                </tr>
+                <tr>
+                    <td>GW Legacy - Asterius Scythe Farm</td>
+                    <td><a href="https://guildwarslegacy.com/forum/thread/9116-asterius-scythe-farm/" target="_blank">guildwarslegacy.com/.../9116</a></td>
+                    <td><span class="badge badge-medium">T3</span></td>
+                    <td>Farming tips, hero flagging advice</td>
+                </tr>
+                <tr>
+                    <td>GW Guru Archive - Asterius Build</td>
+                    <td><a href="https://guru-archive-test.guildwarslegacy.com/thread?id=10204167" target="_blank">guru-archive-test.guildwarslegacy.com</a></td>
+                    <td><span class="badge badge-medium">T3</span></td>
+                    <td>E/A build attributes, skill bar, strategy</td>
+                </tr>
+                <tr>
+                    <td>GW Guru Archive - Farming Thread</td>
+                    <td><a href="https://guru-archive-test.guildwarslegacy.com/thread?id=10397959" target="_blank">guru-archive-test.guildwarslegacy.com</a></td>
+                    <td><span class="badge badge-medium">T3</span></td>
+                    <td>Kill rate data, additional strategies</td>
+                </tr>
+                <tr>
+                    <td>PvX Wiki - R/D Escape Farmer</td>
+                    <td><a href="https://gwpvx.fandom.com/wiki/Build:R/D_Escape_Farmer" target="_blank">gwpvx.fandom.com/.../Build:R/D_Escape_Farmer</a></td>
+                    <td><span class="badge badge-medium">T2</span></td>
+                    <td>Alternative farming build</td>
+                </tr>
+                <tr>
+                    <td>PvX Wiki - A/E Perma Boss Farmer</td>
+                    <td><a href="https://gwpvx.fandom.com/wiki/Build:A/E_Perma_Boss_Farmer" target="_blank">gwpvx.fandom.com/.../Build:A/E_Perma_Boss_Farmer</a></td>
+                    <td><span class="badge badge-medium">T2</span></td>
+                    <td>Alternative A/E build</td>
+                </tr>
+                <tr>
+                    <td>PvX Wiki - D/any Vow of Silence Farmer</td>
+                    <td><a href="https://gwpvx.fandom.com/wiki/Build:D/any_General_Vow_of_Silence_Farmer" target="_blank">gwpvx.fandom.com/.../Build:D/any_VoS_Farmer</a></td>
+                    <td><span class="badge badge-medium">T2</span></td>
+                    <td>Dervish farming build option</td>
+                </tr>
+                <tr>
+                    <td>Py4GW Source: Botting.py</td>
+                    <td><a href="https://raw.githubusercontent.com/apoguita/Py4GW/main/Py4GWCoreLib/Botting.py" target="_blank">raw.githubusercontent.com/.../Botting.py</a></td>
+                    <td><span class="badge badge-high">T1</span></td>
+                    <td>BottingClass API, constructor, subclasses</td>
+                </tr>
+                <tr>
+                    <td>Py4GW Source: Agent.py</td>
+                    <td><a href="https://raw.githubusercontent.com/apoguita/Py4GW/main/Py4GWCoreLib/Agent.py" target="_blank">raw.githubusercontent.com/.../Agent.py</a></td>
+                    <td><span class="badge badge-high">T1</span></td>
+                    <td>100+ Agent methods</td>
+                </tr>
+                <tr>
+                    <td>Py4GW Source: AgentArray.py</td>
+                    <td><a href="https://raw.githubusercontent.com/apoguita/Py4GW/main/Py4GWCoreLib/AgentArray.py" target="_blank">raw.githubusercontent.com/.../AgentArray.py</a></td>
+                    <td><span class="badge badge-high">T1</span></td>
+                    <td>Filter, Sort, Manipulation methods</td>
+                </tr>
+                <tr>
+                    <td>Py4GW Source: FSM.py</td>
+                    <td><a href="https://raw.githubusercontent.com/apoguita/Py4GW/main/Py4GWCoreLib/py4gwcorelib_src/FSM.py" target="_blank">raw.githubusercontent.com/.../FSM.py</a></td>
+                    <td><span class="badge badge-high">T1</span></td>
+                    <td>FSM class, state types, coroutine management</td>
+                </tr>
+                <tr>
+                    <td>Py4GW Source: Pathing.py</td>
+                    <td><a href="https://raw.githubusercontent.com/apoguita/Py4GW/main/Py4GWCoreLib/Pathing.py" target="_blank">raw.githubusercontent.com/.../Pathing.py</a></td>
+                    <td><span class="badge badge-high">T1</span></td>
+                    <td>NavMesh, A*, AutoPathing, path optimization</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div><!-- end content-wrapper -->
+
+<!-- FOOTER -->
+<div class="footer">
+    <p>Py4GW Deep Research Report | Generated 2026-03-30 by Claude Opus 4.6 (1M context) | Personal Use Only</p>
+    <p>Py4GW is maintained by <a href="https://github.com/apoguita" target="_blank">apoguita</a> | Guild Wars is a registered trademark of NCSOFT/ArenaNet</p>
+</div>
+
+</body>
+</html>

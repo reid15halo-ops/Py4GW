@@ -183,7 +183,6 @@ class HeroAI_FloatingWindows():
                         email = account.AccountEmail
                         
                         if not email in HeroAI_FloatingWindows.hero_windows:
-                            ConsoleLog("HeroAI", f"Creating Hero Panel for account: {email}")
                             
                             info = HeroAI_FloatingWindows.settings.get_hero_panel_info(email)
                             HeroAI_FloatingWindows.hero_windows[email] = WindowModule(

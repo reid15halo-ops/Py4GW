@@ -54,7 +54,6 @@ class CastConditions:
         # cast is skipped when the caster is already near full.
         self.LessSelfEnergyPercentage = 0.0
         self.Overcast = 0.0
-        self.Overcast = 0.0
         self.SacrificeHealth = 0.0
         # Fraction of the caster's max HP that this skill sacrifices on cast (e.g. 0.33 for BiP).
         # Used by the post-sacrifice safety floors below to compute hp_after_sacrifice.

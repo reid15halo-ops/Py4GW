@@ -9,11 +9,22 @@ MODULE_NAME = "CoF Bones Farmer"
 MODULE_ICON = "Textures\\Module_Icons\\CoF Bone Farmer.png"
 
 # region classes
+VALID_TARGETS = [
+    'Crypt Fiend',
+    'Crypt Wraith',
+    'Crypt Slasher',
+    'Crypt Banshee',
+    'Ash Phantom',
+    'Servant of Murakai',
+]
+
+
 class Path:
     npc = [(-19085, 17960)]
     rezone = [(-19665, -8045)]
     prep = [(-16623, -8989)]
-    kill = [(-15525, -8923), (-15737, -9093)]
+    kill = [(-15654, -8966)]
+    pull2 = [(-15743, -7786), (-15654, -8966)]
 
 
 class BotVariables:
@@ -35,12 +46,14 @@ class BotVariables:
         rezone = Routines.Movement.PathHandler(Path.rezone)
         prep = Routines.Movement.PathHandler(Path.prep)
         kill = Routines.Movement.PathHandler(Path.kill)
+        pull2 = Routines.Movement.PathHandler(Path.pull2)
 
         def reset(self):
             self.npc.reset()
             self.rezone.reset()
             self.prep.reset()
             self.kill.reset()
+            self.pull2.reset()
 
     class Timers:
         throttle: Timer = Timer()
@@ -56,7 +69,7 @@ class BotVariables:
         class Checks:
             throttle: float = 200
             action: float = 0
-            stuck: float = 2000
+            stuck: float = 4000
 
         checks = Checks()
 
@@ -297,7 +310,11 @@ class Combat:
 
         activation = GLOBAL_CACHE.Skill.Data.GetActivation(skill_id)
         aftercast = GLOBAL_CACHE.Skill.Data.GetAftercast(skill_id)
-        return max(activation * 1000 + aftercast * 750 + Py4GW.PingHandler().GetCurrentPing() + 50, 500)
+        ping = Py4GW.PingHandler().GetCurrentPing()
+        # Flash enchantments (0 activation) need minimal delay
+        if activation == 0:
+            return max(ping + 150, 300)
+        return int(activation * 1000 + aftercast * 750 + ping + 100)
 
 
 class ProcessInventory:
@@ -366,7 +383,7 @@ class ProcessInventory:
         if kit_id == 0:
             self.BuyItem(2992)
             SetPendingAction(150)
-            return
+            return False
 
         item_id = Inventory.GetFirstSalvageableItem()
         if item_id == 0:
@@ -572,9 +589,11 @@ class Loot:
         bot_vars.gui.stats.chalices += new_inv[24353]
         bot_vars.gui.stats.relics += new_inv[24354]
 
-        bot_vars.gui.stats.bone_per_hour = int(
-            bot_vars.gui.stats.bone * 3600000 / bot_vars.timers.total.GetElapsedTime()
-        )
+        elapsed = bot_vars.timers.total.GetElapsedTime()
+        if elapsed > 0:
+            bot_vars.gui.stats.bone_per_hour = int(bot_vars.gui.stats.bone * 3600000 / elapsed)
+        else:
+            bot_vars.gui.stats.bone_per_hour = 0
         bot_vars.gui.stats.total_bone = Inventory.GetModelCount(921)
         bot_vars.inv.log = {}
         bot_vars.inv.item_id = 0
@@ -651,6 +670,8 @@ class Loot:
             return False
 
         if Agent.IsDead(Player.GetAgentID()):
+            if bot_vars.inv.log:
+                self.LogLoot()
             return True
 
         if not bot_vars.inv.log:
@@ -665,6 +686,10 @@ class Loot:
         if not item_id:
             self.LogLoot()
             return True
+
+        if not Agent.IsValid(item_id):
+            bot_vars.inv.item_id = 0
+            return False
 
         bot_vars.inv.item_id = item_id
         current_target = Player.GetTargetID()
@@ -706,6 +731,46 @@ loot = Loot()
 
 
 # region helper functions
+_last_live_log_state = ''
+
+def LiveLog():
+    global bot_vars, _last_live_log_state
+
+    if not bot_vars.bot_started:
+        return
+
+    player_id = Player.GetAgentID()
+
+    # Get current FSM state
+    state = bot_vars.fsm.get_current_step_name()
+    if state == 'setting up':
+        state = f'setup: {bot_vars.fsm_setup.get_current_step_name()}'
+    elif state == 'processing inventory':
+        state = f'inv: {bot_vars.fsm_inv.get_current_step_name()}'
+
+    # Only log on state change
+    if state != _last_live_log_state:
+        _last_live_log_state = state
+
+        # Build status line
+        hp = f'{int(Agent.GetHealth(player_id) * 100)}%' if not Agent.IsDead(player_id) else 'DEAD'
+        energy = combat.GetEnergy()
+        vos_time = int(combat.EffectTimeRemaining(1517) / 1000)
+        target_id = Player.GetTargetID()
+
+        target_info = ''
+        if target_id and target_id != 0:
+            if Agent.IsDead(target_id):
+                target_info = f' | target: {target_id} (dead)'
+            else:
+                target_info = f' | target: {target_id}'
+
+        enemy_count = len(AgentArray.Filter.ByAttribute(AgentArray.GetEnemyArray(), 'IsAlive'))
+
+        log_msg = f'[{state}] HP:{hp} E:{energy} VoS:{vos_time}s enemies:{enemy_count}{target_info}'
+        Py4GW.Console.Log('CoF', log_msg, Py4GW.Console.MessageType.Info)
+
+
 def Debug(message, title='Log', msg_type='Debug'):
     py4gw_msg_type = Py4GW.Console.MessageType.Debug
     if msg_type == 'Debug':
@@ -842,6 +907,8 @@ def ResetVariables():
     bot_vars.timers.checks.action = 0
     bot_vars.timers.action.Stop()
     bot_vars.timers.settle.Stop()
+    bot_vars.inv.log = {}
+    bot_vars.inv.item_id = 0
 
     if bot_vars.opts.debug:
         Debug('Resetting script variables.')
@@ -888,169 +955,250 @@ def CheckRequirements():
             Debug('Requirments check passed.', msg_type='Success')
 
 
-def _dialog_run_to_end(gen):
-    result = None
-    try:
-        while True:
-            result = next(gen)
-    except StopIteration as e:
-        return e.value if e.value is not None else result
+def InteractNPC(x, y):
+    npc_array = AgentArray.GetNPCMinipetArray()
+    npc_array = AgentArray.Sort.ByDistance(npc_array, (x, y))
+    if npc_array:
+        closest = npc_array[0]
+        if Utils.Distance(Agent.GetXY(closest), (x, y)) < 500:
+            Player.Interact(closest)
+            return True
+    return False
 
 
-def InteractNPCWithDialog(x, y, dialog_id):
-    result = _dialog_run_to_end(Routines.Yield.Agents.InteractWithAgentXY(x, y))
-    if not result:
-        return False
-
+def SendDialogIfAvailable(dialog_id):
+    global bot_vars
     if dialog_id != 0:
+        if bot_vars.opts.debug:
+            Debug(f'Sending dialog [0x{dialog_id:X}].')
         Player.SendDialog(dialog_id)
-        _dialog_run_to_end(Routines.Yield.wait(500))
-
     return True
 
 
 def PrepSkills():
+    """Pre-combat buffs: VoP -> GA. VoP FIRST so it strips nothing (no enchantments yet).
+    GA SECOND so it stays active (VoP won't strip it since VoP was cast first).
+    VoS is cast separately right before walking to maximize duration.
+    VoP and PF both strip the LAST CAST dervish enchantment — so order matters!"""
     global bot_vars
     if not combat.CanCast():
         return
     if ActionIsPending():
         return
 
-    spells = []
-    if bot_vars.opts.build_type == 'iau':
-        spells = [build.vop, build.ga, build.vos]
-    elif bot_vars.opts.build_type == 'mb':
-        spells = [build.vop, build.mb, build.ga, build.vos]
-
-    for spell in spells:
-        if combat.IsRecharged(spell):
+    # VoP (safe, no enchant removal) + GA. VoP cast once for regen.
+    for spell in [build.vop, build.ga]:
+        if combat.IsRecharged(spell) and combat.HasEnoughEnergy(spell) and not combat.HasBuff(Player.GetAgentID(), spell):
             next(combat.CastSkill(spell))
+            SetPendingAction(int(combat.GetAftercast(spell)))
             return False
 
-    if combat.CheckBuffs(spells):
+    if combat.CheckBuffs([build.ga]):
         return True
 
 
-def UseVoS():
-    global bot_vars
-
-    if (
-        combat.IsRecharged(Build.pf)
-        and combat.IsRecharged(Build.ga)
-        and combat.IsRecharged(Build.vos)
-        and combat.GetEnergy() >= 15
-    ):
-        if bot_vars.opts.debug:
-            Debug('Queuing VoS cast.')
-
-        for spell in [Build.pf, Build.ga, Build.vos]:
-            next(combat.CastSkill(spell, aftercast_delay=100))
-        SetPendingAction(1000)
+def CastVoS():
+    """Cast VoS right before walking. Returns True when VoS is active."""
+    if VoSIsActive():
         return True
-    return False
-
-
-def CheckVos():
-    global bot_vars
-
-    if not combat.CheckBuffs([Build.vos]) and bot_vars.action_queue.is_empty():
-        if combat.IsRecharged(Build.pf):
-            next(combat.CastSkill(Build.pf, aftercast_delay=50))
-        if combat.IsRecharged(Build.ga):
-            next(combat.CastSkill(Build.ga, aftercast_delay=50))
-        if combat.IsRecharged(Build.vos):
-            next(combat.CastSkill(Build.vos, aftercast_delay=50))
-        SetPendingAction(1000)
-        return True
-    return False
-
-
-def WaitRotation():
+    if not combat.CanCast():
+        return False
     if ActionIsPending():
-        return
-    if UseVoS():
-        return
+        return False
+    if combat.IsRecharged(build.vos) and combat.HasEnoughEnergy(build.vos):
+        next(combat.CastSkill(build.vos))
+        SetPendingAction(int(combat.GetAftercast(build.vos)))
+        return False
+    return False
 
-    if combat.IsRecharged(build.soms):
-        next(combat.CastSkill(build.soms))
-        return
+
+def VoSIsActive():
+    return combat.EffectTimeRemaining(1517) > 0
+
+
+def RecastVoSChain():
+    """Mid-combat VoS recast. Energy-tiered for maximum VoS uptime:
+
+    HIGH (>= 25e): GA -> VoP -> VoS  (~2650ms window, full buffs + health steal)
+    LOW  (>= 10e): VoS only          (~500ms window, bare survival)
+    EMPTY (< 10e): wait for energy
+
+    HasBuff auto-skips buffs still active, so the chain self-optimizes:
+    - VoP still up from last cycle? Skipped -> GA + VoS only (2350ms)
+    - GA still up (VoS stripped early)? Skipped -> VoS only (500ms)
+    """
+    global bot_vars
+
+    if not combat.CanCast():
+        return False
+
+    if VoSIsActive():
+        return False
+
+    energy = combat.GetEnergy()
+
+    # Emergency: not enough energy for even VoS
+    if energy < 10:
+        return False
+
+    # LOW energy: VoS only — minimize vulnerability window
+    if energy < 25:
+        if combat.IsRecharged(build.vos):
+            next(combat.CastSkill(build.vos, aftercast_delay=100))
+            SetPendingAction(int(combat.GetAftercast(build.vos)))
+            return True
+        return False
+
+    # HIGH energy: GA -> VoS only. NO PF during recast — PF strips VoS.
+    for spell in [build.ga, build.vos]:
+        if combat.IsRecharged(spell) and combat.HasEnoughEnergy(spell) and not combat.HasBuff(Player.GetAgentID(), spell):
+            next(combat.CastSkill(spell, aftercast_delay=100))
+            SetPendingAction(int(combat.GetAftercast(spell)))
+            return True
+
+    # If GA is on cooldown but VoS is ready, just cast VoS
+    if combat.IsRecharged(build.vos) and combat.HasEnoughEnergy(build.vos):
+        next(combat.CastSkill(build.vos, aftercast_delay=100))
+        SetPendingAction(int(combat.GetAftercast(build.vos)))
+        return True
+
+    return False
 
 
 def KillRotation():
+    """Combat rotation. While VoS active: only signets/shouts/adrenaline. When VoS drops: recast chain."""
     global bot_vars
     if ActionIsPending():
         return
-    if UseVoS():
+
+    # If VoS dropped, recast GA -> VoS. No VoP/PF during combat (they strip enchantments).
+    if not VoSIsActive():
+        RecastVoSChain()
         return
-    if CheckVos():
-        return
-    if combat.EffectTimeRemaining(1517) < 1500:
-        return
+
     if not combat.CanCast():
         return
 
-    # maintain signet of mystic speed
-    if not combat.CheckBuffs([build.soms]) and combat.IsRecharged(build.soms):
+    # VoS is active — only non-spell skills allowed:
+
+    # signet of mystic speed (signet, 0 energy) — only recast when NOT active
+    soms_id = GLOBAL_CACHE.SkillBar.GetSkillIDBySlot(build.soms)
+    soms_active = (Effects.BuffExists(Player.GetAgentID(), soms_id)
+        or Effects.EffectExists(Player.GetAgentID(), soms_id)
+        or combat.EffectTimeRemaining(soms_id) > 0)
+    if not soms_active and combat.IsRecharged(build.soms):
         next(combat.CastSkill(build.soms))
         return
 
-    # maintain iau (if equipped)
-    if bot_vars.opts.build_type == 'iau' and combat.IsRecharged(build.iau):
+    # "I Am Unstoppable!" (shout)
+    if bot_vars.opts.build_type == 'iau' and combat.IsRecharged(build.iau) and not combat.HasBuff(Player.GetAgentID(), build.iau):
         next(combat.CastSkill(build.iau, aftercast_delay=50))
         return
 
-    # target
+    # target - only nearby valid enemies, do NOT chase
     target_id = Player.GetTargetID()
-    if target_id == 0 or Agent.GetAllegiance(target_id)[0] != 3 or Agent.IsDead(target_id):
+    player_xy = Player.GetXY()
+    needs_new_target = (target_id == 0
+        or Agent.GetAllegiance(target_id)[0] != 3
+        or Agent.IsDead(target_id)
+        or Utils.Distance(Agent.GetXY(target_id), player_xy) > 350
+        or not IsValidTarget(target_id))
 
-        enemy_array = AgentArray.GetEnemyArray()
-        enemy_array = AgentArray.Filter.ByAttribute(enemy_array, 'IsAlive')
-        enemy_array = AgentArray.Sort.ByDistance(enemy_array, (-15706, -9035))
+    if needs_new_target:
+        enemy_array = GetValidEnemies(350)
+        enemy_array = AgentArray.Sort.ByDistance(enemy_array, player_xy)
 
-        enemy_array = AgentArray.Filter.ByDistance(enemy_array, (-15706, -9035), 600)
-        close_array = AgentArray.Filter.ByDistance(enemy_array, (-15706, -9035), 100)
-        new_target = 0
-
-        if (
-            Utils.Distance(Agent.GetXY(target_id), (-15706, -9035)) > 100
-            and close_array
-            and close_array[0]
-        ):
-            new_target = close_array[0]
-        elif enemy_array and enemy_array[0]:
-            new_target = enemy_array[0]
+        new_target = enemy_array[0] if enemy_array else 0
 
         if new_target:
-            if bot_vars.opts.debug:
-                if Agent.IsNameReady(Player.GetTargetID()):
-                    name = f'"{Agent.GetNameByID(Player.GetTargetID())}" - '
-                else:
-                    name = ''
-                Debug(f'Changing target to {name}AgentID [{new_target}].')
-
             Player.ChangeTarget(new_target)
             SetPendingAction(200)
+            return
+        else:
+            # No enemies in melee range — pick up nearby loot while waiting
+            loot_list = loot.GetLootList()
+            if loot_list:
+                loot_item = loot_list[0]
+                if Utils.Distance(Agent.GetXY(loot_item), player_xy) < 350:
+                    Player.ChangeTarget(loot_item)
+                    Keystroke.PressAndRelease(Key.Space.value)
+                    SetPendingAction(500)
             return
 
     # attack
     if not Agent.IsAttacking(Player.GetAgentID()):
-        if bot_vars.opts.debug:
-            if Agent.IsNameReady(Player.GetTargetID()):
-                name = f'"{Agent.GetNameByID(Player.GetTargetID())}" - '
-            else:
-                name = ''
-            Debug(f'Attacking {name}AgentID [{Player.GetTargetID()}].')
-
         Keystroke.PressAndRelease(Key.Space.value)
         SetPendingAction(400)
         return
 
-    # cast crippling victory and reap impurities
+    # adrenaline skills (not spells, safe under VoS)
     for spell in [build.cv, build.ri]:
         if combat.HasEnoughAdrenaline(spell):
             next(combat.CastSkill(spell))
             SetPendingAction(400)
             return
+
+
+def IsPlayerDead():
+    return Agent.IsDead(Player.GetAgentID())
+
+
+def IsValidTarget(agent_id):
+    name = Agent.GetNameByID(agent_id)
+    if not name:
+        return True  # can't check name yet, assume valid
+    for valid in VALID_TARGETS:
+        if valid in name:
+            return True
+    return False
+
+
+def GetValidEnemies(max_range=2000):
+    enemy_array = AgentArray.GetEnemyArray()
+    enemy_array = AgentArray.Filter.ByAttribute(enemy_array, 'IsAlive')
+    enemy_array = AgentArray.Filter.ByDistance(enemy_array, Player.GetXY(), max_range)
+    enemy_array = AgentArray.Filter.ByCondition(enemy_array, lambda a: IsValidTarget(a))
+    return enemy_array
+
+
+def AnyEnemiesAlive(range=2000):
+    return len(GetValidEnemies(range)) > 0
+
+
+def SkipIfNoEnemies():
+    """Returns True (skip) if no enemies alive in the area."""
+    return not AnyEnemiesAlive()
+
+
+def HandleDeath():
+    global bot_vars
+
+    if not IsPlayerDead():
+        return False
+
+    state = bot_vars.fsm.get_current_step_name()
+    # WaitForKill already handles death and counts fails
+    if state in ('killing enemies', 'killing group 2', 'looting items', 'resigning', 'returning'):
+        return False
+
+    Py4GW.Console.Log('CoF', f'DIED during "{state}" - skipping to resign', Py4GW.Console.MessageType.Warning)
+
+    bot_vars.gui.stats.fails += 1
+    bot_vars.fsm.jump_to_state_by_name('resigning')
+    return True
+
+
+def EmergencyVoSRecast():
+    """Recast VoS immediately if stripped during movement. VoS only, no GA/PF."""
+    if VoSIsActive():
+        return
+    if ActionIsPending():
+        return
+    if not combat.CanCast():
+        return
+    if combat.IsRecharged(build.vos) and combat.HasEnoughEnergy(build.vos):
+        next(combat.CastSkill(build.vos, aftercast_delay=100))
+        SetPendingAction(int(combat.GetAftercast(build.vos)))
 
 
 def HandleSkillbar():
@@ -1060,11 +1208,13 @@ def HandleSkillbar():
         and not Map.IsMapLoading()
         and Map.IsExplorable()
         and GLOBAL_CACHE.Party.IsPartyLoaded()
+        and not IsPlayerDead()
     ):
-        if bot_vars.fsm.get_current_step_name() == 'waiting for enemies':
-            WaitRotation()
-        elif bot_vars.fsm.get_current_step_name() == 'killing enemies':
+        state = bot_vars.fsm.get_current_step_name()
+        if state in ('killing enemies', 'killing group 2'):
             KillRotation()
+        elif state in ('going to kill spot', 'waiting for enemies', 'pulling group 2', 'waiting for group 2'):
+            EmergencyVoSRecast()
 
 
 def HandleStuck():
@@ -1075,7 +1225,7 @@ def HandleStuck():
         and Map.IsExplorable()
         and GLOBAL_CACHE.Party.IsPartyLoaded()
     ):
-        if bot_vars.fsm.get_current_step_name() == 'going to kill spot':
+        if bot_vars.fsm.get_current_step_name() in ('going to kill spot', 'pulling group 2'):
             if not Agent.IsMoving(Player.GetAgentID()):
                 if not bot_vars.timers.stuck.IsRunning():
                     bot_vars.timers.stuck.Start()
@@ -1094,22 +1244,24 @@ def WaitForSettle(range, count, timeout=6000):
     global bot_vars
 
     if Agent.IsDead(Player.GetAgentID()):
+        bot_vars.timers.settle.Reset()
+        bot_vars.timers.settle.Stop()
         return True
 
     if Agent.GetHealth(Player.GetAgentID()) < 0.5:
+        bot_vars.timers.settle.Reset()
+        bot_vars.timers.settle.Stop()
         return True
 
     if not bot_vars.timers.settle.IsRunning():
         bot_vars.timers.settle.Start()
 
     if bot_vars.timers.settle.HasElapsed(timeout):
+        bot_vars.timers.settle.Reset()
+        bot_vars.timers.settle.Stop()
         return True
 
-    player_x, player_y = Player.GetXY()
-
-    enemy_array = AgentArray.GetEnemyArray()
-    enemy_array = AgentArray.Filter.ByAttribute(enemy_array, 'IsAlive')
-    enemy_array = AgentArray.Filter.ByDistance(enemy_array, (player_x, player_y), range)
+    enemy_array = GetValidEnemies(range)
 
     if len(enemy_array) >= count:
         bot_vars.timers.settle.Reset()
@@ -1126,11 +1278,7 @@ def WaitForKill():
         bot_vars.gui.stats.fails += 1
         return True
 
-    player_x, player_y = Player.GetXY()
-
-    enemy_array = AgentArray.GetEnemyArray()
-    enemy_array = AgentArray.Filter.ByAttribute(enemy_array, 'IsAlive')
-    enemy_array = AgentArray.Filter.ByDistance(enemy_array, (player_x, player_y), 600)
+    enemy_array = GetValidEnemies(600)
 
     if not enemy_array or (
         len(enemy_array) < 2 and enemy_array[0] and Agent.GetHealth(enemy_array[0]) > 0.4
@@ -1165,7 +1313,7 @@ fsm_setup_states = [
         ),
     ),
     ('checking requirements', dict(execute_fn=lambda: CheckRequirements())),
-    ('setting nm', dict(execute_fn=lambda: GLOBAL_CACHE.Party.SetNormalMode(), transition_delay_ms=1000)),
+    ('setting nm', dict(execute_fn=lambda: GLOBAL_CACHE.Party.SetNormalMode(), transition_delay_ms=500)),
     (
         'going to npc',
         dict(
@@ -1174,11 +1322,13 @@ fsm_setup_states = [
             run_once=False,
         ),
     ),
-    ('take quest', dict(execute_fn=lambda: InteractNPCWithDialog(-19166.00, 17980.00, 0x832101), transition_delay_ms=500)),
+    ('interact npc', dict(execute_fn=lambda: InteractNPC(-19166.00, 17980.00), transition_delay_ms=500)),
+    ('take quest', dict(execute_fn=lambda: SendDialogIfAvailable(0x832101), transition_delay_ms=500)),
+    ('interact npc for dungeon', dict(execute_fn=lambda: InteractNPC(-19166.00, 17980.00), transition_delay_ms=500)),
+    ('enter dungeon dialog', dict(execute_fn=lambda: SendDialogIfAvailable(0x88), transition_delay_ms=500)),
     (
         'entering dungeon',
         dict(
-            execute_fn=lambda: InteractNPCWithDialog(-19166.00, 17980.00, 0x88),
             exit_condition=lambda: ArrivedExplorable(bot_vars.map.dungeon),
         ),
     ),
@@ -1203,8 +1353,8 @@ fsm_inventory_states = [
             run_once=False,
         ),
     ),
-    ('start trading', dict(execute_fn=lambda: InteractNPCWithDialog(-19166.00, 17980.00, 0), transition_delay_ms=1000)),
-    ('trading', dict(execute_fn=lambda: InteractNPCWithDialog(-19166.00, 17980.00, 0x7F), transition_delay_ms=1000)),
+    ('start trading', dict(execute_fn=lambda: InteractNPC(-19166.00, 17980.00), transition_delay_ms=1000)),
+    ('trading', dict(execute_fn=lambda: SendDialogIfAvailable(0x7F), transition_delay_ms=1000)),
     ('IDing items', dict(exit_condition=lambda: inventory.IDInventory())),
     ('salvaging items', dict(exit_condition=lambda: inventory.SalvageInventory())),
     (
@@ -1220,7 +1370,7 @@ fsm_inventory_states = [
 
 fsm_farm_states = [
     ('lapping', dict(execute_fn=lambda: StartLapTimer())),
-    ('equipping staff', dict(execute_fn=lambda: combat.ChangeWeaponSet(Build.staff), transition_delay_ms=1000)),
+    ('equipping staff', dict(execute_fn=lambda: combat.ChangeWeaponSet(Build.staff), transition_delay_ms=500)),
     (
         'going to npc',
         dict(
@@ -1229,14 +1379,17 @@ fsm_farm_states = [
             run_once=False,
         ),
     ),
-    ('take quest', dict(execute_fn=lambda: InteractNPCWithDialog(-19166.00, 17980.00, 0), transition_delay_ms=500)),
+    ('interact npc', dict(execute_fn=lambda: InteractNPC(-19166.00, 17980.00), transition_delay_ms=500)),
+    ('take quest', dict(execute_fn=lambda: SendDialogIfAvailable(0x832101), transition_delay_ms=500)),
+    ('interact npc for dungeon', dict(execute_fn=lambda: InteractNPC(-19166.00, 17980.00), transition_delay_ms=500)),
+    ('enter dungeon dialog', dict(execute_fn=lambda: SendDialogIfAvailable(0x88), transition_delay_ms=500)),
     (
         'entering dungeon',
         dict(
-            execute_fn=lambda: InteractNPCWithDialog(-19166.00, 17980.00, 0x88),
             exit_condition=lambda: ArrivedExplorable(bot_vars.map.dungeon),
         ),
     ),
+    ('requesting enemy names', dict(execute_fn=lambda: RequestEnemyNames())),
     (
         'going to prep spot',
         dict(
@@ -1245,17 +1398,8 @@ fsm_farm_states = [
             run_once=False,
         ),
     ),
-    ('waiting...', dict(transition_delay_ms=3000)),
-    ('prepping skills', dict(execute_fn=lambda: PrepSkills(), exit_condition=lambda: PrepSkills(), run_once=False)),
-    (
-        'going to kill spot',
-        dict(
-            execute_fn=lambda: FollowPath(bot_vars.path.kill, bot_vars.exact_move),
-            exit_condition=lambda: PathFinished(bot_vars.path.kill, bot_vars.exact_move),
-            run_once=False,
-        ),
-    ),
-    ('waiting for enemies', dict(exit_condition=lambda: WaitForSettle(200, 3))),
+    ('waiting...', dict(transition_delay_ms=1000)),
+    ('prepping skills', dict(exit_condition=lambda: PrepSkills(), run_once=False)),
     (
         'equipping scythe',
         dict(
@@ -1264,14 +1408,42 @@ fsm_farm_states = [
             run_once=False,
         ),
     ),
+    ('clear target', dict(execute_fn=lambda: Player.ChangeTarget(0))),
+    ('casting vos', dict(exit_condition=lambda: CastVoS(), run_once=False)),
+    (
+        'going to kill spot',
+        dict(
+            execute_fn=lambda: FollowPath(bot_vars.path.kill, bot_vars.move),
+            exit_condition=lambda: PathFinished(bot_vars.path.kill, bot_vars.move),
+            run_once=False,
+        ),
+    ),
+    ('waiting for enemies', dict(exit_condition=lambda: WaitForSettle(500, 8))),
     ('killing enemies', dict(exit_condition=lambda: WaitForKill())),
+    (
+        'check group 2',
+        dict(
+            execute_fn=lambda: (bot_vars.path.pull2.reset(), bot_vars.move.reset(), Player.ChangeTarget(0)),
+            exit_condition=lambda: SkipIfNoEnemies(),
+        ),
+    ),
+    (
+        'pulling group 2',
+        dict(
+            execute_fn=lambda: FollowPath(bot_vars.path.pull2, bot_vars.move),
+            exit_condition=lambda: SkipIfNoEnemies() or PathFinished(bot_vars.path.pull2, bot_vars.move),
+            run_once=False,
+        ),
+    ),
+    ('waiting for group 2', dict(exit_condition=lambda: SkipIfNoEnemies() or WaitForSettle(500, 8))),
+    ('killing group 2', dict(exit_condition=lambda: WaitForKill())),
     ('looting items', dict(exit_condition=lambda: loot.Loot())),
     (
         'resigning',
         dict(
             execute_fn=lambda: Player.SendChatCommand('resign'),
-            exit_condition=lambda: GLOBAL_CACHE.Party.IsPartyDefeated(),
-            transition_delay_ms=1000,
+            exit_condition=lambda: GLOBAL_CACHE.Party.IsPartyDefeated() or Agent.IsDead(Player.GetAgentID()),
+            transition_delay_ms=500,
         ),
     ),
     (
@@ -1642,12 +1814,15 @@ def main():
         ping = Py4GW.PingHandler().GetCurrentPing() + 50
         if bot_vars.timers.throttle.HasElapsed(max(ping, bot_vars.timers.checks.throttle)):
             bot_vars.timers.throttle.Reset()
+            LiveLog()
             # execute script
             if bot_vars.bot_started:
                 if bot_vars.fsm.is_finished():
                     ResetVariables()
                 else:
-                    if not bot_vars.action_queue.is_empty():
+                    if HandleDeath():
+                        pass
+                    elif not bot_vars.action_queue.is_empty():
                         bot_vars.action_queue.execute_next()
                     else:
                         bot_vars.fsm.update()

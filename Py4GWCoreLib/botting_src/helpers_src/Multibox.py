@@ -207,19 +207,24 @@ class _Multibox:
 
         # Invite order priority:
         # 1) melee-like first (R/W/A/D), 2) Mesmer, 3) Paragon, 4) Necro, 5) Ritualist, 6) others.
-        melee_professions = {1, 2, 7, 10}
+        # All 10 professions with explicit invite priority.
+        # Lower number = invited earlier. Melee/frontline first (0), then support.
         priority_by_profession = {
-            5: 1,  # Mesmer
-            9: 2,  # Paragon
-            4: 3,  # Necromancer
-            8: 4,  # Ritualist
+            1: 0,   # Warrior (melee)
+            2: 0,   # Ranger (melee)
+            7: 0,   # Assassin (melee)
+            10: 0,  # Dervish (melee)
+            3: 1,   # Monk (healer — invite early for party survival)
+            5: 2,   # Mesmer
+            9: 3,   # Paragon
+            4: 4,   # Necromancer
+            8: 5,   # Ritualist
+            6: 5,   # Elementalist
         }
 
         def _invite_priority(account: "_Multibox._AccountData") -> tuple[int, str]:
             prof = int(getattr(account, "PlayerPrimaryProfession", 0) or 0)
-            if prof in melee_professions:
-                return (0, str(getattr(account, "CharacterName", "") or ""))
-            return (priority_by_profession.get(prof, 5), str(getattr(account, "CharacterName", "") or ""))
+            return (priority_by_profession.get(prof, 6), str(getattr(account, "CharacterName", "") or ""))
 
         all_accounts.sort(key=_invite_priority)
         

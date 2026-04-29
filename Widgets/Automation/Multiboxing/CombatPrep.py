@@ -19,6 +19,7 @@ from Py4GWCoreLib import Routines
 from Py4GWCoreLib import SharedCommandType
 from Py4GWCoreLib import Timer
 from Py4GW_widget_manager import get_widget_handler
+from HeroAI.constants import MASTER_EMAIL
 
 user32 = ctypes.WinDLL("user32", use_last_error=True)
 try:
@@ -230,7 +231,7 @@ def is_hotkey_pressed_once(vk_code=0x35):
 
 class CombatPrep:
     def __init__(self, cached_data, module_icon_size, module_layout):
-        self.is_party_leader = Player.GetAgentID() == GLOBAL_CACHE.Party.GetPartyLeaderID()
+        self.is_party_leader = Player.GetAccountEmail() == MASTER_EMAIL
         self.formations = load_formations_from_json()
         self.cached_data = cached_data
         self.module_icon_size = module_icon_size

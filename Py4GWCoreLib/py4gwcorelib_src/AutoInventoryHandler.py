@@ -25,6 +25,8 @@ class AutoInventoryHandler():
         self.outpost_handled = False
         self.module_active:bool = False
         self.module_name:str = "AutoInventoryHandler"
+        self._no_id_kit_logged:bool = False
+        self._no_salvage_kit_logged:bool = False
         
         self.id_whites:bool = False
         self.id_blues:bool = False
@@ -98,10 +100,14 @@ class AutoInventoryHandler():
              
         for item_id in item_array:
             first_id_kit = Inventory.GetFirstIDKit()
-             
+
             if first_id_kit == 0:
-                Console.Log("AutoIdentify", "No ID Kit found in inventory.", Console.MessageType.Warning)
-                return   
+                if not self._no_id_kit_logged:
+                    Console.Log("AutoIdentify", "No ID Kit found in inventory.", Console.MessageType.Warning)
+                    self._no_id_kit_logged = True
+                return
+            else:
+                self._no_id_kit_logged = False   
                  
             item_instance = PyItem.PyItem(item_id)
             item_instance.GetContext()
@@ -142,6 +148,9 @@ class AutoInventoryHandler():
         import PyItem
         from ..GlobalCache import GLOBAL_CACHE
         from ..Routines import Routines
+        from ..Map import Map
+        from ..Player import Player
+        from ..Agent import Agent
 
         bag_list = ItemArray.CreateBagList(Bags.Backpack, Bags.BeltPouch, Bags.Bag1, Bags.Bag2)
         item_array = ItemArray.GetItemArray(bag_list)
@@ -211,11 +220,18 @@ class AutoInventoryHandler():
 
             # Repeat until item no longer exists
             while True:
+                # Abort if not in a stable state — GW won't show the salvage
+                # confirmation dialog during map load / death / transition,
+                # and per-item timeouts (1.5s × N items) burn through the
+                # whole queue otherwise.
+                if Map.IsMapLoading() or not Map.IsMapReady() or Agent.IsDead(Player.GetAgentID()):
+                    break
+
                 salvage_attempts += 1
                 if salvage_attempts > salvage_item_attempt_limit:
                     Console.Log("AutoSalvage", f"Giving up on item after too many salvage attempts (item_id={item_id}).", Console.MessageType.Warning)
                     break
-                 
+
                 bag_list = ItemArray.CreateBagList(Bags.Backpack, Bags.BeltPouch, Bags.Bag1, Bags.Bag2)
                 item_array = ItemArray.GetItemArray(bag_list)
                 if item_id not in item_array:
@@ -236,8 +252,12 @@ class AutoInventoryHandler():
 
                 salvage_kit = Inventory.GetFirstSalvageKit(use_lesser=True)
                 if salvage_kit == 0:
-                    Console.Log("AutoSalvage", "No Salvage Kit found in inventory.", Console.MessageType.Warning)
+                    if not self._no_salvage_kit_logged:
+                        Console.Log("AutoSalvage", "No Salvage Kit found in inventory.", Console.MessageType.Warning)
+                        self._no_salvage_kit_logged = True
                     return
+                else:
+                    self._no_salvage_kit_logged = False
 
                 Inventory._salvage_choice_debug_log(
                     salvage_dialog_debug,

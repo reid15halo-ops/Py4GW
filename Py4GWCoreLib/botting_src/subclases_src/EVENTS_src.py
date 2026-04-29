@@ -22,7 +22,6 @@ class _EVENTS:
 
             left_direction  = True
             try:
-                print("Party Member behind, emitting pixel stack")
                 yield from Routines.Yield.Movement.StopMovement()
 
                 retries = 0
@@ -51,7 +50,6 @@ class _EVENTS:
                         # re-emit pixel stack every 10s
                         now = Utils.GetBaseTimestamp()
                         if now - last_emit >= 10000:
-                            print("Re-emitting pixel stack, and spinning in place!, weeeee")
                             yield from bot.helpers.Multibox._pixel_stack()
                             last_emit = now
                             emit_count += 1

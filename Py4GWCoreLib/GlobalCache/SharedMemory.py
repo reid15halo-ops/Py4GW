@@ -330,15 +330,66 @@ class Py4GWSharedMemoryManager:
     
     #region Callback
     def update_callback(self):
-        """Callback function to update shared memory data."""
-        self.SetPlayerData(Player.GetAccountEmail())
-        self.PublishFormationFollowPoints()
-        if self._hero_update_timer.IsExpired():
-            self.SetHeroesData()
-            self._hero_update_timer.Reset()
-        if self._pet_update_timer.IsExpired():
-            self.SetPetData()
-            self._pet_update_timer.Reset()
+        """Callback function to update shared memory data.
+
+        CRITICAL: This is wrapped in a hard guard against Map.IsMapLoading()
+        because shared-memory work during the game client's decompression
+        window caused master-account-only stuck-at-99% stalls.
+
+        Root-cause chain:
+          1. update_callback runs on Py4GW's PyCallback.Phase.Data tick,
+             which executes on the GAME CLIENT'S main thread between the
+             frame pump and the render pump.
+          2. During map transitions, the game uses the same main thread to
+             drive the Gw.dat decompression/shader-compile pipeline. Any
+             Python work we do on that thread steals cycles from the
+             decompressor.
+          3. Master accumulates more per-tick cost than slaves because it is
+             the follow publisher, the hero publisher (3 heroes), the bot UI
+             host, the ImGui panel owner, and the largest swapchain (more
+             dgVoodoo shader variants to compile). Slaves have ~1/10th the
+             main-thread pressure per tick.
+          4. One specific offender: `HeroAI/following.py::
+             _clear_follow_publish_state` raised `NameError: leader_index`
+             every time publish() ran during map load. 10 Hz × Python
+             traceback cost × during the worst possible window = measurable
+             CPU burn on master and never on slaves (slaves' publisher early-
+             returns on leader-check).
+          5. Any uncaught exception above would propagate out of this
+             callback into the C++ PyCallback dispatcher, re-fire next tick,
+             and keep burning master's main thread until dgVoodoo's shader
+             compile finally won the CPU race — OR it deadlocked forever at
+             99%.
+
+        Fix strategy: (a) hard-skip all shared memory work while map is
+        loading; (b) wrap in try/except so any residual exception is logged
+        once, not ten times per second; (c) the NameError in following.py
+        is independently fixed.
+        """
+        try:
+            if Map.IsMapLoading():
+                return  # Main thread belongs to the game's decompressor — hands off.
+            self.SetPlayerData(Player.GetAccountEmail())
+            self.PublishFormationFollowPoints()
+            if self._hero_update_timer.IsExpired():
+                self.SetHeroesData()
+                self._hero_update_timer.Reset()
+            if self._pet_update_timer.IsExpired():
+                self.SetPetData()
+                self._pet_update_timer.Reset()
+        except Exception as e:
+            # Rate-limited error log: only emit when the exception type or
+            # message changes, so a recurring exception doesn't flood the
+            # console and steal main-thread time by itself.
+            sig = (type(e).__name__, str(e)[:200])
+            if getattr(self, "_last_update_cb_err_sig", None) != sig:
+                self._last_update_cb_err_sig = sig
+                import traceback
+                ConsoleLog(
+                    SHMEM_MODULE_NAME,
+                    f"update_callback error: {sig[0]}: {sig[1]}\n{traceback.format_exc()}",
+                    Py4GW.Console.MessageType.Error,
+                )
         
         
     @staticmethod

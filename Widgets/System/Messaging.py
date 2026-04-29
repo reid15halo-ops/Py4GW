@@ -222,6 +222,12 @@ def DrawWindow():
 
 # endregion
 # region HeroAI Snapshot
+
+# Accounts intentionally suspended via MessageDisableHeroAI. HealStale skips
+# these so the snapshot survives until MessageEnableHeroAI arrives.
+_manually_suspended_accounts: set = set()
+
+
 def SnapshotHeroAIOptions(account_email: str):
     global hero_ai_snapshots
     if not account_email:
@@ -313,6 +319,13 @@ def _has_active_hero_ai_suspending_message(account_email: str) -> bool:
 def HealStaleHeroAISnapshot(account_email: str) -> None:
     global hero_ai_snapshots
     if not account_email:
+        return
+
+    # Skip if account is intentionally suspended via MessageDisableHeroAI.
+    # Without this, HealStale would auto-restore between Disable and Enable
+    # messages because MessageDisableHeroAI marks its message Finished
+    # immediately (so _has_active_hero_ai_suspending_message returns False).
+    if account_email in _manually_suspended_accounts:
         return
 
     account_snapshots = hero_ai_snapshots.get(account_email, [])
@@ -437,25 +450,117 @@ def Resign(index: int, message: SharedMessageStruct):
 
     # ConsoleLog(MODULE_NAME, f"Processing Resign message: {message}", Console.MessageType.Info)
     GLOBAL_CACHE.ShMem.MarkMessageAsRunning(message.ReceiverEmail, index)
-    for i in range(2):
-        Player.SendChatCommand("resign")
+    email = message.ReceiverEmail
+
+    # Disable HeroAI around /resign so heroes aren't mid-cast when the
+    # explorable→outpost transition begins. Without this guard the master
+    # client freezes after Multibox.ResignParty at end-of-run, especially
+    # with high-priority custom behaviors (Seed of Life @ 99) firing right
+    # before the resign.
+    SnapshotHeroAIOptions(email)
+    try:
+        DisableHeroAIOptions(email)
         yield from Routines.Yield.wait(100)
-    GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
+        for i in range(2):
+            Player.SendChatCommand("resign")
+            yield from Routines.Yield.wait(100)
+        # Two-phase wait: HeroAI must stay disabled THROUGH the entire
+        # loading screen, not just until it starts. Re-enabling mid-load
+        # caused master to freeze on the loading screen (heroes tried to
+        # act during transition → GW client deadlock).
+        from Py4GWCoreLib import Map as _Map
+        # Phase 1: wait up to 8s for loading screen to start
+        deadline_start = _time.time() + 8.0
+        while _time.time() < deadline_start:
+            try:
+                if _Map.IsMapLoading():
+                    break
+            except Exception:
+                pass
+            yield from Routines.Yield.wait(250)
+        # Phase 2: wait up to 30s for loading to finish + we're in outpost
+        deadline_end = _time.time() + 30.0
+        while _time.time() < deadline_end:
+            try:
+                if (_Map.IsOutpost()
+                        and not _Map.IsMapLoading()
+                        and Routines.Checks.Map.MapValid()):
+                    break
+            except Exception:
+                pass
+            yield from Routines.Yield.wait(500)
+    finally:
+        EnableHeroAIOptions(email)
+        GLOBAL_CACHE.ShMem.MarkMessageAsFinished(email, index)
     ConsoleLog(MODULE_NAME, "Resign message processed and finished.", Console.MessageType.Info, False)
 # endregion
 
 # region PixelStack
+
+# Per-account circuit-breaker state for PixelStack/BruteForceUnstuck.
+# When a slave can't reach the master's pixel-target due to terrain, the
+# master keeps spamming PixelStack which yields a forward-back recovery loop.
+# Track failures, refuse messages after threshold, and /resign as last resort.
+import time as _time
+_pixelstack_fail_log: dict = {}   # email -> list[float] of recent failure timestamps
+_PXS_WINDOW_S = 60
+_PXS_REFUSE_AT = 3       # 3 fails in window -> refuse next message
+_PXS_RESIGN_AT = 6       # 6 fails in window -> /resign to break loop
+_PXS_COOLDOWN_S = 60     # after circuit trips, refuse for this long
+
+
+def _pxs_record_failure(email: str) -> int:
+    """Append now() to the per-email failure log, evict old entries.
+    Returns the count of failures within the window."""
+    if not email:
+        return 0
+    now = _time.time()
+    log = _pixelstack_fail_log.setdefault(email, [])
+    log.append(now)
+    cutoff = now - _PXS_WINDOW_S
+    while log and log[0] < cutoff:
+        log.pop(0)
+    return len(log)
+
+
+def _pxs_circuit_open(email: str) -> bool:
+    """Returns True if circuit is open (refusing messages)."""
+    if not email:
+        return False
+    log = _pixelstack_fail_log.get(email, [])
+    if len(log) >= _PXS_REFUSE_AT:
+        # Refuse if last failure was within cooldown
+        return (_time.time() - log[-1]) < _PXS_COOLDOWN_S
+    return False
+
+
+def _pxs_record_success(email: str) -> None:
+    """Reset the failure log on a successful pixel stack."""
+    _pixelstack_fail_log.pop(email, None)
+
+
 def PixelStack(index: int, message: SharedMessageStruct):
     ConsoleLog(MODULE_NAME, f"Processing PixelStack message: {message}", Console.MessageType.Info)
     GLOBAL_CACHE.ShMem.MarkMessageAsRunning(message.ReceiverEmail, index)
-    sender_data = GLOBAL_CACHE.ShMem.GetAccountDataFromEmail(message.SenderEmail)
-    if sender_data is None:
-        GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
+    email = message.ReceiverEmail
+
+    # Circuit-breaker: refuse if too many recent failures
+    if _pxs_circuit_open(email):
+        recent = len(_pixelstack_fail_log.get(email, []))
+        ConsoleLog(MODULE_NAME,
+                   f"PixelStack circuit OPEN ({recent} fails in {_PXS_WINDOW_S}s) — refusing message",
+                   Console.MessageType.Warning, log=True)
+        GLOBAL_CACHE.ShMem.MarkMessageAsFinished(email, index)
         return
 
-    SnapshotHeroAIOptions(message.ReceiverEmail)
+    sender_data = GLOBAL_CACHE.ShMem.GetAccountDataFromEmail(message.SenderEmail)
+    if sender_data is None:
+        GLOBAL_CACHE.ShMem.MarkMessageAsFinished(email, index)
+        return
+
+    SnapshotHeroAIOptions(email)
     try:
-        DisableHeroAIOptions(message.ReceiverEmail)
+        DisableHeroAIOptions(email)
         yield from Routines.Yield.wait(100)
         Player.SendChatCommand("stuck")
         yield from Routines.Yield.wait(250)
@@ -467,28 +572,38 @@ def PixelStack(index: int, message: SharedMessageStruct):
         yield from Routines.Yield.wait(100)
 
         if not result:
-            ConsoleLog(MODULE_NAME, "PixelStack movement failed or timed out.", Console.MessageType.Warning, log=True)
+            fail_count = _pxs_record_failure(email)
+            ConsoleLog(MODULE_NAME,
+                       f"PixelStack movement failed or timed out. ({fail_count} fails in {_PXS_WINDOW_S}s)",
+                       Console.MessageType.Warning, log=True)
 
             # --- Recovery sequence ---
             start_x, start_y = Player.GetXY()
             Player.SendChatCommand("stuck")
-            # Step 1: Always walk backwards
             ConsoleLog(MODULE_NAME, "Recovery: walking backwards.", Console.MessageType.Info)
             yield from Routines.Yield.Movement.WalkBackwards(1500)
-            # Step 2: strafe left
             ConsoleLog(MODULE_NAME, "Recovery: strafing left.", Console.MessageType.Info)
             yield from Routines.Yield.Movement.StrafeLeft(1500)
-            # Step 3: If no movement after strafing left, strafe right
             left_x, left_y = Player.GetXY()
             if Utils.Distance((start_x, start_y), (left_x, left_y)) < 50:
                 ConsoleLog(MODULE_NAME, "No movement detected, strafing right.", Console.MessageType.Info)
-                yield from Routines.Yield.Movement.StrafeRight(3500)  # we need to get away from that wall
+                yield from Routines.Yield.Movement.StrafeRight(3500)
 
+            # Last resort: /resign to teleport back to outpost and break the loop
+            if fail_count >= _PXS_RESIGN_AT:
+                ConsoleLog(MODULE_NAME,
+                           f"PixelStack failed {fail_count}x — /resign to escape forward-back loop",
+                           Console.MessageType.Error, log=True)
+                Player.SendChatCommand("resign")
+                yield from Routines.Yield.wait(500)
+                # Clear log so the cooldown doesn't extend after resign
+                _pixelstack_fail_log.pop(email, None)
         else:
             ConsoleLog(MODULE_NAME, "PixelStack movement succeeded.", Console.MessageType.Info, log=False)
+            _pxs_record_success(email)
     finally:
-        EnableHeroAIOptions(message.ReceiverEmail)
-        GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
+        EnableHeroAIOptions(email)
+        GLOBAL_CACHE.ShMem.MarkMessageAsFinished(email, index)
 
 
 # endregion
@@ -498,6 +613,17 @@ def PixelStack(index: int, message: SharedMessageStruct):
 def BruteForceUnstuck(index: int, message: SharedMessageStruct):
     ConsoleLog(MODULE_NAME, f"Processing BruteForceUnstuck message: {message}", Console.MessageType.Info)
     GLOBAL_CACHE.ShMem.MarkMessageAsRunning(message.ReceiverEmail, index)
+
+    # Circuit-breaker shares state with PixelStack (same forward-back loop pattern)
+    email = message.ReceiverEmail
+    if _pxs_circuit_open(email):
+        recent = len(_pixelstack_fail_log.get(email, []))
+        ConsoleLog(MODULE_NAME,
+                   f"BruteForceUnstuck circuit OPEN ({recent} fails in {_PXS_WINDOW_S}s) — refusing",
+                   Console.MessageType.Warning, log=True)
+        GLOBAL_CACHE.ShMem.MarkMessageAsFinished(email, index)
+        return
+
     sender_data = GLOBAL_CACHE.ShMem.GetAccountDataFromEmail(message.SenderEmail)
     if sender_data is None:
         GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
@@ -1093,6 +1219,56 @@ def UsePcon(index: int, message: SharedMessageStruct):
         GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
         return
 
+    # Alcohol check: when both skill_ids are 0, the message is an alcohol
+    # broadcast. Skip if the player is already drunk enough or has no
+    # alcohol-boosted skill on their skillbar.
+    if pcon_skill_id == 0 and pcon_skill_id2 == 0:
+        try:
+            import PyEffects
+            if PyEffects.PyEffects.GetAlcoholLevel() >= 2:
+                GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
+                return
+        except Exception:
+            pass
+
+        # Only consume alcohol if an alcohol-boosted skill is on the skillbar
+        try:
+            from Py4GWCoreLib.Skillbar import SkillBar
+            _ALCOHOL_SKILL_NAMES = [
+                "Drunken_Master", "Dwarven_Stability", "Feel_No_Pain",
+                "Drunken_Blow", "Frenzied_Defense",
+            ]
+            _ALCOHOL_SKILL_IDS = set()
+            for name in _ALCOHOL_SKILL_NAMES:
+                try:
+                    sid = GLOBAL_CACHE.Skill.GetID(name)
+                    if sid:
+                        _ALCOHOL_SKILL_IDS.add(int(sid))
+                except Exception:
+                    pass
+
+            has_alcohol_skill = False
+            for slot in range(1, 9):
+                try:
+                    equipped = int(SkillBar.GetSkillIDBySlot(slot) or 0)
+                    if equipped in _ALCOHOL_SKILL_IDS:
+                        has_alcohol_skill = True
+                        break
+                except Exception:
+                    pass
+
+            if not has_alcohol_skill:
+                ConsoleLog(
+                    MODULE_NAME,
+                    "Skipping alcohol: no alcohol-boosted skill on skillbar.",
+                    Py4GW.Console.MessageType.Info,
+                    False,
+                )
+                GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
+                return
+        except Exception:
+            pass
+
     # Check inventory to determine which PCon to use
     if GLOBAL_CACHE.Inventory.GetModelCount(pcon_model_id) > 0:
         pcon_model_to_use = pcon_model_id
@@ -1113,6 +1289,15 @@ def UsePcon(index: int, message: SharedMessageStruct):
     ConsoleLog(
         MODULE_NAME, f"Using PCon model {pcon_model_to_use} with item_id {item_id}.", Console.MessageType.Info, False
     )
+
+    # Always suppress drunk visual effects for alcohol broadcasts
+    if pcon_skill_id == 0 and pcon_skill_id2 == 0:
+        try:
+            import PyEffects
+            PyEffects.PyEffects.ApplyDrunkEffect(0, 0)
+        except Exception:
+            pass
+
     yield from Routines.Yield.wait(100)
     GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
     # ConsoleLog(MODULE_NAME, "UsePcon message processed and finished.", Console.MessageType.Info)
@@ -1417,23 +1602,46 @@ def OpenChest(index: int, message: SharedMessageStruct):
     
 
 # region PickUpLoot
+
+# Per-account circuit-breaker for PickUpLoot path-failure storms.
+# When loot is in unreachable terrain, the master may keep sending PickUpLoot
+# messages targeting different items in the same broken cluster, each failing
+# the FollowPath and triggering a stale-snapshot recovery. After N fails in
+# a window, refuse subsequent PickUpLoot messages for COOLDOWN_S so the
+# snapshot churn stops.
+_pickuploot_fail_log: dict = {}   # email -> list[float] timestamps
+_PUL_WINDOW_S = 30
+_PUL_REFUSE_AT = 3
+_PUL_COOLDOWN_S = 60
+
+
+def _pul_record_failure(email: str) -> int:
+    if not email:
+        return 0
+    now = _time.time()
+    log = _pickuploot_fail_log.setdefault(email, [])
+    log.append(now)
+    cutoff = now - _PUL_WINDOW_S
+    while log and log[0] < cutoff:
+        log.pop(0)
+    return len(log)
+
+
+def _pul_circuit_open(email: str) -> bool:
+    if not email:
+        return False
+    log = _pickuploot_fail_log.get(email, [])
+    if len(log) >= _PUL_REFUSE_AT:
+        return (_time.time() - log[-1]) < _PUL_COOLDOWN_S
+    return False
+
+
 def PickUpLoot(index:int , message: SharedMessageStruct):
     def _get_loot_exit_reason() -> str:
         if not Routines.Checks.Map.MapValid():
-            RestoreHeroAISnapshot(message.ReceiverEmail)
-            GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
-            ActionQueueManager().ResetAllQueues()
             return "map_invalid"
 
         if GLOBAL_CACHE.Inventory.GetFreeSlotCount() < 1:
-            ConsoleLog(
-                MODULE_NAME,
-                "No free slots in inventory, halting.",
-                Console.MessageType.Error,
-            )
-            RestoreHeroAISnapshot(message.ReceiverEmail)
-            GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
-            ActionQueueManager().ResetAllQueues()
             return "inventory_full"
 
         return ""
@@ -1443,6 +1651,15 @@ def PickUpLoot(index:int , message: SharedMessageStruct):
         return int((time.time() - SHMEM_ZERO_EPOCH) * 1000)
 
     GLOBAL_CACHE.ShMem.MarkMessageAsRunning(message.ReceiverEmail, index)
+
+    # Circuit-breaker: refuse if too many recent path-failures
+    if _pul_circuit_open(message.ReceiverEmail):
+        recent = len(_pickuploot_fail_log.get(message.ReceiverEmail, []))
+        ConsoleLog(MODULE_NAME,
+                   f"PickUpLoot circuit OPEN ({recent} fails in {_PUL_WINDOW_S}s) — refusing message",
+                   Console.MessageType.Warning, log=True)
+        GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
+        return
 
     loot_array = LootConfig().GetfilteredLootArray(Range.Earshot.value, multibox_loot=True)
     if len(loot_array) == 0:
@@ -1482,9 +1699,10 @@ def PickUpLoot(index:int , message: SharedMessageStruct):
             follow_success = yield from Routines.Yield.Movement.FollowPath([pos], timeout=10000)
             if not follow_success:
                 LootConfig().AddItemIDToBlacklist(item_id)
+                fail_count = _pul_record_failure(message.ReceiverEmail)
                 ConsoleLog(
                     "PickUp Loot",
-                    "Failed to follow path to loot item, halting.",
+                    f"Failed to follow path to loot item, halting. ({fail_count} fails in {_PUL_WINDOW_S}s)",
                     Console.MessageType.Warning,
                 )
                 ActionQueueManager().ResetAllQueues()
@@ -1493,7 +1711,6 @@ def PickUpLoot(index:int , message: SharedMessageStruct):
             yield from Routines.Yield.wait(100)
             exit_reason = _get_loot_exit_reason()
             if exit_reason:
-                RestoreHeroAISnapshot(message.ReceiverEmail)
                 return
             yield from Routines.Yield.Player.InteractAgent(item_id)
             yield from Routines.Yield.wait(100)
@@ -1550,6 +1767,7 @@ def MessageDisableHeroAI(index: int, message: SharedMessageStruct):
     account_email = message.ReceiverEmail
     SnapshotHeroAIOptions(account_email)
     DisableHeroAIOptions(account_email)
+    _manually_suspended_accounts.add(account_email)
     GLOBAL_CACHE.ShMem.MarkMessageAsFinished(account_email, index)
     ConsoleLog(MODULE_NAME, "DisableHeroAI message processed and finished.", Console.MessageType.Info, False)
     yield
@@ -1559,6 +1777,7 @@ def MessageEnableHeroAI(index: int, message: SharedMessageStruct):
     ConsoleLog(MODULE_NAME, f"Processing EnableHeroAI message: {message}", Console.MessageType.Info, False)
     GLOBAL_CACHE.ShMem.MarkMessageAsRunning(message.ReceiverEmail, index)
     account_email = message.ReceiverEmail
+    _manually_suspended_accounts.discard(account_email)
     if message.Params[0]:
         EnableHeroAIOptions(account_email)
     else:
@@ -1961,10 +2180,10 @@ def UseSkillCombatPrep(index: int, message: SharedMessageStruct):
         ConsoleLog(MODULE_NAME, "Paragon shout skills initialized", Console.MessageType.Info)
 
         SnapshotHeroAIOptions(account_email)
-        DisableHeroAIOptions(account_email)
-
-        # --- Cast Paragon Shouts ---
         try:
+            DisableHeroAIOptions(account_email)
+
+            # --- Cast Paragon Shouts ---
             for skill in paragon_skills:
                 skill_id = GLOBAL_CACHE.Skill.GetID(skill)
                 slot_number = GLOBAL_CACHE.SkillBar.GetSlotBySkillID(skill_id)
@@ -1980,9 +2199,8 @@ def UseSkillCombatPrep(index: int, message: SharedMessageStruct):
         except Exception as e:
             ConsoleLog(MODULE_NAME, f"Error during shout casting loop: {e}", Console.MessageType.Error)
             yield from Routines.Yield.wait(500)  # optional backoff
-
-        # --- Re-enable Hero AI ---
-        RestoreHeroAISnapshot(account_email)
+        finally:
+            RestoreHeroAISnapshot(account_email)
         yield from Routines.Yield.wait(100)
 
     def cast_rit_spirits():
@@ -1992,10 +2210,10 @@ def UseSkillCombatPrep(index: int, message: SharedMessageStruct):
 
         # --- Disable Hero AI ---
         SnapshotHeroAIOptions(account_email)
-        DisableHeroAIOptions(account_email)
-
-        # --- Cast Ritualist Skills ---
         try:
+            DisableHeroAIOptions(account_email)
+
+            # --- Cast Ritualist Skills ---
             for skill in full_ritualist_skills:
                 skill_id = GLOBAL_CACHE.Skill.GetID(skill)
                 slot_number = GLOBAL_CACHE.SkillBar.GetSlotBySkillID(skill_id)
@@ -2023,9 +2241,8 @@ def UseSkillCombatPrep(index: int, message: SharedMessageStruct):
         except Exception as e:
             ConsoleLog(MODULE_NAME, f"Error during spirit casting loop: {e}", Console.MessageType.Error)
             yield from Routines.Yield.wait(500)  # optional backoff
-
-        # --- Re-enable Hero AI ---
-        RestoreHeroAISnapshot(account_email)
+        finally:
+            RestoreHeroAISnapshot(account_email)
         yield from Routines.Yield.wait(100)
 
     cast_params = message.Params[0]

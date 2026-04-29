@@ -1,6 +1,7 @@
 from Py4GWCoreLib import GLOBAL_CACHE, Utils, AgentArray, Routines, Agent, Player, Party
 from Py4GWCoreLib.EnemyBlacklist import EnemyBlacklist
 from .constants import (
+    MASTER_EMAIL,
     Range,
     BLOOD_IS_POWER,
     BLOOD_RITUAL,

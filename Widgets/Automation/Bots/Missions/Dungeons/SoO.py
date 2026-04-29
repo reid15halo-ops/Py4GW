@@ -2631,13 +2631,13 @@ def pickup_torch(max_scan_dist: float = 5000, attempts: int = 40) -> Generator:
         # Essais : agent_id puis ground_item_id (compat multi-build)
         for _try in range(2):
             try:
-                inv.PickUpItem(target_agent, True)
+                Inventory.PickUpItem(target_agent, True)
             except Exception:
                 pass
             yield from Routines.Yield.wait(250)
 
             try:
-                inv.PickUpItem(ground_item_id, True)
+                Inventory.PickUpItem(ground_item_id, True)
             except Exception:
                 pass
             yield from Routines.Yield.wait(250)

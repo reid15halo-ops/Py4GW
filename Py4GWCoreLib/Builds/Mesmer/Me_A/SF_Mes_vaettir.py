@@ -107,7 +107,9 @@ class SF_Mes_vaettir(BuildMgr):
             yield from self._CastSkillID(self.way_of_perfection, log=False, aftercast_delay=500)
             ConsoleLog(self.build_name, "Casting Way of Perfection for defense.", Py4GW.Console.MessageType.Info, log=False)
 
-        if player_hp < 0.25 and (yield from Routines.Yield.Skills.IsSkillIDUsable(self.heart_of_shadow)):
+        # Heart of Shadow NEVER during kill phase — teleporting off the ball
+        # spot breaks the kill. Only allowed in running/balling.
+        if not self.in_killing_routine and player_hp < 0.25 and (yield from Routines.Yield.Skills.IsSkillIDUsable(self.heart_of_shadow)):
             yield from self.CastHeartOfShadow()
 
     def CastShroudOfDistress(self):
@@ -178,22 +180,9 @@ class SF_Mes_vaettir(BuildMgr):
             return
 
         if not Map.GetMapID() == Map.GetMapIDByName("Jaga Moraine"):
-            from Py4GWCoreLib import AgentArray  # TODO: FIx
-            from Py4GWCoreLib import AgentModelID  # TODO: FIx
-
-            agent_array = AgentArray.GetEnemyArray()
-            agent_array = AgentArray.Filter.ByCondition(
-                agent_array,
-                lambda agent: Agent.GetModelID(agent)
-                in (AgentModelID.FROZEN_ELEMENTAL.value, AgentModelID.FROST_WURM.value),
-            )
-            agent_array = AgentArray.Filter.ByDistance(agent_array, Player.GetXY(), Range.Spellcast.value)
-            if len(agent_array) > 0:
-                yield from self.DefensiveActions()
-
-            if Routines.Checks.Agents.InDanger(Range.Earshot):
-                yield from self.DefensiveActions()
-            yield from Routines.Yield.wait(1000)
+            # PROACTIVE SF maintenance. Synced from Py4GW\.
+            yield from self.DefensiveActions()
+            yield from Routines.Yield.wait(250)
             return
 
         if Agent.IsDead(Player.GetAgentID()):

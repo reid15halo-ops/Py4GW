@@ -17,6 +17,13 @@ from Sources.oazix.CustomBehaviors.skills.plugins.targeting_modifiers.buff_confi
 
 class SeedOfLifeUtility(CustomSkillUtilityBase):
     LOCK_KEY = "SeedOfLife"
+
+    # Priority constants — placed above HealingScore.RESURRECTION (81) and
+    # PARTY_DAMAGE_EMERGENCY (80) so Seed-of-Life always wins the evaluator.
+    PRIORITY_FIRST_CAST_OF_COMBAT = 99.0   # preemptive cast on combat entry
+    PRIORITY_DAMAGED_EMERGENCY = 95.0      # ally hp <40%
+    PRIORITY_DAMAGED = 90.0                # ally hp <85%
+
     def __init__(self,
         event_bus: EventBus,
         current_build: list[CustomSkill],
@@ -32,34 +39,63 @@ class SeedOfLifeUtility(CustomSkillUtilityBase):
             score_definition=score_definition,
             mana_required_to_cast=mana_required_to_cast,
             allowed_states=allowed_states)
-                
+
         self.score_definition: ScorePerHealthGravityDefinition = score_definition
+
+        # Track combat-entry so we cast Seed preemptively the first time
+        # combat starts, then fall back to damage-reactive logic.
+        self._first_cast_done_in_this_combat: bool = False
 
         self.add_plugin_targetting_modifier(lambda x: BuffConfigurator(event_bus, self.custom_skill, buff_configuration_per_profession= BuffConfigurationPerProfession.BUFF_CONFIGURATION_ALL))
 
-    def _get_targets(self) -> list[custom_behavior_helpers.SortableAgentData]: 
+    def _get_targets(self) -> list[custom_behavior_helpers.SortableAgentData]:
+        """Damaged allies only — for reactive heal-on-damage casts."""
         targets: list[custom_behavior_helpers.SortableAgentData] = custom_behavior_helpers.Targets.get_all_possible_allies_ordered_by_priority_raw(
             within_range=Range.Spellcast.value * 1.2,
             condition=lambda agent_id: Agent.GetHealth(agent_id) < 0.9 and self.get_plugin_targeting_modifiers_filtering_predicate()(agent_id),
             sort_key=(TargetingOrder.HP_ASC, TargetingOrder.DISTANCE_ASC))
         return targets
 
+    def _get_targets_preemptive(self) -> list[custom_behavior_helpers.SortableAgentData]:
+        """Any valid ally — for preemptive first cast of combat (no HP filter).
+        Sort by lowest-HP-first so the squishiest member gets the seed."""
+        return custom_behavior_helpers.Targets.get_all_possible_allies_ordered_by_priority_raw(
+            within_range=Range.Spellcast.value * 1.2,
+            condition=lambda agent_id: self.get_plugin_targeting_modifiers_filtering_predicate()(agent_id),
+            sort_key=(TargetingOrder.HP_ASC, TargetingOrder.DISTANCE_ASC))
+
     @override
     def _evaluate(self, current_state: BehaviorState, previously_attempted_skills: list[CustomSkill]) -> float | None:
 
-        targets = self._get_targets()
-        if len(targets) == 0: return None
+        in_combat = current_state == BehaviorState.IN_AGGRO
+        # Reset first-cast tracker when leaving combat
+        if not in_combat:
+            self._first_cast_done_in_this_combat = False
 
-        if targets[0].hp < 0.85:
-            return self.score_definition.get_score(HealingScore.MEMBER_DAMAGED)
+        # First cast of this combat: preemptive on any valid ally, max priority
+        if in_combat and not self._first_cast_done_in_this_combat:
+            if len(self._get_targets_preemptive()) > 0:
+                return self.PRIORITY_FIRST_CAST_OF_COMBAT
+
+        # Subsequent casts: damage-reactive
+        targets = self._get_targets()
+        if len(targets) == 0:
+            return None
         if targets[0].hp < 0.40:
-            return self.score_definition.get_score(HealingScore.MEMBER_DAMAGED_EMERGENCY)
+            return self.PRIORITY_DAMAGED_EMERGENCY
+        if targets[0].hp < 0.85:
+            return self.PRIORITY_DAMAGED
+        return None
 
     @override
     def _execute(self, state: BehaviorState) -> Generator[Any, None, BehaviorResult]:
 
-        targets = self._get_targets()
-        if len(targets) == 0: return BehaviorResult.ACTION_SKIPPED
+        in_combat = state == BehaviorState.IN_AGGRO
+        is_first_cast = in_combat and not self._first_cast_done_in_this_combat
+
+        targets = self._get_targets_preemptive() if is_first_cast else self._get_targets()
+        if len(targets) == 0:
+            return BehaviorResult.ACTION_SKIPPED
         target = targets[0]
 
         if CustomBehaviorParty().get_shared_lock_manager().try_aquire_lock(self.LOCK_KEY, 6) == False:
@@ -68,6 +104,8 @@ class SeedOfLifeUtility(CustomSkillUtilityBase):
 
         try:
             result = yield from custom_behavior_helpers.Actions.cast_skill_to_target(self.custom_skill, target_agent_id=target.agent_id)
+            if is_first_cast and result == BehaviorResult.ACTION_PERFORMED:
+                self._first_cast_done_in_this_combat = True
         finally:
             # CustomBehaviorParty().get_shared_lock_manager().release_lock(self.LOCK_KEY)
             pass

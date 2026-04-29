@@ -174,7 +174,30 @@ class CustomBehaviorWidgetMemoryManager:
             self._initialized = True
 
     def _get_struct(self) -> CustomBehaviorWidgetStruct:
-        return CustomBehaviorWidgetStruct.from_buffer(self.shm.buf)
+        try:
+            return CustomBehaviorWidgetStruct.from_buffer(self.shm.buf)
+        except Exception:
+            self._reconnect()
+            return CustomBehaviorWidgetStruct.from_buffer(self.shm.buf)
+
+    def _reconnect(self):
+        """Re-attach or recreate shared memory after the creator crashed."""
+        try:
+            self.shm.close()
+        except Exception:
+            pass
+        created = False
+        try:
+            self.shm = shared_memory.SharedMemory(name=self.shm_name)
+            print(f"Shared memory area '{self.shm_name}' re-attached after crash.")
+        except FileNotFoundError:
+            self.shm = shared_memory.SharedMemory(name=self.shm_name, create=True, size=self.size)
+            print(f"Shared memory area '{self.shm_name}' re-created after crash.")
+            created = True
+        # Re-bind the lock manager to the new buffer (use raw access to avoid recursion)
+        self.__shared_lock = SharedLockManager(lambda: CustomBehaviorWidgetStruct.from_buffer(self.shm.buf))
+        if created:
+            self.__reset_all_data()
 
     def __reset_all_data(self):
         mem = self._get_struct()

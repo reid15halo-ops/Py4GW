@@ -1205,6 +1205,8 @@ class SkillManager:
             self.in_casting_routine = False
             self.aggressive_enemies_only = False
             self.is_skill_enabled = [True] * MAX_SKILLS
+            self._melee_sticky_target = 0
+            self._melee_sticky_timer = ThrottledTimer(2000)
 
             attributes = Agent.GetAttributes(Player.GetAgentID())
 
@@ -1338,6 +1340,15 @@ class SkillManager:
                     _nearest_enemy = Routines.Agents.GetNearestEnemy(self.get_combat_distance())
                 return _nearest_enemy
 
+            _best_stacked_enemy = None
+            _best_stacked_checked = False
+            def get_best_stacked_enemy():
+                nonlocal _best_stacked_enemy, _best_stacked_checked
+                if not _best_stacked_checked:
+                    _best_stacked_checked = True
+                    _best_stacked_enemy = Routines.Targeting.TargetClusteredEnemy(Range.Earshot.value / 2)
+                return _best_stacked_enemy
+
             _lowest_ally = None
             def get_lowest_ally():
                 nonlocal _lowest_ally
@@ -1351,7 +1362,23 @@ class SkillManager:
 
             if target_allegiance == Skilltarget.Enemy:
                 v_target = self.GetPartyTarget()
-                if v_target == 0:
+                if v_target == 0 and Agent.IsMelee(Player.GetAgentID()):
+                    # Sticky target: keep attacking the same stacked enemy for 2s
+                    sticky_valid = False
+                    if self._melee_sticky_target != 0 and not self._melee_sticky_timer.IsExpired():
+                        try:
+                            sticky_valid = Agent.IsAlive(self._melee_sticky_target)
+                        except Exception:
+                            sticky_valid = False
+                    if sticky_valid:
+                        v_target = self._melee_sticky_target
+                    else:
+                        stacked = get_best_stacked_enemy()
+                        if stacked and stacked != 0:
+                            v_target = stacked
+                            self._melee_sticky_target = v_target
+                            self._melee_sticky_timer.Reset()
+                if not v_target or v_target == 0:
                     v_target = get_nearest_enemy()
             elif target_allegiance == Skilltarget.EnemyCaster:
                 v_target = Routines.Agents.GetNearestEnemyCaster(self.get_combat_distance())

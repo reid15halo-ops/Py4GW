@@ -21,7 +21,13 @@ SHMEM_SUBSCRIBE_TIMEOUT_MILLISECONDS = 500 # milliseconds
 # Shared memory update throttles (milliseconds)
 # Tune these to balance responsiveness vs CPU cost.
 SHMEM_HERO_UPDATE_THROTTLE_MS = 50
-SHMEM_PET_UPDATE_THROTTLE_MS = 50
+# SHMEM_PET_UPDATE_THROTTLE_MS was 50ms (20 Hz). When GetPetSlotByPetData
+# couldn't find an existing slot (race with account-data writes clobbering
+# slot 0), SetPetData called SubmitPetData on every tick, producing hundreds
+# of ConsoleLog + shared-memory writes per second across 8 multibox clients.
+# The resulting main-thread starvation caused game-client map loads to stall
+# at 99% decompression. Raised to 1000ms — pet metadata does not need 20Hz.
+SHMEM_PET_UPDATE_THROTTLE_MS = 1000
 
 # Player account payload tiers
 # Fast data (AgentData / AgentPartyData) is updated every callback.

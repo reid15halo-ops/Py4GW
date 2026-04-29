@@ -575,14 +575,29 @@ class InventoryCache:
             Anniversary_panel (bool): Whether the Anniversary Panel (Storage14) is enabled.
         Returns:
             bool: True if moved at least some of the items, False if failed.
+
+        Routing: if the item is a craft material (IsMaterial==True), MaterialStorage
+        is tried FIRST before regular Storage1-14. Non-materials skip MaterialStorage
+        entirely (game rejects non-materials there anyway).
         """
+        # Detect material once — used for storage-bag ordering below.
+        is_material = False
+        try:
+            is_material = bool(self.item_cache.Type.IsMaterial(item_id))
+        except Exception:
+            pass
+
         def GetStorageBags():
-            bag_list = [
+            bag_list = []
+            if is_material:
+                # Fill the dedicated 250-stack material panel first.
+                bag_list.append(Bags.MaterialStorage)
+            bag_list.extend([
                 Bags.Storage1, Bags.Storage2, Bags.Storage3, Bags.Storage4,
                 *( [Bags.Storage5] if Anniversary_panel else [] ),
                 Bags.Storage6, Bags.Storage7, Bags.Storage8, Bags.Storage9, Bags.Storage10,
                 Bags.Storage11, Bags.Storage12, Bags.Storage13, Bags.Storage14
-            ]
+            ])
             # Only include bags that exist (have size > 0)
             valid_bags = []
             for bag_enum in bag_list:
@@ -593,7 +608,7 @@ class InventoryCache:
                 except Exception:
                     continue
             return valid_bags
-        
+
         MAX_STACK_SIZE = 250
         quantity = self.item_cache.Properties.GetQuantity(item_id)
         is_stackable = self.item_cache.Customization.IsStackable(item_id)

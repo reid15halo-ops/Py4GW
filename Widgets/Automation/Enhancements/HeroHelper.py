@@ -1859,9 +1859,17 @@ def tooltip():
 
     PyImGui.end_tooltip()
 
+_hh_last_tick: float = 0.0
+
 def main():
+    global _hh_last_tick
+    _now = time.time()
+    if _now - _hh_last_tick < 0.15:
+        return True
+    _hh_last_tick = _now
+
     if Helper.is_game_ready():
-        
+
         if Helper.can_execute_with_delay("cache_agent_names", 2000):
             Helper.cache_agent_names()
             Helper.cache_hero_skills()

@@ -1287,6 +1287,15 @@ class Inventory:
             call_target (bool, optional): True to call the target, False to pick up the item directly.
         Returns: None
         """
+        # Hard-block festive items at the lowest layer — applies to every widget & bot.
+        try:
+            from .py4gwcorelib_src.Lootconfig_src import LootConfig
+            festive_banned = LootConfig.IsFestiveBanned(Item.GetModelID(item_id))
+        except Exception as e:
+            Py4GW.Console.Log("Inventory", f"festive ban check error item={item_id}: {e}", Py4GW.Console.MessageType.Warning)
+            festive_banned = False
+        if festive_banned:
+            return
         Inventory.inventory_instance().PickUpItem(item_id, call_target)
 
     @staticmethod

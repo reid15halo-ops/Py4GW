@@ -20,7 +20,11 @@ class CustomTargeting:
     @staticmethod
     def __round_pos(pos: tuple[float, float]) -> tuple[int, int]:
         """Round position to reduce cache key variations (positions within ~10 units share cache)."""
-        return (int(pos[0] / 10) * 10, int(pos[1] / 10) * 10)
+        import math
+        x, y = pos[0], pos[1]
+        if not math.isfinite(x) or not math.isfinite(y):
+            return (0, 0)
+        return (int(x / 10) * 10, int(y / 10) * 10)
 
     @classmethod
     def __build_combined_enemy_targets_key(

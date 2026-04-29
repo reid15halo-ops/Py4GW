@@ -332,21 +332,33 @@ class AllAccounts(Structure):
         ConsoleLog(SHMEM_MODULE_NAME, f"Submitted hero data for HeroID {hero_data.hero_id.GetID()} at slot {slot_index}.", Py4GW.Console.MessageType.Debug, log=False)
         return slot_index
     
+    # Deduplication state for SubmitPetData log: only log when the (agent_id,
+    # slot_index) pair changes. The publisher used to resubmit the same pet at
+    # 20 Hz per client because GetPetSlotByPetData couldn't find an existing
+    # match (slot ownership race with account-data writes). At 8 clients that
+    # was hundreds of ConsoleLog calls per second — enough to starve the game
+    # of main-thread CPU and cause stuck-at-99% map loads. Logging here is now
+    # silent unless the target slot actually moves.
+    _last_pet_submit_key: tuple[int, int] = (-1, -1)
+
     def SubmitPetData(self, pet_data: PetInfo) -> int:
         """Submit pet data to shared memory. Returns the slot index or -1 on failure."""
         slot_index = self.GetEmptySlot()
         if slot_index == -1:
             ConsoleLog(SHMEM_MODULE_NAME, "No empty slot available to submit pet data.", Py4GW.Console.MessageType.Error)
             return -1
-        
+
         new_account = AccountStruct()
         new_account.from_pet_context(pet_data, slot_index)
-        
+
         Key = KeyStruct().AsPetKey(Py4GW.Console.get_gw_window_handle(), slot_index)
         self.Keys[slot_index] = new_account.Key = Key
         self.AccountData[slot_index] = new_account
-        
-        ConsoleLog(SHMEM_MODULE_NAME, f"Submitted pet data for AgentID {pet_data.agent_id} at slot {slot_index}.", Py4GW.Console.MessageType.Info)
+
+        submit_key = (int(pet_data.agent_id), int(slot_index))
+        if submit_key != AllAccounts._last_pet_submit_key:
+            AllAccounts._last_pet_submit_key = submit_key
+            ConsoleLog(SHMEM_MODULE_NAME, f"Submitted pet data for AgentID {pet_data.agent_id} at slot {slot_index}.", Py4GW.Console.MessageType.Info)
         return slot_index
     
     def SetPlayerData(self, account_email: str):

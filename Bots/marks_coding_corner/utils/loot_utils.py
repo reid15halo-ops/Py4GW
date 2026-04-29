@@ -14,6 +14,26 @@ from Py4GWCoreLib.IniManager import IniManager
 
 INI_PATH = "Inventory/InventoryPlus"  # path to save ini key
 INI_FILENAME = "InventoryPlus.ini"  # ini file name
+# Festive items (tonics, fireworks, etc.) — always blacklisted.
+_FESTIVE_BLACKLIST = {
+    ModelID.Bottle_Rocket, ModelID.Champagne_Popper,
+    ModelID.Ghost_In_The_Box, ModelID.Snowman_Summoner,
+    ModelID.Sparkler, ModelID.Squash_Serum,
+    ModelID.Beetle_Juice_Tonic, ModelID.Cottontail_Tonic,
+    ModelID.Frosty_Tonic, ModelID.Mischievious_Tonic,
+    ModelID.Sinister_Automatonic_Tonic, ModelID.Transmogrifier_Tonic,
+    ModelID.Yuletide_Tonic, ModelID.Cerebral_Tonic,
+    ModelID.Searing_Tonic, ModelID.Abyssal_Tonic,
+    ModelID.Unseen_Tonic, ModelID.Phantasmal_Tonic,
+    ModelID.Automatonic_Tonic, ModelID.Boreal_Tonic,
+    ModelID.Trapdoor_Tonic, ModelID.Macabre_Tonic,
+    ModelID.Skeletonic_Tonic, ModelID.Gelatinous_Tonic,
+    ModelID.Abominable_Tonic, ModelID.Crate_Of_Fireworks,
+    ModelID.Minutely_Mad_King_Tonic, ModelID.Zaishen_Tonic,
+    ModelID.Mysterious_Tonic, ModelID.Disco_Ball,
+    ModelID.Party_Beacon, ModelID.Spooky_Tonic,
+}
+
 VIABLE_LOOT = {
     # Coin
     ModelID.Gold_Coins,
@@ -51,16 +71,12 @@ VIABLE_LOOT = {
     ModelID.Candy_Apple,
     ModelID.Pumpkin_Cookie,
     ModelID.Candy_Corn,
-    ModelID.Squash_Serum,
     ModelID.Trick_Or_Treat_Bag,
     ModelID.Vial_Of_Absinthe,
-    ModelID.Witchs_Brew,
     # Sweet Treat
     ModelID.Slice_Of_Pumpkin_Pie,
     ModelID.Candy_Cane_Shard,
     ModelID.Fruitcake,
-    ModelID.Snowman_Summoner,
-    ModelID.Frosty_Tonic,
 }
 
 
@@ -99,6 +115,9 @@ def get_valid_loot_array(viable_loot=VIABLE_LOOT, loot_salvagables=False):
         item_id = Agent.GetItemAgentItemID(agent_id)
         item_id = item_id
         model_id = Item.GetModelID(item_id)
+        # Always skip festive items regardless of whitelist
+        if model_id in _FESTIVE_BLACKLIST:
+            continue
         if model_id in viable_loot and is_valid_item(agent_id):
             # Black and White Dyes
             if (

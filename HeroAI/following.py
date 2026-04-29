@@ -356,6 +356,21 @@ class FollowFormationPublisher:
         *,
         invalidate_flags: bool = False,
     ) -> None:
+        """Reset the publisher's internal state and zero-out per-slot follow
+        targets.
+
+        CRITICAL: the per-slot clearing below intentionally does NOT check
+        `_same_party_and_map`. That filter was the root cause of the
+        portal-crossing bug where slow-loading slaves got skipped during map
+        transitions because their MapID was still the old map while master's
+        had already flipped to the new one. Their stale FollowPos (pointing
+        at pre-zone coordinates near the portal on the OLD map) never got
+        cleared, and their positive FollowMoveThreshold never got reset to
+        the disabled sentinel. Once they finished loading the new map,
+        their HeroAI.Follow() consumer read the stale target and walked
+        them straight back through the portal. Clearing ALL active-party
+        slots regardless of current-map state eliminates this race.
+        """
         self.state.map_signature = None
         self.state.hold_until_leader_moves = False
         self.state.leader_entry_pos = None
@@ -367,6 +382,9 @@ class FollowFormationPublisher:
             account = all_accounts.AccountData[index]
             if (not account.IsAccount) or all_accounts._is_slot_isolated_from_viewer(index, leader_index):
                 continue
+            # NOTE: no _same_party_and_map filter here. See docstring above.
+            # During zone transitions slaves may briefly be on a different
+            # MapID than the leader and we MUST clear their stale targets.
             self._reset_follow_slot(all_accounts.HeroAIOptions[index], invalidate_flags=invalidate_flags)
 
     def _handle_map_signature_change(
@@ -553,6 +571,23 @@ class FollowFormationPublisher:
         return True
 
     def publish(self) -> None:
+        try:
+            self._publish_impl()
+        except Exception as e:
+            # C3: transactional boundary. publish() runs at 10 Hz on the main
+            # tick; an unhandled exception silently kills follow updates until
+            # restart. Log + swallow so one bad frame doesn't freeze the whole
+            # party follow pipeline.
+            try:
+                import traceback
+                print(
+                    f"[FollowPublisher] publish() raised {type(e).__name__}: {e}\n"
+                    f"{traceback.format_exc()}"
+                )
+            except Exception:
+                pass
+
+    def _publish_impl(self) -> None:
         if not self.publish_timer.IsExpired():
             return
         self.publish_timer.Reset()
@@ -638,7 +673,17 @@ class FollowFormationPublisher:
             account: AccountStruct = all_accounts.AccountData[index]
             if not (account.IsSlotActive and account.IsAccount) or all_accounts._is_slot_isolated_from_viewer(index, leader_index):
                 continue
+
+            # CRITICAL: slaves still transitioning between maps (their MapID
+            # hasn't caught up to leader's yet) must be put into an IDLE slot
+            # to wipe any stale FollowPos pointing at the old map. Previously
+            # this branch did `continue` which left stale targets in place,
+            # causing slow-loading slaves to walk back through the portal
+            # into the previous map. See _clear_follow_publish_state docstring
+            # for the full chain.
             if not self._same_party_and_map(leader_account, account):
+                options_slow: HeroAIOptionStruct = all_accounts.HeroAIOptions[index]
+                self._apply_idle_slot(options_slow)
                 continue
 
             party_pos = int(account.AgentPartyData.PartyPosition)

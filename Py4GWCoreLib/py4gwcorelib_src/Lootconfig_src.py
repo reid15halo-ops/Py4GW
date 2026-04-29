@@ -530,12 +530,53 @@ LootGroups: Dict[str, Dict[str, List[ModelID]]] = {
     },
 }
 
+# Global blacklist for festive (party) items — applied to every LootConfig instance.
+# These are non-salvageable consumables (tonics, fireworks, etc.) that clutter inventory.
+FestiveItemBlacklist: List[ModelID] = [
+    ModelID.Bottle_Rocket,
+    ModelID.Champagne_Popper,
+    ModelID.Ghost_In_The_Box,
+    ModelID.Snowman_Summoner,
+    ModelID.Sparkler,
+    ModelID.Squash_Serum,
+    ModelID.Beetle_Juice_Tonic,
+    ModelID.Cottontail_Tonic,
+    ModelID.Frosty_Tonic,
+    ModelID.Mischievious_Tonic,
+    ModelID.Sinister_Automatonic_Tonic,
+    ModelID.Transmogrifier_Tonic,
+    ModelID.Yuletide_Tonic,
+    ModelID.Cerebral_Tonic,
+    ModelID.Searing_Tonic,
+    ModelID.Abyssal_Tonic,
+    ModelID.Unseen_Tonic,
+    ModelID.Phantasmal_Tonic,
+    ModelID.Automatonic_Tonic,
+    ModelID.Boreal_Tonic,
+    ModelID.Trapdoor_Tonic,
+    ModelID.Macabre_Tonic,
+    ModelID.Skeletonic_Tonic,
+    ModelID.Gelatinous_Tonic,
+    ModelID.Abominable_Tonic,
+    ModelID.Crate_Of_Fireworks,
+    ModelID.Minutely_Mad_King_Tonic,
+    ModelID.Zaishen_Tonic,
+    ModelID.Mysterious_Tonic,
+    ModelID.Disco_Ball,
+    ModelID.Party_Beacon,
+    ModelID.Spooky_Tonic,
+]
+
 #region ConfigCalsses
 class LootConfig:
     _instance = None
     _initialized = False
 
-    def __new__(cls):        
+    # Frozen festive ban — cannot be cleared by ClearBlacklist or mutated by widgets/bots.
+    # Checked first in GetfilteredLootArray so festive items never enter any pickup pipeline.
+    _FROZEN_FESTIVE_BAN: "frozenset[int]" = frozenset(m.value for m in FestiveItemBlacklist)
+
+    def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
@@ -544,11 +585,15 @@ class LootConfig:
         # only initialize once
         if self._initialized:
             return
-        
+
         self._initialized = True
-        
+
         self.reset()
         self.LootGroups: Dict[str, Dict[str, List[ModelID]]] = LootGroups
+
+    @classmethod
+    def IsFestiveBanned(cls, model_id: int) -> bool:
+        return int(model_id) in cls._FROZEN_FESTIVE_BAN
 
     def reset(self):
         self.loot_gold_coins = False
@@ -796,9 +841,13 @@ class LootConfig:
                 continue
             item_id = item_data.item_id
             model_id = Item.GetModelID(item_id)
-            
+
+            # --- Hard block: festive ban (frozen, applies to every widget & bot) ---
+            if model_id in LootConfig._FROZEN_FESTIVE_BAN:
+                continue
+
             # --- Hard block: blacklists ---
-            if self.IsItemIDBlacklisted(agent_id):
+            if self.IsItemIDBlacklisted(item_id):
                 continue
 
             if self.IsBlacklisted(model_id):

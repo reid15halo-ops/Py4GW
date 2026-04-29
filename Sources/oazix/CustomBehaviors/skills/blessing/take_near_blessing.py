@@ -43,7 +43,7 @@ class TakeNearBlessingUtility(CustomSkillUtilityBase):
             skill=CustomSkill("take_near_blessing"),
             in_game_build=current_build,
             score_definition=ScoreStaticDefinition(CommonScore.BLESSING.value),
-            allowed_states=[BehaviorState.CLOSE_TO_AGGRO, BehaviorState.FAR_FROM_AGGRO],
+            allowed_states=None,
             utility_skill_typology=UtilitySkillTypology.BLESSING,
             execution_strategy=UtilitySkillExecutionStrategy.STOP_EXECUTION_ONCE_SCORE_NOT_HIGHEST)
 
@@ -58,10 +58,7 @@ class TakeNearBlessingUtility(CustomSkillUtilityBase):
 
     @override
     def are_common_pre_checks_valid(self, current_state: BehaviorState) -> bool:
-        if current_state is BehaviorState.IDLE:
-            return False
-        if self.allowed_states is not None and current_state not in self.allowed_states:
-            return False
+        # Blessing NPC interaction is state-independent — take it whenever available.
         return True
 
     @override

@@ -1,132 +1,23 @@
 # region Imports & Config
-from Py4GWCoreLib import Botting, Routines, GLOBAL_CACHE, ModelID, Agent, Player, ConsoleLog, IniManager, HeroType, AgentArray, SharedCommandType
-from Py4GWCoreLib.Map import Map
+from Py4GWCoreLib import Botting, Routines, GLOBAL_CACHE, ModelID, Agent, Player, ConsoleLog, IniManager
 from Py4GWCoreLib.enums_src.Title_enums import TitleID, TITLE_TIERS
 from Py4GWCoreLib.botting_src.property import Property
-from Py4GWCoreLib.ImGui_src.ImGuisrc import ImGui
 import Py4GW
 import os
-import random
 import time
-import json
-from dataclasses import dataclass
-from typing import List, Dict, Optional
 
 MODULE_NAME = "Deldrimor Title Farm"
 MODULE_ICON = "Textures/Skill_Icons/[2424] - Stout-Hearted.jpg"
 
 bot = Botting("Deldrimor title farm by Wick Divinus",
-              upkeep_honeycomb_active=True,
-              upkeep_auto_combat_active=True,
-              upkeep_auto_inventory_management_active=True,
-              upkeep_auto_loot_active=True)
+              upkeep_honeycomb_active=True)
 
 bot.config.config_properties.use_conset = Property(bot.config, "use_conset", active=False)
 bot.config.config_properties.use_pcons = Property(bot.config, "use_pcons", active=False)
+bot.config.config_properties.use_custom_behaviors = Property(bot.config, "use_custom_behaviors", active=True)
 
 _SETTINGS_SECTION = "TitleBotSettings"
-_USE_CONSET_KEY = "use_conset"
-_USE_PCONS_KEY = "use_pcons"
-_USE_RESTOCK_KITS_KEY = "use_restock_kits"
-_ID_KITS_TARGET_KEY = "id_kits_target"
-_SALVAGE_KITS_TARGET_KEY = "salvage_kits_target"
-_MERCHANT_SELL_MATERIALS_KEY = "merchant_sell_materials"
-_MERCHANT_ALT_WAIT_MS_KEY = "merchant_alt_wait_ms"
-_RANDOMIZE_DISTRICT_KEY = "randomize_district"
-_DEFAULT_ID_KITS_TARGET = 2
-_DEFAULT_SALVAGE_KITS_TARGET = 5
-_DEFAULT_ALT_SETTLE_WAIT_MS = 2000
-_MAX_ALT_SETTLE_WAIT_MS = 5000
-
-_restock_kits_enabled: bool = False
-_id_kits_target: int = _DEFAULT_ID_KITS_TARGET
-_salvage_kits_target: int = _DEFAULT_SALVAGE_KITS_TARGET
-_merchant_sell_materials: bool = False
-_merchant_alt_wait_ms: int = _DEFAULT_ALT_SETTLE_WAIT_MS
-_randomize_district: bool = True
-_SCROLL_MODEL_IDS = {5594, 5595, 5611, 5853, 5975, 5976, 21233}
-_SCROLL_MODEL_FILTER = "5594,5595,5611,5853,5975,5976,21233"
-_MERCHANT_MANAGED_WIDGETS = ("InventoryPlus",)
-_PRETRAVEL_DISABLE_WIDGETS = ("InventoryPlus",)
-_RANDOM_DISTRICTS = [6, 7, 8, 9]
-ZONING_STEP_NAME = "[H]Zoning into explorable area_2"
-START_COMBAT_STEP_NAME = "[H]Start Combat_3"
-LOOP_STEP_NAME = ""
-RESIGN_STEP_NAME = ""
-
-_MULTIBOX_ALTS_KEY = "use_multibox_alts"
-_party_mode: int = 0  # 0 = Single Account with Heroes, 1 = Multiboxing
-_mode_loaded: bool = False
-_STUCK_SPOT_XY = (-14450.00, 3411.00)
-_STUCK_SPOT_RADIUS = 600.0
-_STUCK_SPOT_WATCH_MS = 5000
-_STUCK_SPOT_POLL_MS = 250
-
-# Hero config
-_BOT_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
-_HERO_CONFIG_PATH = os.path.join(_BOT_SCRIPT_DIR, "Deldrimor title farm by Wick Divinus Heroes.json")
-_HERO_ICONS_BASE = os.path.normpath(os.path.join(
-    Py4GW.Console.get_projects_path(), "..", "Property-of-Wick-Divinus-and-Kendor",
-    "PVE Skills Unlocker", "Textures", "Skill_Icons"
-))
-_HERO_SLOTS_COUNT = 7
-
-@dataclass
-class _PartyHeroSlot:
-    hero_id: int = 0
-    template: str = ""
-
-def _humanize_hero_name(enum_name: str) -> str:
-    if enum_name == "None_":
-        return "<Empty>"
-    words: List[str] = []
-    current = enum_name[0]
-    for char in enum_name[1:]:
-        if (char.isupper() and not current[-1].isupper()) or (char.isdigit() and not current[-1].isdigit()):
-            words.append(current)
-            current = char
-        else:
-            current += char
-    words.append(current)
-    return " ".join(words)
-
-_HERO_OPTIONS: List[HeroType] = [HeroType.None_] + sorted([h for h in HeroType if h != HeroType.None_], key=lambda h: _humanize_hero_name(h.name))
-_HERO_OPTION_LABELS: List[str] = [_humanize_hero_name(h.name) for h in _HERO_OPTIONS]
-_HERO_ID_TO_OPTION_INDEX: Dict[int, int] = {int(h): i for i, h in enumerate(_HERO_OPTIONS)}
-
-_HERO_ICON_FILENAMES: Dict[HeroType, str] = {
-    HeroType.Norgu: "Norgu-icon.jpg",           HeroType.Goren: "Goren-icon.jpg",
-    HeroType.Tahlkora: "Tahlkora-icon.jpg",      HeroType.MasterOfWhispers: "MasterOfWhispers-icon.jpg",
-    HeroType.AcolyteJin: "AcolyteSousuke-icon.jpg", HeroType.Koss: "Koss-icon.jpg",
-    HeroType.Dunkoro: "Dunkoro-icon.jpg",        HeroType.AcolyteSousuke: "AcolyteSousuke-icon.jpg",
-    HeroType.Melonni: "Melonni-icon.jpg",        HeroType.ZhedShadowhoof: "ZhedShadowhoof-icon.jpg",
-    HeroType.GeneralMorgahn: "GeneralMorgahn-icon.jpg", HeroType.MagridTheSly: "MargridTheSly-icon.jpg",
-    HeroType.Zenmai: "Zenmai-icon.jpg",          HeroType.Olias: "Olias-icon.jpg",
-    HeroType.Razah: "Razah-icon.jpg",            HeroType.MOX: "M.O.X.-icon.jpg",
-    HeroType.KeiranThackeray: "KeiranThackeray-icon.jpg", HeroType.Jora: "Jora-icon.jpg",
-    HeroType.PyreFierceshot: "Pyre_Fierceshot-icon.jpg", HeroType.Anton: "Anton-icon.jpg",
-    HeroType.Livia: "Livia-icon.jpg",            HeroType.Hayda: "Hayda-icon.jpg",
-    HeroType.Kahmu: "Kahmu-icon.jpg",            HeroType.Gwen: "Gwen-icon.jpg",
-    HeroType.Xandra: "Xandra-icon.jpg",          HeroType.Vekk: "Vekk-icon.jpg",
-    HeroType.Ogden: "Ogden_Stonehealer-icon.jpg", HeroType.Miku: "Miku-icon.jpg",
-    HeroType.ZeiRi: "Zei_Ri-icon.jpg",
-}
-
-_DEFAULT_HERO_TEMPLATES: Dict[HeroType, str] = {
-    HeroType.Norgu: "OQBDAawDSvAIgcQ5ZkAFgZAEBA",
-    HeroType.Gwen: "OQhkAsC8gFKzJIHM9MdDBcaG4iB",
-    HeroType.Vekk: "OgVDI8gsS5AnATPmOHgCAZAFBA",
-    HeroType.MasterOfWhispers: "OABDUshnSyBVBoBKgbhVVfCWCA",
-    HeroType.Olias: "OAhjQoGYIP3hhWVVaO5EeDTqNA",
-    HeroType.Ogden: "OwUUMsG/E4SNgbE3N3ETfQgZAMEA",
-    HeroType.Razah: "OAWjMMgMJPYTr3jLcCNdmZgeAA",
-}
-
-# Module-level hero config state
-_hero_slots: List[_PartyHeroSlot] = [_PartyHeroSlot() for _ in range(_HERO_SLOTS_COUNT)]
-_hero_config_dirty: bool = False
-_hero_config_status: str = ""
-_hero_import_source_index: int = 0
+_BEHAVIOR_MODE_KEY = "use_custom_behaviors"
 
 # (model_id, effect_skill_name) — single source of truth for consumable use & restock
 CONSET_ITEMS: list[tuple[int, str]] = [
@@ -152,53 +43,546 @@ PCON_RESTOCK_MODELS   = [m for m, _ in PCON_ITEMS] + [
     ModelID.Honeycomb.value,
     ModelID.Scroll_Of_Resurrection.value,
 ]
-
-def ConfigureAggressiveEnv(bot: Botting) -> None:
-    if _party_mode == 1:
-        bot.Templates.Multibox_Aggressive()
-    else:
-        bot.Templates.Aggressive()
-    bot.Properties.Enable("auto_inventory_management")
-
-
-def _next_header_step_name(bot: Botting, step_name: str) -> str:
-    next_header_index = bot.config.counters.get_index("HEADER_COUNTER") + 1
-    return f"[H]{step_name}_{next_header_index}"
-
-
-def _watch_and_send_stuck_if_near_problem_spot() -> None:
-    sx, sy = _STUCK_SPOT_XY
-    elapsed = 0
-    while elapsed <= _STUCK_SPOT_WATCH_MS:
-        px, py = Player.GetXY()
-        if ((px - sx) ** 2 + (py - sy) ** 2) <= (_STUCK_SPOT_RADIUS ** 2):
-            ConsoleLog(MODULE_NAME, f"[Recovery] Near stuck spot at ({sx:.0f}, {sy:.0f}), sending 'stuck' command.")
-            Player.SendChatCommand("stuck")
-            yield from Routines.Yield.wait(1500)
-            return
-        yield from Routines.Yield.wait(_STUCK_SPOT_POLL_MS)
-        elapsed += _STUCK_SPOT_POLL_MS
 # endregion
 
 
 # region Bot Routine
 def Routine(bot: Botting) -> None:
-    global LOOP_STEP_NAME, RESIGN_STEP_NAME
-    _ensure_mode_loaded(bot)
     PrepareForCombat(bot)
-    LOOP_STEP_NAME = _next_header_step_name(bot, "Deldrimor_loop")
-    RESIGN_STEP_NAME = _next_header_step_name(bot, "Resign")
     Snowman(bot)
 
 
+# Rough bridge-entrance coords in the Snowman map where char geometry causes
+# the player to snag. Detection radius is generous (400u) since these are
+# approximate.
+BRIDGE_ENTRANCE_COORDS = [
+    (-18112, 3625),
+    (-12767, -2918),
+    (-14555, 2745),
+    (-14555, 3590),
+    (-12916, 4633),
+    (-12146, 5552),
+    (-11426, 5502),
+    (-7923, 5701),
+    (-5694, 6133),
+    (-5247, 6307),
+    (-3558, 5661),
+    (-2217, 6506),
+    (-5463, 12515),
+    (-11916, -1505),
+    (-8520, -1893),
+    (-6725, -3494),
+    # Confirmed stuck-twice cluster (defensive — even with detour active)
+    (-14448, 3413),
+    (-14441, 3499),
+    (-14441, 3578),
+    (-14439, 3652),
+]
+
+
+def _do_bridge_unstuck():
+    """Unstuck recipe: /stuck, walk back, strafe both ways, /stuck again."""
+    Player.SendChatCommand("stuck")
+    yield from Routines.Yield.wait(500)
+    yield from Routines.Yield.Movement.WalkBackwards(1000)
+    yield from Routines.Yield.Movement.StrafeLeft(1000)
+    yield from Routines.Yield.wait(200)
+    yield from Routines.Yield.Movement.StrafeRight(1500)
+    Player.SendChatCommand("stuck")
+    yield from Routines.Yield.wait(500)
+
+
+def StuckBridgeWatchdog(bot: Botting):
+    """Detect player stuck near known-problem bridge entrances and unstuck.
+
+    Polls every 2s. Position is sampled and compared. If player is within
+    DETECT_RADIUS of any BRIDGE_ENTRANCE_COORDS spot AND position hasn't
+    changed more than MIN_MOVE_UNITS for STUCK_TICKS consecutive samples,
+    runs the unstuck recipe and applies a 30s cooldown.
+    """
+    DETECT_RADIUS = 400
+    DETECT_RADIUS_SQ = DETECT_RADIUS * DETECT_RADIUS
+    POLL_MS = 2000
+    MIN_MOVE_UNITS = 50
+    MIN_MOVE_SQ = MIN_MOVE_UNITS * MIN_MOVE_UNITS
+    STUCK_TICKS = 5  # 5 × 2s = 10s of no movement
+    COOLDOWN_S = 30
+
+    from Py4GWCoreLib import Map
+    last_x, last_y = 0.0, 0.0
+    stuck_count = 0
+    cooldown_until = 0.0
+    while True:
+        try:
+            now = time.time()
+            if now < cooldown_until:
+                yield from Routines.Yield.wait(POLL_MS)
+                continue
+            if not Map.IsMapReady() or Map.IsMapLoading():
+                stuck_count = 0
+                yield from Routines.Yield.wait(POLL_MS)
+                continue
+            try:
+                px, py = Player.GetXY()
+            except Exception:
+                yield from Routines.Yield.wait(POLL_MS)
+                continue
+
+            # Near any bridge entrance?
+            near_bridge = False
+            for bx, by in BRIDGE_ENTRANCE_COORDS:
+                dx = px - bx
+                dy = py - by
+                if dx * dx + dy * dy <= DETECT_RADIUS_SQ:
+                    near_bridge = True
+                    break
+            if not near_bridge:
+                stuck_count = 0
+                last_x, last_y = px, py
+                yield from Routines.Yield.wait(POLL_MS)
+                continue
+
+            # Movement check
+            mdx = px - last_x
+            mdy = py - last_y
+            if (mdx * mdx + mdy * mdy) < MIN_MOVE_SQ:
+                stuck_count += 1
+            else:
+                stuck_count = 0
+            last_x, last_y = px, py
+
+            if stuck_count >= STUCK_TICKS:
+                ConsoleLog("BridgeUnstuck",
+                           f"stuck near bridge at ({int(px)},{int(py)}) — unstucking",
+                           Py4GW.Console.MessageType.Warning)
+                yield from _do_bridge_unstuck()
+                stuck_count = 0
+                cooldown_until = time.time() + COOLDOWN_S
+        except Exception as e:
+            ConsoleLog("BridgeUnstuck", f"watchdog error: {e}",
+                       Py4GW.Console.MessageType.Error)
+        yield from Routines.Yield.wait(POLL_MS)
+
+
+def MoraleBoostWatchdog(bot: Botting):
+    """Monitor master morale and burn honeycombs until at +10% boost (morale=110).
+
+    Per CLAUDE.md rule 26 — master is identified by email, not party-leader.
+    Polls every 30s. When morale <110 AND in explorable, uses honeycombs in a
+    tight loop (8s between uses to let server-side cooldown clear) until
+    threshold reached or out of honeycombs.
+
+    Death penalty in GW1 = morale 0..99. +10% boost = morale 110.
+    """
+    POLL_MS = 30000
+    USE_TIMEOUT_S = 8
+    MASTER_EMAIL = "jonasglawion@aol.com"
+    MAX_PER_BURST = 15
+
+    from Py4GWCoreLib import Map
+    while True:
+        try:
+            try:
+                local_email = Player.GetAccountEmail() or ""
+            except Exception:
+                local_email = ""
+            if local_email != MASTER_EMAIL:
+                yield from Routines.Yield.wait(POLL_MS)
+                continue
+            if not Map.IsMapReady() or Map.IsMapLoading() or Map.IsOutpost():
+                yield from Routines.Yield.wait(POLL_MS)
+                continue
+            try:
+                current_morale = int(Player.GetMorale())
+            except Exception:
+                yield from Routines.Yield.wait(POLL_MS)
+                continue
+            if current_morale >= 110:
+                yield from Routines.Yield.wait(POLL_MS)
+                continue
+
+            ConsoleLog("MoraleBoost",
+                       f"morale={current_morale} (DP detected: {current_morale < 100}) — burning honeycombs until +10%",
+                       Py4GW.Console.MessageType.Info)
+            attempts = 0
+            while current_morale < 110 and attempts < MAX_PER_BURST:
+                # Abort burst if map is no longer in a valid use-item state.
+                # Without this guard, UseItem during a /resign loading screen
+                # froze the master client mid-load.
+                if not Map.IsMapReady() or Map.IsMapLoading() or Map.IsOutpost():
+                    ConsoleLog("MoraleBoost",
+                               f"map state changed mid-burst (loading/outpost) — aborting burst at attempt {attempts}",
+                               Py4GW.Console.MessageType.Warning)
+                    break
+                attempts += 1
+                honey_id = GLOBAL_CACHE.Inventory.GetFirstModelID(ModelID.Honeycomb.value)
+                if not honey_id:
+                    ConsoleLog("MoraleBoost",
+                               f"out of honeycombs at morale={current_morale} after {attempts-1} uses",
+                               Py4GW.Console.MessageType.Warning)
+                    break
+                GLOBAL_CACHE.Inventory.UseItem(honey_id)
+                # Wait for the buff to apply, polling every 500ms
+                wait_start = time.time()
+                last_morale = current_morale
+                while time.time() - wait_start < USE_TIMEOUT_S:
+                    yield from Routines.Yield.wait(500)
+                    # Also abort the per-honeycomb wait if map transitions
+                    if Map.IsMapLoading() or Map.IsOutpost():
+                        break
+                    try:
+                        current_morale = int(Player.GetMorale())
+                    except Exception:
+                        continue
+                    if current_morale > last_morale:
+                        break
+                ConsoleLog("MoraleBoost",
+                           f"after honeycomb #{attempts}: morale={current_morale}",
+                           Py4GW.Console.MessageType.Info)
+            ConsoleLog("MoraleBoost",
+                       f"burst end: morale={current_morale}, used {attempts} honeycombs",
+                       Py4GW.Console.MessageType.Info)
+        except Exception as e:
+            ConsoleLog("MoraleBoost", f"error: {e}", Py4GW.Console.MessageType.Error)
+        yield from Routines.Yield.wait(POLL_MS)
+
+
+def CombatLootToggle(bot: Botting):
+    """Smart HeroAI Combat + Looting toggle for the Deldrimor farm.
+
+    Combat/Targeting:
+      - ON  when at least one valid enemy is within Spellcast range (1248u)
+      - OFF when no enemy is in range
+    Looting:
+      - OFF by default
+      - Opens for 15s every time combat ENDS (enemies were present last
+        tick, none now)
+      - Closes again after the window expires
+      - Always OFF while enemies are in cast range
+    """
+    POLL_MS = 1000
+    CAST_RANGE_SQ = 1248 * 1248
+    LOOT_WINDOW_S = 15
+
+    from Py4GWCoreLib import Map, AgentArray
+    last_combat_state = None
+    last_loot_state = None
+    enemies_last_tick = False
+    loot_until = 0.0
+
+    while True:
+        try:
+            if not Map.IsMapReady() or Map.IsMapLoading() or Map.IsOutpost():
+                yield from Routines.Yield.wait(POLL_MS)
+                continue
+            try:
+                px, py = Player.GetXY()
+            except Exception:
+                yield from Routines.Yield.wait(POLL_MS)
+                continue
+
+            enemies_nearby = False
+            try:
+                for eid in AgentArray.GetEnemyArray():
+                    try:
+                        if not Agent.IsValid(eid) or Agent.IsDead(eid):
+                            continue
+                        ex, ey = Agent.GetXY(eid)
+                    except Exception:
+                        continue
+                    dx = ex - px
+                    dy = ey - py
+                    if dx * dx + dy * dy <= CAST_RANGE_SQ:
+                        enemies_nearby = True
+                        break
+            except Exception:
+                pass
+
+            now = time.time()
+            # Edge: combat just ended → open 15s loot window
+            if enemies_last_tick and not enemies_nearby:
+                loot_until = now + LOOT_WINDOW_S
+                ConsoleLog("CombatLoot",
+                           f"combat ended — looting open for {LOOT_WINDOW_S}s",
+                           Py4GW.Console.MessageType.Info)
+            enemies_last_tick = enemies_nearby
+
+            target_combat = enemies_nearby
+            target_loot = (not enemies_nearby) and (now < loot_until)
+
+            if target_combat != last_combat_state or target_loot != last_loot_state:
+                try:
+                    email = Player.GetAccountEmail() or ""
+                    if not email:
+                        # Fallback: ShMem lookup via local agent
+                        try:
+                            local_id = Player.GetAgentID()
+                            for acc in GLOBAL_CACHE.ShMem.GetAllAccountData() or []:
+                                if not acc:
+                                    continue
+                                if not getattr(acc, "IsAccount", False):
+                                    continue
+                                if acc.AgentData.AgentID == local_id:
+                                    email = acc.AccountEmail or ""
+                                    break
+                        except Exception:
+                            pass
+                    if email:
+                        opts = GLOBAL_CACHE.ShMem.GetHeroAIOptionsFromEmail(email)
+                        if opts is not None:
+                            if target_combat != last_combat_state:
+                                opts.Combat = target_combat
+                                opts.Targeting = target_combat
+                                ConsoleLog("CombatLoot",
+                                           f"Combat/Targeting -> {target_combat}",
+                                           Py4GW.Console.MessageType.Info)
+                                last_combat_state = target_combat
+                            if target_loot != last_loot_state:
+                                opts.Looting = target_loot
+                                ConsoleLog("CombatLoot",
+                                           f"Looting -> {target_loot}",
+                                           Py4GW.Console.MessageType.Info)
+                                last_loot_state = target_loot
+                except Exception as e:
+                    ConsoleLog("CombatLoot", f"toggle error: {e}",
+                               Py4GW.Console.MessageType.Error)
+        except Exception as e:
+            ConsoleLog("CombatLoot", f"watchdog error: {e}",
+                       Py4GW.Console.MessageType.Error)
+        yield from Routines.Yield.wait(POLL_MS)
+
+
+def BridgeApproachGuard(bot: Botting):
+    """Proactively suspend custom/bot behaviour when player approaches a known
+    bridge entrance. Bridges have geometry that snags the char mid-action when
+    the combat/HeroAI logic is active. While in bridge zone, set
+    'use_custom_behaviors' to False so the char traverses cleanly. Restores
+    the prior state on exit.
+
+    SAFETY: max MAX_ZONE_TIME_S in pause-state. If the watchdog ever crashes
+    or the bot spends too long near a bridge, custom_behaviors gets force-
+    restored to True. Without this, a stuck pause-state propagates via the
+    CustomBehaviorParty broadcast and disables custom_behaviors fleet-wide.
+    """
+    DETECT_RADIUS = 400
+    DETECT_RADIUS_SQ = DETECT_RADIUS * DETECT_RADIUS
+    POLL_MS = 1500
+    MAX_ZONE_TIME_S = 60
+
+    from Py4GWCoreLib import Map
+    in_bridge_zone = False
+    saved_state = None
+    zone_entered_at = 0.0
+    while True:
+        try:
+            if not Map.IsMapReady() or Map.IsMapLoading():
+                yield from Routines.Yield.wait(POLL_MS)
+                continue
+            try:
+                px, py = Player.GetXY()
+            except Exception:
+                yield from Routines.Yield.wait(POLL_MS)
+                continue
+
+            near = False
+            for bx, by in BRIDGE_ENTRANCE_COORDS:
+                dx = px - bx
+                dy = py - by
+                if dx * dx + dy * dy <= DETECT_RADIUS_SQ:
+                    near = True
+                    break
+
+            now = time.time()
+
+            # Zone-time safety: if we've been "in zone" too long, force-restore.
+            # Bridges shouldn't take >60s; if we're stuck, the leak hurts more
+            # than the lack of pause.
+            if in_bridge_zone and (now - zone_entered_at) > MAX_ZONE_TIME_S:
+                ConsoleLog("BridgeGuard",
+                           f"zone timeout ({int(now - zone_entered_at)}s > {MAX_ZONE_TIME_S}s) — force-restoring custom behaviours",
+                           Py4GW.Console.MessageType.Warning)
+                try:
+                    bot.Properties.ApplyNow("use_custom_behaviors", "active", True)
+                except Exception:
+                    pass
+                in_bridge_zone = False
+                saved_state = None
+
+            if near and not in_bridge_zone:
+                try:
+                    saved_state = _as_bool(bot.Properties.Get("use_custom_behaviors", "active"))
+                except Exception:
+                    saved_state = True
+                if saved_state:
+                    ConsoleLog("BridgeGuard",
+                               f"entering bridge zone ({int(px)},{int(py)}) — pausing custom behaviours",
+                               Py4GW.Console.MessageType.Info)
+                    try:
+                        bot.Properties.ApplyNow("use_custom_behaviors", "active", False)
+                    except Exception as e:
+                        ConsoleLog("BridgeGuard", f"disable error: {e}",
+                                   Py4GW.Console.MessageType.Error)
+                in_bridge_zone = True
+                zone_entered_at = now
+            elif not near and in_bridge_zone:
+                if saved_state:
+                    ConsoleLog("BridgeGuard",
+                               f"leaving bridge zone ({int(px)},{int(py)}) — restoring custom behaviours",
+                               Py4GW.Console.MessageType.Info)
+                    try:
+                        bot.Properties.ApplyNow("use_custom_behaviors", "active", True)
+                    except Exception as e:
+                        ConsoleLog("BridgeGuard", f"restore error: {e}",
+                                   Py4GW.Console.MessageType.Error)
+                in_bridge_zone = False
+                saved_state = None
+        except Exception as e:
+            ConsoleLog("BridgeGuard", f"guard error: {e}", Py4GW.Console.MessageType.Error)
+        yield from Routines.Yield.wait(POLL_MS)
+
+
+def UmbralGrottoResetGuard(bot: Botting):
+    """Reset to start of PrepareForCombat if bot returns to Umbral Grotto (639)
+    after having left it once. Catches the death-teleport-back-to-outpost case
+    where the FSM keeps marching but the player is in the wrong map.
+
+    State machine:
+      - has_left_grotto starts False
+      - When map_id != 639 (and ready), flip to True
+      - When map_id == 639 AND has_left_grotto, JumpToStepName start step
+      - After reset, flip has_left_grotto back to False
+    """
+    UMBRAL_GROTTO = 639
+    RESET_STEP = "[H]Enable Combat Mode_1"
+    POLL_MS = 5000
+    has_left_grotto = False
+    while True:
+        try:
+            from Py4GWCoreLib import Map
+            if Map.IsMapReady() and not Map.IsMapLoading():
+                try:
+                    current_map = int(Map.GetMapID())
+                except Exception:
+                    current_map = -1
+                if current_map > 0:
+                    if current_map != UMBRAL_GROTTO:
+                        has_left_grotto = True
+                    elif has_left_grotto:
+                        ConsoleLog("UmbralReset",
+                                   f"Detected return to Umbral Grotto ({UMBRAL_GROTTO}) — resetting to '{RESET_STEP}'",
+                                   Py4GW.Console.MessageType.Warning)
+                        try:
+                            bot.States.JumpToStepName(RESET_STEP)
+                        except Exception as e:
+                            ConsoleLog("UmbralReset", f"jump error: {e}",
+                                       Py4GW.Console.MessageType.Error)
+                        has_left_grotto = False
+        except Exception as e:
+            ConsoleLog("UmbralReset", f"guard error: {e}", Py4GW.Console.MessageType.Error)
+        yield from Routines.Yield.wait(POLL_MS)
+
+
+def StuckStepWatchdog(bot: Botting):
+    """Force-advance FSM if same step is active for >180s.
+
+    SAFETY: After MAX_FORCED_ADVANCES consecutive force-skips, sends /resign
+    instead of cascading deeper. Without this, a single bad state can chain
+    into 10+ skipped states ending in 'On Unmanaged Fail' (saw this last night
+    when XY_6 → XYAndInteractNPC_11 → ... → InteractWithGadgetXY: No target).
+
+    The forced-advance counter resets when the FSM transitions naturally
+    (state-change without our intervention).
+    """
+    STUCK_TIMEOUT_S = 180
+    POLL_S = 5
+    MAX_FORCED_ADVANCES = 2
+
+    last_step_name = None
+    last_step_change = time.time()
+    forced_count = 0
+    just_forced = False
+    while True:
+        try:
+            fsm = bot.config.FSM
+            current_state = getattr(fsm, "current_state", None)
+            if current_state is None:
+                yield from Routines.Yield.wait(2000)
+                continue
+            current_name = getattr(current_state, "name", "?")
+            now = time.time()
+            if current_name != last_step_name:
+                last_step_name = current_name
+                last_step_change = now
+                # Reset forced counter only when state changed naturally,
+                # NOT when we just force-advanced (which also produces a state change)
+                if not just_forced:
+                    forced_count = 0
+                just_forced = False
+            elif (now - last_step_change) >= STUCK_TIMEOUT_S:
+                elapsed = int(now - last_step_change)
+
+                # Cascade safety: stop force-skipping after 2 consecutive
+                if forced_count >= MAX_FORCED_ADVANCES:
+                    ConsoleLog("StuckSkip",
+                               f"Stuck '{current_name}' {elapsed}s — already force-advanced "
+                               f"{forced_count}x — /resign to escape cascade",
+                               Py4GW.Console.MessageType.Error)
+                    try:
+                        Player.SendChatCommand("resign")
+                    except Exception:
+                        pass
+                    forced_count = 0
+                    just_forced = False
+                    last_step_change = time.time()
+                    last_step_name = None
+                    yield from Routines.Yield.wait(5000)
+                    continue
+
+                next_state = getattr(current_state, "next_state", None)
+                if next_state is None:
+                    ConsoleLog("StuckSkip",
+                               f"Stuck '{current_name}' {elapsed}s — no next_state, cannot advance",
+                               Py4GW.Console.MessageType.Error)
+                else:
+                    next_name = getattr(next_state, "name", "?")
+                    ConsoleLog("StuckSkip",
+                               f"Stuck '{current_name}' {elapsed}s >= {STUCK_TIMEOUT_S}s — "
+                               f"advancing to '{next_name}' (forced {forced_count+1}/{MAX_FORCED_ADVANCES})",
+                               Py4GW.Console.MessageType.Warning)
+                    try:
+                        current_state.exit()
+                    except Exception:
+                        pass
+                    fsm.current_state = next_state
+                    try:
+                        fsm.current_state.reset()
+                        fsm.current_state.enter()
+                    except Exception as e:
+                        ConsoleLog("StuckSkip", f"transition enter() error: {e}",
+                                   Py4GW.Console.MessageType.Error)
+                    forced_count += 1
+                    just_forced = True
+                last_step_change = time.time()
+                last_step_name = None
+        except Exception as e:
+            ConsoleLog("StuckSkip", f"watchdog error: {e}", Py4GW.Console.MessageType.Error)
+        yield from Routines.Yield.wait(POLL_S * 1000)
+
+
 def PrepareForCombat(bot: Botting) -> None:
-    bot.States.AddHeader("Prepare For Farm")
-    _load_consumable_settings(bot)
-    _load_kit_restock_settings(bot)
+    bot.States.AddHeader("Enable Combat Mode")
+    bot.States.AddManagedCoroutine("StuckStepWatchdog", lambda: StuckStepWatchdog(bot))
+    bot.States.AddManagedCoroutine("UmbralGrottoResetGuard", lambda: UmbralGrottoResetGuard(bot))
+    bot.States.AddManagedCoroutine("BridgeApproachGuard", lambda: BridgeApproachGuard(bot))
+    bot.States.AddManagedCoroutine("StuckBridgeWatchdog", lambda: StuckBridgeWatchdog(bot))
+    bot.States.AddManagedCoroutine("CombatLootToggle", lambda: CombatLootToggle(bot))
+    bot.States.AddManagedCoroutine("MoraleBoostWatchdog", lambda: MoraleBoostWatchdog(bot))
+    _load_behavior_setting(bot)
+    bot.Templates.Multibox_Aggressive()
+    bot.States.AddCustomState(lambda: _apply_behavior_mode_step(bot), "Apply Behavior Mode")
     _sync_consumable_toggles(bot)
-    bot.States.AddCustomState(lambda: _coro_travel_random_district(bot, 639), "Travel to Sifhalla")
-    bot.States.AddCustomState(lambda: _gh_merchant_setup_if_enabled(bot, 639), "GH Merchant Setup If Enabled")
-    bot.States.AddCustomState(lambda: _maybe_setup_heroes(bot), "Setup Heroes")
+    bot.Multibox.LeavePartyOnAllAccounts()
+    bot.Templates.Routines.PrepareForFarm(map_id_to_travel=639)
     bot.States.AddCustomState(lambda: _restock_consumables_if_enabled(bot), "Restock Consumables If Enabled")
     bot.Party.SetHardMode(True)
 
@@ -207,18 +591,14 @@ def Snowman(bot: Botting):
     #events
     condition = lambda: OnPartyWipe(bot)
     bot.Events.OnPartyWipeCallback(condition)
-    bot.Events.OnPartyMemberBehindCallback(lambda: bot.Templates.Routines.OnPartyMemberBehind())
-    bot.Events.OnPartyMemberInDangerCallback(lambda: bot.Templates.Routines.OnPartyMemberInDanger())
-    bot.Events.OnPartyMemberDeadBehindCallback(lambda: bot.Templates.Routines.OnPartyMemberDeathBehind())
     #end events
-    bot.States.AddHeader("Deldrimor_loop")
-    bot.States.AddHeader("Zoning into explorable area")
-    bot.States.AddCustomState(lambda x=-23884.0, y=13954.0, d=0x84: _do_dialog_at(bot, x, y, d, broadcast_to_alts=False), "Blessing Dialog")
-    bot.Wait.ForMapToChange(target_map_id=701)
-    ConfigureAggressiveEnv(bot)
     bot.States.AddHeader("Start Combat")
+    bot.Move.XYAndDialog(-23884, 13954, 0x84)
+    bot.Wait.ForMapToChange(target_map_id=701)
     bot.States.AddCustomState(lambda: _use_consumables_if_enabled(bot), "Use Consumables If Enabled")
-    bot.States.AddCustomState(lambda x=-14078.00, y=15449.00, d=0x84: _do_dialog_at(bot, x, y, d), "Blessing Dialog")
+    bot.States.AddManagedCoroutine("Upkeep Multibox Consumables", lambda: _upkeep_multibox_consumables(bot))
+    bot.Move.XYAndInteractNPC(-14078.00, 15449.00)
+    bot.Multibox.SendDialogToTarget(0x84)
     bot.Move.XY(-14804, 10703)
     bot.Move.XY(-15628, 9589)
     bot.Move.XY(-17602, 6858)
@@ -227,9 +607,15 @@ def Snowman(bot: Botting):
     bot.Move.XY(-16697.96, 1302.89)
     # bot.Move.XY(-14673.79, 2621.35) # Default
     bot.Move.XY(-15090.34, 2057.10) # Updated to avoid agroing both corridor and bridge groups
-    bot.States.AddCustomState(lambda x=-12482.00, y=3924.00, d=0x84: _do_dialog_at(bot, x, y, d), "Blessing Dialog")
-    bot.Move.XY(-14450.00, 3411.00)
-    bot.States.AddCustomState(_watch_and_send_stuck_if_near_problem_spot, "Recover if near stuck spot")
+    bot.Move.XYAndInteractNPC(-12482.00, 3924.00)
+    bot.Multibox.SendDialogToTarget(0x84)
+    # Post-NPC detour around the (-14440 to -14510, 3400-3650) stuck-cluster.
+    # Path-finder still routed back to the cluster with the previous x=-14550
+    # detour (BridgeUnstuck logged "stuck at -14510, 3570"). Push detour ~250u
+    # further west to x=-14800.
+    bot.Move.XY(-14820, 3930)
+    bot.Move.XY(-14800, 3640)
+    bot.Move.XY(-14770, 2517)
     bot.Move.XY(-13824.00, 924.00)
     bot.Move.XY(-13752.06, -504.66)
     bot.Move.XY(-12084.77, -1592.58)
@@ -240,7 +626,8 @@ def Snowman(bot: Botting):
     bot.Move.FollowPath([(-9703.92, -10948.97)])
     bot.Wait.UntilOutOfCombat()
     bot.Items.LootItems()
-    bot.States.AddCustomState(lambda x=-16093.00, y=-10723.00, d=0x84: _do_dialog_at(bot, x, y, d), "Blessing Dialog")
+    bot.Move.XYAndInteractNPC(-16093.00, -10723.00)
+    bot.Multibox.SendDialogToTarget(0x84)
     bot.Move.XY(-15756.00, -12335.00)
     bot.Interact.WithGadgetAtXY(-15435.00, -12277.00) #lock
     bot.Wait.ForTime(3000)
@@ -256,13 +643,10 @@ def Snowman(bot: Botting):
     bot.Wait.ForTime(60000)
     bot.Interact.WithGadgetAtXY(-7594.00, -18657.00)
     bot.Items.LootItems()
-    bot.States.AddHeader("Resign")
-    if _party_mode == 1:
-        bot.Multibox.ResignParty()
-    else:
-        bot.Map.Travel(target_map_id=639)
-    bot.Wait.UntilOnOutpost()
-    bot.States.JumpToStepName(LOOP_STEP_NAME)
+    bot.Wait.ForTime(5000)
+    bot.Multibox.ResignParty()
+    bot.Wait.ForMapToChange(target_map_id=639)
+    bot.States.JumpToStepName("[H]Enable Combat Mode_1")
 
 
 bot.UI.override_draw_config(lambda: _draw_settings(bot))
@@ -271,400 +655,83 @@ bot.SetMainRoutine(Routine)
 # endregion
 
 
-# region Merchant
-def _find_npc_xy_by_name(name_fragment: str, max_dist: float = 15000.0):
-    npcs = AgentArray.GetNPCMinipetArray()
-    npcs = AgentArray.Filter.ByDistance(npcs, Player.GetXY(), max_dist)
-    for npc_id in npcs:
-        npc_name = Agent.GetNameByID(int(npc_id))
-        if name_fragment.lower() in npc_name.lower():
-            return Agent.GetXY(int(npc_id))
-    return None
-
-
-def _restock_kits_locally(bot: Botting, x: float, y: float):
-    yield from bot.Move._coro_xy_and_interact_npc(x, y)
-    yield from bot.Wait._coro_for_time(1200)
-
-    id_kits = int(GLOBAL_CACHE.Inventory.GetModelCount(ModelID.Identification_Kit.value))
-    sup_id_kits = int(GLOBAL_CACHE.Inventory.GetModelCount(ModelID.Superior_Identification_Kit.value))
-    salvage_kits = int(GLOBAL_CACHE.Inventory.GetModelCount(ModelID.Salvage_Kit.value))
-
-    id_to_buy = max(0, _id_kits_target - (id_kits + sup_id_kits))
-    salvage_to_buy = max(0, _salvage_kits_target - salvage_kits)
-
-    yield from Routines.Yield.Merchant.BuyIDKits(id_to_buy, log=True)
-    yield from Routines.Yield.Merchant.BuySalvageKits(salvage_to_buy, log=True)
-
-
-def _restock_kits_if_enabled(bot: Botting):
-    yield from _gh_merchant_setup_if_enabled(bot, 639)
-
-
-def _coro_travel_random_district(bot: Botting, target_map_id: int):
-    if _randomize_district:
-        district = random.choice(_RANDOM_DISTRICTS)
-        ConsoleLog(bot.config.bot_name, f"Traveling to map {target_map_id} with random EU district {district}")
-        Map.TravelToDistrict(target_map_id, district=district)
-        yield from Routines.Yield.wait(500)
-        yield from bot.Wait._coro_for_map_load(target_map_id=target_map_id)
-        return
-    yield from bot.Map._coro_travel(target_map_id, "")
-
-
-def _get_leftover_material_item_ids(batch_size: int = 10) -> list[int]:
-    bag_list = GLOBAL_CACHE.ItemArray.CreateBagList(1, 2, 3, 4)
-    item_array = GLOBAL_CACHE.ItemArray.GetItemArray(bag_list)
-    leftovers: list[int] = []
-    for item_id in item_array:
-        if not GLOBAL_CACHE.Item.Type.IsMaterial(item_id):
-            continue
-        if GLOBAL_CACHE.Item.Type.IsRareMaterial(item_id):
-            continue
-        qty = int(GLOBAL_CACHE.Item.Properties.GetQuantity(item_id))
-        if 0 < qty < batch_size:
-            leftovers.append(int(item_id))
-    return leftovers
-
-
-def _coro_sell_scrolls(bot: Botting, mx: float, my: float):
-    bag_list = GLOBAL_CACHE.ItemArray.CreateBagList(1, 2, 3, 4)
-    item_array = GLOBAL_CACHE.ItemArray.GetItemArray(bag_list)
-    sell_ids = [int(item_id) for item_id in item_array if int(GLOBAL_CACHE.Item.GetModelID(item_id)) in _SCROLL_MODEL_IDS]
-    if not sell_ids:
-        return
-    yield from bot.Move._coro_xy_and_interact_npc(mx, my, "GH Merchant (scrolls)")
-    yield from Routines.Yield.wait(1200)
-    yield from Routines.Yield.Merchant.SellItems(sell_ids, log=True)
-    yield from Routines.Yield.wait(300)
-
-
-def _coro_sell_nonsalvageable_golds(bot: Botting, mx: float, my: float):
-    bag_list = GLOBAL_CACHE.ItemArray.CreateBagList(1, 2, 3, 4)
-    item_array = GLOBAL_CACHE.ItemArray.GetItemArray(bag_list)
-    sell_ids = []
-    for item_id in item_array:
-        _, rarity = GLOBAL_CACHE.Item.Rarity.GetRarity(item_id)
-        if rarity != "Gold":
-            continue
-        if not GLOBAL_CACHE.Item.Usage.IsIdentified(item_id):
-            continue
-        if GLOBAL_CACHE.Item.Usage.IsSalvageable(item_id):
-            continue
-        sell_ids.append(int(item_id))
-    if not sell_ids:
-        return
-    yield from bot.Move._coro_xy_and_interact_npc(mx, my, "GH Merchant (non-salvageable golds)")
-    yield from Routines.Yield.wait(1200)
-    yield from Routines.Yield.Merchant.SellItems(sell_ids, log=True)
-    yield from Routines.Yield.wait(300)
-
-
-def _disable_inventoryplus_pretravel():
-    from Py4GWCoreLib.py4gwcorelib_src.WidgetManager import get_widget_handler as _get_wh
-    wh = _get_wh()
-    for name in _PRETRAVEL_DISABLE_WIDGETS:
-        wh.disable_widget(name)
-    my_email = Player.GetAccountEmail()
-    for acc in GLOBAL_CACHE.ShMem.GetAllAccountData():
-        if acc.AccountEmail != my_email:
-            for name in _PRETRAVEL_DISABLE_WIDGETS:
-                GLOBAL_CACHE.ShMem.SendMessage(my_email, acc.AccountEmail, SharedCommandType.DisableWidget, (0, 0, 0, 0), (name, "", "", ""))
-    yield from Routines.Yield.wait(1500)
-
-
-def _disable_merchant_widgets():
-    from Py4GWCoreLib.py4gwcorelib_src.WidgetManager import get_widget_handler as _get_wh
-    wh = _get_wh()
-    for name in _MERCHANT_MANAGED_WIDGETS:
-        wh.disable_widget(name)
-    my_email = Player.GetAccountEmail()
-    for acc in GLOBAL_CACHE.ShMem.GetAllAccountData():
-        if acc.AccountEmail != my_email:
-            for name in _MERCHANT_MANAGED_WIDGETS:
-                GLOBAL_CACHE.ShMem.SendMessage(my_email, acc.AccountEmail, SharedCommandType.DisableWidget, (0, 0, 0, 0), (name, "", "", ""))
-    yield
-
-
-def _reenable_merchant_widgets():
-    from Py4GWCoreLib.py4gwcorelib_src.WidgetManager import get_widget_handler as _get_wh
-    wh = _get_wh()
-    for name in _MERCHANT_MANAGED_WIDGETS:
-        wh.enable_widget(name)
-    my_email = Player.GetAccountEmail()
-    refs: list[tuple[str, int]] = []
-    for acc in GLOBAL_CACHE.ShMem.GetAllAccountData():
-        if acc.AccountEmail != my_email:
-            for name in _MERCHANT_MANAGED_WIDGETS:
-                idx = int(GLOBAL_CACHE.ShMem.SendMessage(my_email, acc.AccountEmail, SharedCommandType.EnableWidget, (0, 0, 0, 0), (name, "", "", "")))
-                if idx >= 0:
-                    refs.append((acc.AccountEmail, idx))
-    yield from _wait_for_alt_dispatch_completion("enable_widgets", refs, SharedCommandType.EnableWidget, timeout_ms=15000)
-
-
-def _dispatch_to_alts(command, params, extra_data=("", "", "", "")) -> list[tuple[str, int]]:
-    my_email = Player.GetAccountEmail()
-    refs: list[tuple[str, int]] = []
-    for acc in GLOBAL_CACHE.ShMem.GetAllAccountData():
-        if acc.AccountEmail != my_email:
-            idx = int(GLOBAL_CACHE.ShMem.SendMessage(my_email, acc.AccountEmail, command, params, extra_data))
-            refs.append((acc.AccountEmail, idx))
-    return refs
-
-
-def _wait_for_alt_dispatch_completion(stage_name: str, message_refs: list[tuple[str, int]], command, timeout_ms: int = 30000):
-    if not message_refs:
-        return
-    pending = {(email, idx): None for email, idx in message_refs if int(idx) >= 0}
-    if not pending:
-        return
-    deadline = time.monotonic() + (max(0, int(timeout_ms)) / 1000.0)
-    my_email = Player.GetAccountEmail()
-    while pending and time.monotonic() < deadline:
-        completed: list[tuple[str, int]] = []
-        for email, idx in list(pending.keys()):
-            message = GLOBAL_CACHE.ShMem.GetInbox(idx)
-            is_same_message = (
-                bool(getattr(message, "Active", False))
-                and str(getattr(message, "ReceiverEmail", "") or "") == email
-                and str(getattr(message, "SenderEmail", "") or "") == my_email
-                and int(getattr(message, "Command", -1)) == int(command)
-            )
-            if not is_same_message:
-                completed.append((email, idx))
-        for key in completed:
-            pending.pop(key, None)
-        if pending:
-            yield from Routines.Yield.wait(50)
-    if pending:
-        pending_accounts = ", ".join(sorted({email for email, _ in pending}))
-        ConsoleLog(MODULE_NAME, f"[Merchant] {stage_name}: timeout waiting for alt completion. Pending: {pending_accounts}", Py4GW.Console.MessageType.Warning)
-
-
-def _wait_for_alts_on_current_map(stage_name: str, expected_alts: int, target_map_id: int, timeout_ms: int = 30000):
-    if _party_mode != 1:
-        return
-    if expected_alts <= 0:
-        return
-    my_email = Player.GetAccountEmail()
-    deadline = time.time() + (max(0, int(timeout_ms)) / 1000.0)
-    while time.time() < deadline:
-        accounts = GLOBAL_CACHE.ShMem.GetAllAccountData()
-        arrived = sum(
-            1 for acc in accounts
-            if acc.AccountEmail != my_email and int(getattr(acc.AgentData.Map, "MapID", 0) or 0) == target_map_id
-        )
-        if arrived >= expected_alts:
-            yield from Routines.Yield.wait(1000)
-            return
-        yield from Routines.Yield.wait(500)
-    ConsoleLog(MODULE_NAME, f"[Merchant] {stage_name}: alt arrival timeout on map {target_map_id}", Py4GW.Console.MessageType.Warning)
-
-
-def _kick_current_party_accounts():
-    own_login = int(Player.GetLoginNumber() or 0)
-    for member in list(GLOBAL_CACHE.Party.GetPlayers()):
-        login_number = int(getattr(member, "login_number", 0) or 0)
-        if login_number <= 0 or login_number == own_login:
-            continue
-        player_name = GLOBAL_CACHE.Party.Players.GetPlayerNameByLoginNumber(login_number)
-        if player_name:
-            GLOBAL_CACHE.Party.Players.KickPlayer(str(player_name))
-
-
-def _gh_merchant_setup_if_enabled(bot: Botting, outpost_id: int):
-    if not _restock_kits_enabled:
-        return
-
-    if _party_mode == 1:
-        _kick_current_party_accounts()
-        for _ in range(20):
-            yield from bot.Wait._coro_for_time(250)
-            if GLOBAL_CACHE.Party.GetPlayerCount() <= 1:
-                break
-
-    yield from _disable_inventoryplus_pretravel()
-
-    expected_gh_alts = 0
-    travel_refs: list[tuple[str, int]] = []
-    if _party_mode == 1:
-        my_email = Player.GetAccountEmail()
-        expected_gh_alts = len([acc for acc in GLOBAL_CACHE.ShMem.GetAllAccountData() if acc.AccountEmail != my_email])
-        travel_refs = _dispatch_to_alts(SharedCommandType.TravelToGuildHall, (0, 0, 0, 0))
-
-    if not Map.IsGuildHall():
-        Map.TravelGH()
-    yield from bot.Wait._coro_until_on_outpost()
-    if _party_mode == 1:
-        yield from _wait_for_alt_dispatch_completion("travel_gh", travel_refs, SharedCommandType.TravelToGuildHall, timeout_ms=10000)
-
-    gh_deadline = time.time() + 30.0
-    while not Map.IsGuildHall() and time.time() < gh_deadline:
-        yield from Routines.Yield.wait(500)
-    if not Map.IsGuildHall():
-        ConsoleLog(MODULE_NAME, "[Merchant] Failed to reach Guild Hall, skipping merchant setup", Py4GW.Console.MessageType.Warning)
-        return
-
-    if _party_mode == 1:
-        yield from _wait_for_alts_on_current_map("travel_gh_arrival", expected_gh_alts, int(Map.GetMapID()), timeout_ms=60000)
-
-    npc_deadline = time.time() + 20.0
-    while _find_npc_xy_by_name("Merchant", max_dist=30000.0) is None and time.time() < npc_deadline:
-        yield from Routines.Yield.wait(500)
-
-    yield from _disable_merchant_widgets()
-
-    merchant_xy = _find_npc_xy_by_name("Merchant", max_dist=30000.0)
-    mat_xy = _find_npc_xy_by_name("Material Trader", max_dist=30000.0) if _merchant_sell_materials else None
-
-    if _merchant_sell_materials and mat_xy:
-        tmx, tmy = mat_xy
-        sell_mat_refs = _dispatch_to_alts(SharedCommandType.MerchantMaterials, (tmx, tmy, 0, 0), ("sell", "", "", "")) if _party_mode == 1 else []
-        yield from Routines.Yield.Merchant.SellMaterialsAtTrader(tmx, tmy)
-        if _party_mode == 1:
-            yield from _wait_for_alt_dispatch_completion("sell_materials", sell_mat_refs, SharedCommandType.MerchantMaterials)
-
-        if merchant_xy:
-            mx, my = merchant_xy
-            leftover_refs = _dispatch_to_alts(SharedCommandType.MerchantMaterials, (mx, my, 0, 0), ("sell_merchant_leftovers", "", "10", "")) if _party_mode == 1 else []
-            leftover_ids = _get_leftover_material_item_ids()
-            if leftover_ids:
-                yield from bot.Move._coro_xy_and_interact_npc(mx, my, "GH Merchant (leftovers)")
-                yield from Routines.Yield.wait(1200)
-                yield from Routines.Yield.Merchant.SellItems(leftover_ids, log=True)
-                yield from Routines.Yield.wait(300)
-            if _party_mode == 1:
-                yield from _wait_for_alt_dispatch_completion("sell_merchant_leftovers", leftover_refs, SharedCommandType.MerchantMaterials)
-
-    if merchant_xy:
-        mx, my = merchant_xy
-        sell_gold_refs = _dispatch_to_alts(SharedCommandType.MerchantMaterials, (mx, my, 0, 0), ("sell_nonsalvageable_golds", "", "", "")) if _party_mode == 1 else []
-        yield from _coro_sell_nonsalvageable_golds(bot, mx, my)
-        if _party_mode == 1:
-            yield from _wait_for_alt_dispatch_completion("sell_nonsalvageable_golds", sell_gold_refs, SharedCommandType.MerchantMaterials)
-
-        sell_scroll_refs = _dispatch_to_alts(SharedCommandType.MerchantMaterials, (mx, my, 0, 0), ("sell_scrolls", _SCROLL_MODEL_FILTER, "", "")) if _party_mode == 1 else []
-        yield from _coro_sell_scrolls(bot, mx, my)
-        if _party_mode == 1:
-            yield from _wait_for_alt_dispatch_completion("sell_scrolls", sell_scroll_refs, SharedCommandType.MerchantMaterials)
-
-        kit_refs = _dispatch_to_alts(SharedCommandType.MerchantItems, (mx, my, _id_kits_target, _salvage_kits_target)) if _party_mode == 1 else []
-        yield from _restock_kits_locally(bot, mx, my)
-        if _party_mode == 1:
-            yield from _wait_for_alt_dispatch_completion("restock_kits", kit_refs, SharedCommandType.MerchantItems)
-
-    if _merchant_alt_wait_ms > 0:
-        yield from Routines.Yield.wait(_merchant_alt_wait_ms)
-
-    yield from _coro_travel_random_district(bot, outpost_id)
-    if _party_mode == 1:
-        yield from Routines.Yield.wait(1500)
-    yield from _reenable_merchant_widgets()
-# endregion
-
-
 # region Consumables
 def _restock_consumables_if_enabled(bot: Botting):
     _sync_consumable_toggles(bot)
-    if _party_mode == 1:
-        if _as_bool(bot.Properties.Get("use_conset", "active")):
-            yield from bot.helpers.Multibox._restock_conset_message(250)
-        if _as_bool(bot.Properties.Get("use_pcons", "active")):
-            yield from bot.helpers.Multibox._restock_all_pcons_message(250)
-        return
     if _as_bool(bot.Properties.Get("use_conset", "active")):
         yield from _restock_models_locally(CONSET_RESTOCK_MODELS, 250)
+        yield from bot.helpers.Multibox._restock_conset_message(250)
     if _as_bool(bot.Properties.Get("use_pcons", "active")):
         yield from _restock_models_locally(PCON_RESTOCK_MODELS, 250)
+        yield from bot.helpers.Multibox._restock_all_pcons_message(250)
 
 
 def _use_consumables_if_enabled(bot: Botting):
     _sync_consumable_toggles(bot)
-    if _party_mode == 1:
-        yield from _use_multibox_consumables(bot)
-        return
     if _as_bool(bot.Properties.Get("use_conset", "active")):
-        yield from bot.helpers.Items.use_conset()
+        for model_id, skill_name in CONSET_ITEMS:
+            yield from bot.helpers.Multibox._use_consumable_message(
+                (model_id, GLOBAL_CACHE.Skill.GetID(skill_name), 0, 0))
     if _as_bool(bot.Properties.Get("use_pcons", "active")):
-        yield from bot.helpers.Items.use_pcons()
+        for model_id, skill_name in PCON_ITEMS:
+            yield from bot.helpers.Multibox._use_consumable_message(
+                (model_id, GLOBAL_CACHE.Skill.GetID(skill_name), 0, 0))
 
 
 def _restock_models_locally(model_ids: list[int], quantity: int):
     for model_id in model_ids:
         yield from Routines.Yield.Items.RestockItems(model_id, quantity)
-
-
-def _use_multibox_consumables(bot: Botting):
-    if _as_bool(bot.Properties.Get("use_conset", "active")):
-        for model_id, effect_name in CONSET_ITEMS:
-            yield from bot.helpers.Multibox._use_consumable_message((
-                model_id,
-                GLOBAL_CACHE.Skill.GetID(effect_name),
-                0,
-                0,
-            ))
-    if _as_bool(bot.Properties.Get("use_pcons", "active")):
-        for model_id, effect_name in PCON_ITEMS:
-            yield from bot.helpers.Multibox._use_consumable_message((
-                model_id,
-                GLOBAL_CACHE.Skill.GetID(effect_name),
-                0,
-                0,
-            ))
-        yield from bot.helpers.Multibox._use_consumable_message((
-            ModelID.Honeycomb.value,
-            0,
-            0,
-            0,
-        ))
-
-
 # endregion
 
 
 # region Upkeep
-def _upkeep_consumables(bot: "Botting"):
+def _upkeep_multibox_consumables(bot: "Botting"):
+    from Py4GWCoreLib import Map as _UpMap
+    def _explorable_safe() -> bool:
+        # Per-iteration guard. Without this, /resign mid-cycle let UseItem
+        # fire during the loading screen, freezing the master client.
+        try:
+            return (_UpMap.IsMapReady()
+                    and not _UpMap.IsMapLoading()
+                    and not _UpMap.IsOutpost()
+                    and Routines.Checks.Map.MapValid())
+        except Exception:
+            return False
     while True:
         yield from bot.Wait._coro_for_time(15000)
-        if not Routines.Checks.Map.MapValid() or Routines.Checks.Map.IsOutpost():
-            continue
-        if _party_mode == 1:
-            yield from _use_multibox_consumables(bot)
+        if not _explorable_safe():
             continue
         if _as_bool(bot.Properties.Get("use_conset", "active")):
-            yield from bot.helpers.Items.use_conset()
-        if _as_bool(bot.Properties.Get("use_pcons", "active")):
-            yield from bot.helpers.Items.use_pcons()
-            for _ in range(4):
-                honeycomb_item_id = GLOBAL_CACHE.Inventory.GetFirstModelID(ModelID.Honeycomb.value)
-                if not honeycomb_item_id:
+            for model_id, skill_name in CONSET_ITEMS:
+                if not _explorable_safe():
                     break
-                GLOBAL_CACHE.Inventory.UseItem(honeycomb_item_id)
+                yield from bot.helpers.Multibox._use_consumable_message(
+                    (model_id, GLOBAL_CACHE.Skill.GetID(skill_name), 0, 0))
+        if _as_bool(bot.Properties.Get("use_pcons", "active")):
+            for model_id, skill_name in PCON_ITEMS:
+                if not _explorable_safe():
+                    break
+                yield from bot.helpers.Multibox._use_consumable_message(
+                    (model_id, GLOBAL_CACHE.Skill.GetID(skill_name), 0, 0))
+            for _ in range(4):
+                if not _explorable_safe():
+                    break
+                GLOBAL_CACHE.Inventory.UseItem(ModelID.Honeycomb.value)
                 yield from bot.Wait._coro_for_time(250)
 # endregion
 
 
 # region Events
 def _on_party_wipe(bot: "Botting"):
-    if not Routines.Checks.Map.MapValid() or not Routines.Checks.Map.IsExplorable():
-        bot.config.FSM.resume()
-        return
     while Agent.IsDead(Player.GetAgentID()):
         yield from bot.Wait._coro_for_time(1000)
-        if not Routines.Checks.Map.MapValid() or not Routines.Checks.Map.IsExplorable():
-            bot.config.FSM.resume()
-            return
         if not Routines.Checks.Map.MapValid():
             # Map invalid → release FSM and exit
             bot.config.FSM.resume()
             return
 
     # Player revived on same map → jump to recovery step
-    if not Routines.Checks.Map.MapValid() or not Routines.Checks.Map.IsExplorable():
-        bot.config.FSM.resume()
-        return
-
-    bot.States.JumpToStepName(RESIGN_STEP_NAME if _party_mode == 1 else START_COMBAT_STEP_NAME)
+    bot.States.JumpToStepName("[H]Start Combat_2")
     bot.config.FSM.resume()
 
 
@@ -697,355 +764,34 @@ def _ensure_bot_ini(bot: Botting) -> str:
     return bot.config.ini_key
 
 
-def _load_consumable_settings(bot: Botting) -> None:
+def _load_behavior_setting(bot: Botting) -> None:
     ini_key = _ensure_bot_ini(bot)
     if not ini_key:
         return
-    saved_use_conset = IniManager().read_bool(
+    # Default = True (the bot's intended setup, see line 17 Property active=True).
+    # NOT the current property value — that leaks any stale False from a prior
+    # run's BridgeApproachGuard that didn't restore (e.g., script crashed
+    # mid-bridge-zone). Without this default, _apply_behavior_mode broadcasts
+    # the stale False to all 8 accounts, disabling custom_behaviors fleet-wide.
+    saved_value = IniManager().read_bool(
         ini_key,
         _SETTINGS_SECTION,
-        _USE_CONSET_KEY,
-        _as_bool(bot.Properties.Get("use_conset", "active")),
+        _BEHAVIOR_MODE_KEY,
+        True,
     )
-    saved_use_pcons = IniManager().read_bool(
-        ini_key,
-        _SETTINGS_SECTION,
-        _USE_PCONS_KEY,
-        _as_bool(bot.Properties.Get("use_pcons", "active")),
-    )
-    bot.Properties.ApplyNow("use_conset", "active", _as_bool(saved_use_conset))
-    bot.Properties.ApplyNow("use_pcons", "active", _as_bool(saved_use_pcons))
+    bot.Properties.ApplyNow("use_custom_behaviors", "active", _as_bool(saved_value))
 
 
-def _load_kit_restock_settings(bot: Botting) -> None:
-    global _restock_kits_enabled, _id_kits_target, _salvage_kits_target, _merchant_sell_materials, _merchant_alt_wait_ms
-    ini_key = _ensure_bot_ini(bot)
-    if not ini_key:
-        return
-    _restock_kits_enabled = IniManager().read_bool(
-        ini_key,
-        _SETTINGS_SECTION,
-        _USE_RESTOCK_KITS_KEY,
-        _restock_kits_enabled,
-    )
-    _id_kits_target = max(0, int(IniManager().read_int(
-        ini_key,
-        _SETTINGS_SECTION,
-        _ID_KITS_TARGET_KEY,
-        _id_kits_target,
-    )))
-    _salvage_kits_target = max(0, int(IniManager().read_int(
-        ini_key,
-        _SETTINGS_SECTION,
-        _SALVAGE_KITS_TARGET_KEY,
-        _salvage_kits_target,
-    )))
-    _merchant_sell_materials = IniManager().read_bool(
-        ini_key,
-        _SETTINGS_SECTION,
-        _MERCHANT_SELL_MATERIALS_KEY,
-        _merchant_sell_materials,
-    )
-    _merchant_alt_wait_ms = max(0, min(_MAX_ALT_SETTLE_WAIT_MS, int(IniManager().read_int(
-        ini_key,
-        _SETTINGS_SECTION,
-        _MERCHANT_ALT_WAIT_MS_KEY,
-        _merchant_alt_wait_ms,
-    ))))
-
-
-def _save_consumable_settings(bot: Botting) -> None:
+def _save_behavior_setting(bot: Botting) -> None:
     ini_key = _ensure_bot_ini(bot)
     if not ini_key:
         return
     IniManager().write_key(
         ini_key,
         _SETTINGS_SECTION,
-        _USE_CONSET_KEY,
-        _as_bool(bot.Properties.Get("use_conset", "active")),
+        _BEHAVIOR_MODE_KEY,
+        _as_bool(bot.Properties.Get("use_custom_behaviors", "active")),
     )
-    IniManager().write_key(
-        ini_key,
-        _SETTINGS_SECTION,
-        _USE_PCONS_KEY,
-        _as_bool(bot.Properties.Get("use_pcons", "active")),
-    )
-
-
-def _save_kit_restock_settings(bot: Botting) -> None:
-    ini_key = _ensure_bot_ini(bot)
-    if not ini_key:
-        return
-    IniManager().write_key(ini_key, _SETTINGS_SECTION, _USE_RESTOCK_KITS_KEY, bool(_restock_kits_enabled))
-    IniManager().write_key(ini_key, _SETTINGS_SECTION, _ID_KITS_TARGET_KEY, int(_id_kits_target))
-    IniManager().write_key(ini_key, _SETTINGS_SECTION, _SALVAGE_KITS_TARGET_KEY, int(_salvage_kits_target))
-    IniManager().write_key(ini_key, _SETTINGS_SECTION, _MERCHANT_SELL_MATERIALS_KEY, bool(_merchant_sell_materials))
-    IniManager().write_key(ini_key, _SETTINGS_SECTION, _MERCHANT_ALT_WAIT_MS_KEY, int(_merchant_alt_wait_ms))
-
-
-def _ensure_consumable_settings_ui_loaded(bot: Botting) -> None:
-    if getattr(bot.config, "_consumable_settings_ui_loaded", False):
-        return
-    _load_consumable_settings(bot)
-    _load_kit_restock_settings(bot)
-    bot.config._consumable_settings_ui_loaded = True
-
-
-def _load_hero_config():
-    global _hero_slots, _hero_config_dirty, _hero_config_status
-    if not os.path.exists(_HERO_CONFIG_PATH):
-        _hero_config_status = ""
-        return
-    try:
-        with open(_HERO_CONFIG_PATH, "r", encoding="utf-8") as f:
-            raw = json.load(f)
-        _hero_slots = _parse_hero_config_entries(raw)
-        _hero_config_dirty = False
-        _hero_config_status = "Loaded."
-    except Exception as exc:
-        _hero_config_status = f"Load error: {exc}"
-
-
-def _save_hero_config():
-    global _hero_config_dirty, _hero_config_status
-    payload = [{"hero_id": int(s.hero_id), "template": s.template} for s in _hero_slots]
-    try:
-        os.makedirs(os.path.dirname(_HERO_CONFIG_PATH), exist_ok=True)
-        with open(_HERO_CONFIG_PATH, "w", encoding="utf-8") as f:
-            json.dump(payload, f, indent=2)
-        _hero_config_dirty = False
-        _hero_config_status = "Saved."
-    except Exception as exc:
-        _hero_config_status = f"Save error: {exc}"
-
-
-def _reset_hero_config():
-    global _hero_slots, _hero_config_dirty, _hero_config_status
-    _hero_slots = [_PartyHeroSlot() for _ in range(_HERO_SLOTS_COUNT)]
-    _hero_config_dirty = True
-    _hero_config_status = "Reset to empty."
-
-
-def _parse_hero_config_entries(raw) -> List[_PartyHeroSlot]:
-    slots: List[_PartyHeroSlot] = []
-    for i in range(_HERO_SLOTS_COUNT):
-        entry = raw[i] if isinstance(raw, list) and i < len(raw) else {}
-        hero_id = int(entry.get("hero_id", 0) or 0)
-        if hero_id not in _HERO_ID_TO_OPTION_INDEX:
-            hero_id = 0
-        slots.append(_PartyHeroSlot(hero_id=hero_id, template=str(entry.get("template", "") or "")))
-    return slots
-
-
-def _list_importable_hero_configs() -> List[str]:
-    try:
-        hero_files = []
-        for entry in os.listdir(_BOT_SCRIPT_DIR):
-            if not entry.endswith(" Heroes.json"):
-                continue
-            full_path = os.path.join(_BOT_SCRIPT_DIR, entry)
-            if os.path.isfile(full_path):
-                hero_files.append(full_path)
-        hero_files.sort(key=lambda path: os.path.basename(path).lower())
-        return hero_files
-    except OSError:
-        return []
-
-
-def _hero_import_label(path: str) -> str:
-    name = os.path.splitext(os.path.basename(path))[0]
-    return name[:-7] if name.endswith(" Heroes") else name
-
-
-def _import_hero_config(path: str):
-    global _hero_slots, _hero_config_dirty, _hero_config_status
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            raw = json.load(f)
-        _hero_slots = _parse_hero_config_entries(raw)
-        _hero_config_dirty = True
-        _save_hero_config()
-        _hero_config_status = f"Imported from {_hero_import_label(path)} and saved."
-    except Exception as exc:
-        _hero_config_status = f"Import error: {exc}"
-
-
-def _get_hero_icon_path(hero_id: int) -> Optional[str]:
-    try:
-        hero_type = HeroType(hero_id)
-    except ValueError:
-        return None
-    filename = _HERO_ICON_FILENAMES.get(hero_type)
-    if not filename:
-        return None
-    path = os.path.join(_HERO_ICONS_BASE, filename)
-    return path if os.path.exists(path) else None
-
-
-def _draw_hero_icon(hero_id: int, size: int = 24):
-    import PyImGui
-    path = _get_hero_icon_path(hero_id)
-    if path:
-        try:
-            cx, cy = PyImGui.get_cursor_screen_pos()
-            ImGui.DrawTextureInDrawList(pos=(float(cx), float(cy)), size=(float(size), float(size)), texture_path=path)
-        except Exception:
-            try:
-                ImGui.DrawTexture(texture_path=path, width=size, height=size)
-            except Exception:
-                pass
-    PyImGui.dummy(int(size), int(size))
-
-
-def _draw_hero_combo(label: str, hero_id: int) -> int:
-    import PyImGui
-    current_index = _HERO_ID_TO_OPTION_INDEX.get(hero_id, 0)
-    preview = _HERO_OPTION_LABELS[current_index]
-    if PyImGui.begin_combo(label, preview, PyImGui.ImGuiComboFlags.NoFlag):
-        for index, hero in enumerate(_HERO_OPTIONS):
-            if hero != HeroType.None_:
-                _draw_hero_icon(int(hero), size=20)
-            else:
-                PyImGui.dummy(20, 20)
-            PyImGui.same_line(0.0, 8.0)
-            if PyImGui.selectable(f"{_HERO_OPTION_LABELS[index]}##{label}_{index}", index == current_index, 0, [0.0, 0.0]):
-                current_index = index
-        PyImGui.end_combo()
-    return int(_HERO_OPTIONS[current_index])
-
-
-def _draw_hero_slot_editor(slot_index: int):
-    import PyImGui
-    global _hero_config_dirty
-    slot = _hero_slots[slot_index]
-    combo_label_width = 70.0
-
-    PyImGui.text(f"Hero {slot_index + 1}")
-    PyImGui.same_line(combo_label_width, 8.0)
-    _draw_hero_icon(slot.hero_id, size=24)
-    PyImGui.same_line(0.0, 8.0)
-    PyImGui.set_next_item_width(PyImGui.get_content_region_avail()[0])
-    new_hero_id = _draw_hero_combo(f"##hero_{slot_index}", slot.hero_id)
-    if new_hero_id != slot.hero_id:
-        slot.hero_id = new_hero_id
-        if slot.hero_id == HeroType.None_.value:
-            slot.template = ""
-        elif not slot.template.strip():
-            try:
-                hero_type = HeroType(slot.hero_id)
-            except ValueError:
-                hero_type = HeroType.None_
-            slot.template = _DEFAULT_HERO_TEMPLATES.get(hero_type, "")
-        _hero_config_dirty = True
-
-    PyImGui.text("Template")
-    PyImGui.same_line(0.0, 8.0)
-    if PyImGui.small_button(f"Clear##slot_{slot_index}"):
-        if slot.hero_id != HeroType.None_.value or slot.template:
-            slot.hero_id = HeroType.None_.value
-            slot.template = ""
-            _hero_config_dirty = True
-    PyImGui.set_next_item_width(PyImGui.get_content_region_avail()[0])
-    new_template = PyImGui.input_text(f"##template_{slot_index}", slot.template)
-    if new_template != slot.template:
-        slot.template = new_template
-        _hero_config_dirty = True
-
-
-def _draw_hero_settings_tab():
-    import PyImGui
-    global _hero_import_source_index
-    PyImGui.text("Configure up to 7 heroes for Single Account mode.")
-    PyImGui.push_style_color(PyImGui.ImGuiCol.Text, (0.7, 0.7, 0.7, 1.0))
-    PyImGui.text("Heroes are added in order; duplicates and empty slots are skipped.")
-    PyImGui.pop_style_color(1)
-    PyImGui.spacing()
-
-    if _hero_config_dirty:
-        PyImGui.push_style_color(PyImGui.ImGuiCol.Text, (1.0, 0.8, 0.2, 1.0))
-        PyImGui.text("Unsaved changes")
-        PyImGui.pop_style_color(1)
-    elif _hero_config_status:
-        PyImGui.push_style_color(PyImGui.ImGuiCol.Text, (0.6, 0.9, 0.6, 1.0))
-        PyImGui.text(_hero_config_status)
-        PyImGui.pop_style_color(1)
-
-    if PyImGui.button("Save", 100, 26):
-        _save_hero_config()
-    PyImGui.same_line(0, 8)
-    if PyImGui.button("Reload", 100, 26):
-        _load_hero_config()
-    PyImGui.same_line(0, 8)
-    if PyImGui.button("Reset", 100, 26):
-        _reset_hero_config()
-    import_paths = _list_importable_hero_configs()
-    if import_paths:
-        if _hero_import_source_index >= len(import_paths):
-            _hero_import_source_index = 0
-        import_labels = [_hero_import_label(path) for path in import_paths]
-        _hero_import_source_index = PyImGui.combo("Import Team From", _hero_import_source_index, import_labels)
-        if PyImGui.button("Import Team", 120, 26):
-            _import_hero_config(import_paths[_hero_import_source_index])
-    else:
-        PyImGui.push_style_color(PyImGui.ImGuiCol.Text, (0.7, 0.7, 0.7, 1.0))
-        PyImGui.text("Import Team: save another title bot hero lineup first.")
-        PyImGui.pop_style_color(1)
-    PyImGui.separator()
-
-    if PyImGui.begin_child("HeroSlotsChild", (0, -1), True):
-        for i in range(_HERO_SLOTS_COUNT):
-            _draw_hero_slot_editor(i)
-            if i < _HERO_SLOTS_COUNT - 1:
-                PyImGui.separator()
-    PyImGui.end_child()
-
-
-def _setup_heroes(bot: Botting):
-    global _hero_slots
-    if _party_mode == 1:
-        _kick_current_party_accounts()
-    else:
-        GLOBAL_CACHE.Party.LeaveParty()
-    for _ in range(8):
-        yield from bot.Wait._coro_for_time(250)
-        if GLOBAL_CACHE.Party.GetPlayerCount() <= 1:
-            break
-    GLOBAL_CACHE.Party.Heroes.KickAllHeroes()
-    yield from bot.Wait._coro_for_time(500)
-    seen: set = set()
-    for slot in _hero_slots:
-        hero_id = int(slot.hero_id)
-        if hero_id <= 0 or hero_id in seen:
-            continue
-        seen.add(hero_id)
-        GLOBAL_CACHE.Party.Heroes.AddHero(hero_id)
-    # Single wait for all heroes to join
-    yield from bot.Wait._coro_for_time(1000)
-    # Load skill templates
-    template_map = {int(s.hero_id): s.template for s in _hero_slots if s.template}
-    party_hero_count = GLOBAL_CACHE.Party.GetHeroCount()
-    for position in range(1, party_hero_count + 1):
-        hero_agent_id = GLOBAL_CACHE.Party.Heroes.GetHeroAgentIDByPartyPosition(position)
-        if hero_agent_id > 0:
-            hero_id = GLOBAL_CACHE.Party.Heroes.GetHeroIDByAgentID(hero_agent_id)
-            template = template_map.get(hero_id, "")
-            if template:
-                GLOBAL_CACHE.SkillBar.LoadHeroSkillTemplate(position, template)
-            yield from bot.Wait._coro_for_time(500)
-
-
-def _maybe_setup_heroes(bot: Botting):
-    if _party_mode == 1:
-        yield from bot.helpers.Multibox._summon_all_accounts()
-        yield from bot.Wait._coro_for_time(4000)
-        yield from bot.helpers.Multibox._invite_all_accounts()
-        return
-    yield from _setup_heroes(bot)
-
-
-def _resign(bot: Botting):
-    bot.UI.SendChatCommand("resign")
-    yield from bot.Wait._coro_for_time(500)
 
 
 def _sync_consumable_toggles(bot: Botting) -> None:
@@ -1070,117 +816,76 @@ def _sync_consumable_toggles(bot: Botting) -> None:
         bot.Properties.ApplyNow(key, "active", use_pcons)
 
 
+def _apply_behavior_mode(bot: Botting) -> None:
+    use_custom_behaviors = _as_bool(bot.Properties.Get("use_custom_behaviors", "active"))
+    from Py4GW_widget_manager import get_widget_handler
+    widget_handler = get_widget_handler()
+    custom_behavior_party = None
+    try:
+        from Sources.oazix.CustomBehaviors.primitives.parties.custom_behavior_party import CustomBehaviorParty
+        custom_behavior_party = CustomBehaviorParty()
+    except Exception:
+        custom_behavior_party = None
+    if use_custom_behaviors:
+        bot.Properties.Disable("hero_ai")
+        if custom_behavior_party is not None:
+            custom_behavior_party.set_party_is_enabled(True)
+        if not widget_handler.is_widget_enabled("CustomBehaviors"):
+            widget_handler.enable_widget("CustomBehaviors")
+        if widget_handler.is_widget_enabled("HeroAI"):
+            widget_handler.disable_widget("HeroAI")
+        bot.Multibox.ApplyWidgetPolicy(enable_widgets=('CustomBehaviors',), disable_widgets=('HeroAI',), apply_local=False)
+    else:
+        bot.Properties.Enable("hero_ai")
+        if custom_behavior_party is not None:
+            custom_behavior_party.set_party_is_enabled(False)
+        if widget_handler.is_widget_enabled("CustomBehaviors"):
+            widget_handler.disable_widget("CustomBehaviors")
+        if not widget_handler.is_widget_enabled("HeroAI"):
+            widget_handler.enable_widget("HeroAI")
+        bot.Multibox.ApplyWidgetPolicy(enable_widgets=('HeroAI',), disable_widgets=('CustomBehaviors',), apply_local=False)
+
+
+def _apply_behavior_mode_step(bot: Botting):
+    """Generator wrapper so AddCustomState defers the behavior-mode apply until
+    the FSM actually reaches this step. Calling _apply_behavior_mode(bot) at
+    FSM-build time fires it once at script load (the CustomBehaviorParty
+    timing bug). This wrapper runs it at the correct moment."""
+    _apply_behavior_mode(bot)
+    yield
 # endregion
 
 
 # region GUI
-def _load_mode_setting(bot: Botting) -> None:
-    global _party_mode, _randomize_district
-    ini_key = _ensure_bot_ini(bot)
-    if not ini_key:
-        return
-    raw = IniManager().read_bool(ini_key, _SETTINGS_SECTION, _MULTIBOX_ALTS_KEY, False)
-    _party_mode = 1 if raw else 0
-    _randomize_district = IniManager().read_bool(ini_key, _SETTINGS_SECTION, _RANDOMIZE_DISTRICT_KEY, _randomize_district)
-
-
-def _ensure_mode_loaded(bot: Botting) -> None:
-    global _mode_loaded
-    if _mode_loaded:
-        return
-    _load_mode_setting(bot)
-    _mode_loaded = True
-
-
-def _save_mode_setting(bot: Botting) -> None:
-    ini_key = _ensure_bot_ini(bot)
-    if not ini_key:
-        return
-    IniManager().write_key(ini_key, _SETTINGS_SECTION, _MULTIBOX_ALTS_KEY, _party_mode == 1)
-    IniManager().write_key(ini_key, _SETTINGS_SECTION, _RANDOMIZE_DISTRICT_KEY, bool(_randomize_district))
-
-
-def _do_dialog_at(bot: Botting, x: float, y: float, dialog_id: int, broadcast_to_alts: bool = True):
-    if _party_mode == 1 and broadcast_to_alts:
-        yield from bot.Move._coro_xy_and_interact_npc(x, y)
-        yield from bot.Wait._coro_for_time(1500)
-        yield from bot.helpers.Multibox._send_dialog_with_target(dialog_id)
-        yield from bot.Wait._coro_for_time(1500)
-    else:
-        yield from bot.Move._coro_xy_and_dialog(x, y, dialog_id)
-        yield from bot.Wait._coro_for_time(500)
-
-
 def _draw_settings(bot: Botting):
     import PyImGui
 
     PyImGui.text("Bot Settings")
 
-    _ensure_consumable_settings_ui_loaded(bot)
-
-    global _party_mode, _randomize_district
-    _ensure_mode_loaded(bot)
-    PyImGui.separator()
-    PyImGui.text("Party Mode:")
-    new_mode = PyImGui.radio_button("Single Account with Heroes", _party_mode, 0)
-    PyImGui.same_line(0, 16)
-    new_mode = PyImGui.radio_button("Multiboxing", new_mode, 1)
-    if new_mode != _party_mode:
-        _party_mode = new_mode
-        _save_mode_setting(bot)
-    if _party_mode == 1:
-        PyImGui.push_style_color(PyImGui.ImGuiCol.Text, (0.6, 0.9, 1.0, 1.0))
-        PyImGui.text("Resign uses Multibox Party Resign. Hero setup is skipped.")
-        PyImGui.pop_style_color(1)
-    new_randomize = PyImGui.checkbox("Randomize EU District", _randomize_district)
-    if new_randomize != _randomize_district:
-        _randomize_district = new_randomize
-        _save_mode_setting(bot)
-    PyImGui.separator()
-
-    PyImGui.text("Combat Backend")
-    PyImGui.text("Current: Auto Combat")
+    _load_behavior_setting(bot)
+    use_custom_behaviors = _as_bool(bot.Properties.Get("use_custom_behaviors", "active"))
+    use_hero_ai = not use_custom_behaviors
+    new_use_hero_ai          = PyImGui.checkbox("Use Hero AI",          use_hero_ai)
+    new_use_custom_behaviors = PyImGui.checkbox("Use Custom Behaviors", use_custom_behaviors)
+    if new_use_hero_ai != use_hero_ai:
+        desired = not new_use_hero_ai
+    elif new_use_custom_behaviors != use_custom_behaviors:
+        desired = new_use_custom_behaviors
+    else:
+        desired = use_custom_behaviors
+    if desired != use_custom_behaviors:
+        bot.Properties.ApplyNow("use_custom_behaviors", "active", desired)
+        _save_behavior_setting(bot)
+        _apply_behavior_mode(bot)
 
     use_conset = _as_bool(bot.Properties.Get("use_conset", "active"))
-    new_use_conset = PyImGui.checkbox("Restock & use Conset", use_conset)
-    if new_use_conset != use_conset:
-        bot.Properties.ApplyNow("use_conset", "active", new_use_conset)
-        _save_consumable_settings(bot)
+    use_conset = PyImGui.checkbox("Restock & use Conset", use_conset)
+    bot.Properties.ApplyNow("use_conset", "active", use_conset)
 
     use_pcons = _as_bool(bot.Properties.Get("use_pcons", "active"))
-    new_use_pcons = PyImGui.checkbox("Restock & use Pcons", use_pcons)
-    if new_use_pcons != use_pcons:
-        bot.Properties.ApplyNow("use_pcons", "active", new_use_pcons)
-        _save_consumable_settings(bot)
+    use_pcons = PyImGui.checkbox("Restock & use Pcons", use_pcons)
+    bot.Properties.ApplyNow("use_pcons", "active", use_pcons)
     _sync_consumable_toggles(bot)
-
-    global _restock_kits_enabled, _id_kits_target, _salvage_kits_target, _merchant_sell_materials, _merchant_alt_wait_ms
-    PyImGui.separator()
-    new_restock_kits = PyImGui.checkbox("Guild Hall merchant on startup", _restock_kits_enabled)
-    if new_restock_kits != _restock_kits_enabled:
-        _restock_kits_enabled = new_restock_kits
-        _save_kit_restock_settings(bot)
-
-    if _restock_kits_enabled:
-        new_id_target = PyImGui.input_int("ID Kits target##deldrimor_id", _id_kits_target)
-        if new_id_target != _id_kits_target:
-            _id_kits_target = max(0, new_id_target)
-            _save_kit_restock_settings(bot)
-
-        new_salvage_target = PyImGui.input_int("Salvage Kits target##deldrimor_salv", _salvage_kits_target)
-        if new_salvage_target != _salvage_kits_target:
-            _salvage_kits_target = max(0, new_salvage_target)
-            _save_kit_restock_settings(bot)
-
-        new_sell_materials = PyImGui.checkbox("Sell common materials##deldrimor_sell", _merchant_sell_materials)
-        if new_sell_materials != _merchant_sell_materials:
-            _merchant_sell_materials = new_sell_materials
-            _save_kit_restock_settings(bot)
-
-        new_wait = PyImGui.input_int("Alt settle wait (ms)##deldrimor_alt_wait", _merchant_alt_wait_ms)
-        if new_wait != _merchant_alt_wait_ms:
-            _merchant_alt_wait_ms = max(0, min(_MAX_ALT_SETTLE_WAIT_MS, new_wait))
-            _save_kit_restock_settings(bot)
 
 
 def tooltip():
@@ -1208,32 +913,13 @@ _session_baselines: dict[str, int] = {}
 _session_start_times: dict[str, float] = {}
 
 
-def _get_title_track_accounts():
-    accounts = list(GLOBAL_CACHE.ShMem.GetAllAccountData())
-    if _party_mode == 1:
-        return accounts if accounts else []
-    own_email = Player.GetAccountEmail()
-    filtered = [account for account in accounts if getattr(account, "AccountEmail", "") == own_email]
-    if filtered:
-        return filtered
-    own_name = Player.GetName()
-    filtered = [account for account in accounts if getattr(account.AgentData, "CharacterName", "") == own_name]
-    if filtered:
-        return filtered
-    return accounts[:1] if len(accounts) == 1 else []
-
-
 def _draw_title_track():
     global _session_baselines, _session_start_times
     import PyImGui
     title_idx = int(TitleID.Deldrimor)
     tiers = TITLE_TIERS.get(TitleID.Deldrimor, [])
     now = time.time()
-    accounts = _get_title_track_accounts()
-    if not accounts:
-        PyImGui.text("No local account statistics available yet.")
-        return
-    for account in accounts:
+    for account in GLOBAL_CACHE.ShMem.GetAllAccountData():
         name = account.AgentData.CharacterName
         pts = account.TitlesData.Titles[title_idx].CurrentPoints
         if name not in _session_baselines:
@@ -1253,63 +939,29 @@ def _draw_title_track():
                 next_required = tier.required
                 break
         is_maxed = tiers and pts >= tiers[-1].required
+        PyImGui.separator()
+        PyImGui.text(f"{name}  [{tier_name} (Rank {tier_rank})]")
+        if is_maxed:
+            PyImGui.text_colored("Maximum rank achieved. Title complete.", (0.4, 1.0, 0.4, 1.0))
+            continue
         gained = pts - _session_baselines[name]
         elapsed = now - _session_start_times[name]
         pts_hr = int(gained / elapsed * 3600) if elapsed > 0 else 0
-        tier_missing = max(next_required - pts, 0)
-        next_rank_progress_current = max(pts, 0)
-        next_rank_progress_total = max(next_required, 1)
-        PyImGui.separator()
-        PyImGui.text(f"{name}  [{tier_name} (Rank {tier_rank})]")
-        PyImGui.text(f"Total Points: {pts:,}")
-        if is_maxed:
-            PyImGui.text("Next Rank: Maxed")
-            PyImGui.text("Points To Go: 0")
-            PyImGui.progress_bar(1.0, -1, 0, "Complete")
-            PyImGui.text_colored("Maximum rank achieved. Title complete.", (0.4, 1.0, 0.4, 1.0))
-        else:
-            PyImGui.text(f"Next Rank: {next_required:,}")
-            PyImGui.text(f"Points To Go: {tier_missing:,}")
-            frac = min(next_rank_progress_current / next_rank_progress_total, 1.0)
-            PyImGui.progress_bar(frac, -1, 0, f"{next_rank_progress_current:,} / {next_rank_progress_total:,}")
+        PyImGui.text(f"Points: {pts:,} / {next_required:,}")
+        if next_required > prev_required:
+            frac = min((pts - prev_required) / (next_required - prev_required), 1.0)
+            PyImGui.progress_bar(frac, -1, 0, f"{pts - prev_required:,} / {next_required - prev_required:,}")
         PyImGui.text(f"+{gained:,}  ({pts_hr:,}/hr)")
 
 
 REFORGED_TEXTURE = os.path.join(Py4GW.Console.get_projects_path(), "Sources", "Wick Divinus bots", "Reforged_Icon.png")
-_EXPANDED_TAB_CHILD_SIZE = (500, 620)
 # endregion
 
 
 # region Entry Point
-_hero_config_loaded = False
-
-
-def _draw_statistics_tab() -> None:
-    import PyImGui
-    if PyImGui.begin_child("DeldrimorStatisticsTabChild", _EXPANDED_TAB_CHILD_SIZE, False):
-        _draw_title_track()
-    PyImGui.end_child()
-
-
-def _draw_heroes_tab() -> None:
-    import PyImGui
-    if PyImGui.begin_child("DeldrimorHeroesTabChild", _EXPANDED_TAB_CHILD_SIZE, False):
-        _draw_hero_settings_tab()
-    PyImGui.end_child()
-
-
 def main():
-    global _hero_config_loaded
-    if not _hero_config_loaded:
-        _load_hero_config()
-        _hero_config_loaded = True
-    if Map.IsMapLoading():
-        return
     bot.Update()
-    bot.UI.draw_window(icon_path=REFORGED_TEXTURE, extra_tabs=[
-        ("Statistics", _draw_statistics_tab),
-        ("Heroes", _draw_heroes_tab),
-    ])
+    bot.UI.draw_window(icon_path=REFORGED_TEXTURE, extra_tabs=[("Statistics", _draw_title_track)])
 
 
 if __name__ == "__main__":

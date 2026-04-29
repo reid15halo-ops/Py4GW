@@ -26,6 +26,7 @@ from Py4GWCoreLib import (GLOBAL_CACHE, Agent, ActionQueueManager, LootConfig,
                           Range, Routines, ThrottledTimer, SharedCommandType, Utils,
                           Weapon)
 from Py4GWCoreLib.py4gwcorelib_src.WidgetManager import get_widget_handler
+from HeroAI.constants import MASTER_EMAIL
 
 #region GLOBALS
 LOOT_THROTTLE_CHECK = ThrottledTimer(250)
@@ -178,7 +179,7 @@ def Follow(cached_data: CacheData) -> BehaviorTree.NodeState:
     if not cached_data.follow_throttle_timer.IsExpired():
         return BehaviorTree.NodeState.FAILURE
 
-    if Player.GetAgentID() == GLOBAL_CACHE.Party.GetPartyLeaderID():
+    if Player.GetAccountEmail() == MASTER_EMAIL:
         cached_data.follow_throttle_timer.Reset()
         return BehaviorTree.NodeState.FAILURE
 

@@ -567,7 +567,10 @@ class FSM:
             try:
                 next(routine)
             except StopIteration:
-                self.managed_coroutines.remove(routine)
+                try:
+                    self.managed_coroutines.remove(routine)
+                except ValueError:
+                    pass  # already removed by another path
             except Exception as e:
                 state_name = self.current_state.name if self.current_state else "Unknown"
                 tb = traceback.format_exc()
@@ -580,6 +583,10 @@ class FSM:
                     self.managed_coroutines.remove(routine)
                 except ValueError:
                     pass
+        
+        # A managed coroutine may have called FSM.stop() or otherwise mutated state
+        if not self.current_state or self.finished:
+            return
                 
         if self.paused:
             if self.log_actions:

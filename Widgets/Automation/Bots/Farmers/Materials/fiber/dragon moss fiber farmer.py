@@ -605,20 +605,16 @@ def run_dragon_moss_farm(bot_instance: Botting):
             Py4GW.Console.MessageType.Info,
         )
 
-        yield from cast_skill_slot(SHADOW_FORM_SLOT, aftercast_delay=1750)
-        yield from cast_skill_slot(SHROUD_OF_DISTRESS_SLOT, aftercast_delay=1750)
         yield from cast_skill_slot(STORM_CHASER_SLOT, aftercast_delay=250)
+        yield from cast_skill_slot(SHROUD_OF_DISTRESS_SLOT, aftercast_delay=1750)
+        yield from cast_skill_slot(SHADOW_FORM_SLOT, aftercast_delay=1750)
         build.EnableUpkeep(True)
 
         if not (yield from follow_path(BALLING_PATH[1:], timeout=MOVEMENT_TIMEOUT_MS, tolerance=MOVE_TOLERANCE)):
             return
 
         yield from cast_skill_slot(SHADOW_OF_HASTE_SLOT, aftercast_delay=500)
-
-        if not (yield from follow_path([WINNOWING_COORD], timeout=MOVEMENT_TIMEOUT_MS, tolerance=MOVE_TOLERANCE)):
-            return
-
-        yield from Routines.Yield.wait(1500)
+        yield from Routines.Yield.wait(1000)
         whirling_cast = yield from cast_skill_slot_when_ready(
             WHIRLING_DEFENSE_SLOT,
             "Whirling Defense",

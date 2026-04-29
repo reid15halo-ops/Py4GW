@@ -1,0 +1,586 @@
+{
+  "fetched_at": 1774700492,
+  "message_count": 100,
+  "item_count": 138,
+  "ecto_rate": 12500,
+  "prices": {
+    "+5 SR Staff": {
+      "avg": 187500,
+      "min": 187500,
+      "max": 187500,
+      "count": 3
+    },
+    "10 prot": {
+      "avg": 6500000,
+      "min": 6500000,
+      "max": 6500000,
+      "count": 3
+    },
+    "5 GOTT": {
+      "avg": 150000,
+      "min": 150000,
+      "max": 150000,
+      "count": 2
+    },
+    "5 GoTT": {
+      "avg": 150000,
+      "min": 150000,
+      "max": 150000,
+      "count": 3
+    },
+    "80 GotT": {
+      "avg": 2250000,
+      "min": 2250000,
+      "max": 2250000,
+      "count": 1
+    },
+    "AnA": {
+      "avg": 62500,
+      "min": 62500,
+      "max": 62500,
+      "count": 2
+    },
+    "BDS q11 Air": {
+      "avg": 1600000,
+      "min": 1600000,
+      "max": 1600000,
+      "count": 3
+    },
+    "BDS q11 Death": {
+      "avg": 2900000,
+      "min": 2900000,
+      "max": 2900000,
+      "count": 3
+    },
+    "Cons": {
+      "avg": 18750,
+      "min": 18750,
+      "max": 18750,
+      "count": 1
+    },
+    "Cupcakes": {
+      "avg": 187500,
+      "min": 187500,
+      "max": 187500,
+      "count": 6
+    },
+    "Diessa Set": {
+      "avg": 500000,
+      "min": 500000,
+      "max": 500000,
+      "count": 2
+    },
+    "Flannuss Rod": {
+      "avg": 125000,
+      "min": 125000,
+      "max": 125000,
+      "count": 3
+    },
+    "GotT stack": {
+      "avg": 7500000,
+      "min": 7500000,
+      "max": 7500000,
+      "count": 1
+    },
+    "Hourglass Staff q11 Dom": {
+      "avg": 312500,
+      "min": 312500,
+      "max": 312500,
+      "count": 3
+    },
+    "Hourglass Staff q9 Dom": {
+      "avg": 562500,
+      "min": 562500,
+      "max": 562500,
+      "count": 3
+    },
+    "Kanaxai's Edge": {
+      "avg": 50000,
+      "min": 50000,
+      "max": 50000,
+      "count": 3
+    },
+    "Magmus' Staff": {
+      "avg": 100000,
+      "min": 100000,
+      "max": 100000,
+      "count": 3
+    },
+    "Next Week Nick Set (Stormy Eye x5) :": {
+      "avg": 25000,
+      "min": 25000,
+      "max": 25000,
+      "count": 1
+    },
+    "OS q9 Battle Axe (zealous, 15^50, +30hp)": {
+      "avg": 62500,
+      "min": 62500,
+      "max": 62500,
+      "count": 1
+    },
+    "Perfect Salvage Kit": {
+      "avg": 5000,
+      "min": 5000,
+      "max": 5000,
+      "count": 1
+    },
+    "Q12 Dragon Kamas": {
+      "avg": 12500,
+      "min": 12500,
+      "max": 12500,
+      "count": 6
+    },
+    "Q9 Glacial Blades": {
+      "avg": 3000000,
+      "min": 3000000,
+      "max": 3000000,
+      "count": 1
+    },
+    "Q9insp BDS": {
+      "avg": 3500000,
+      "min": 3500000,
+      "max": 3500000,
+      "count": 6
+    },
+    "Rin Set": {
+      "avg": 100000,
+      "min": 100000,
+      "max": 100000,
+      "count": 2
+    },
+    "SZcoins": {
+      "avg": 12500,
+      "min": 12500,
+      "max": 12500,
+      "count": 6
+    },
+    "Silver z coins": {
+      "avg": 12500,
+      "min": 12500,
+      "max": 12500,
+      "count": 2
+    },
+    "Staff Wrap of Paragon": {
+      "avg": 62500,
+      "min": 62500,
+      "max": 62500,
+      "count": 6
+    },
+    "Staff Wrap of Warding": {
+      "avg": 12500,
+      "min": 12500,
+      "max": 12500,
+      "count": 6
+    },
+    "Wand SR+5": {
+      "avg": 125000,
+      "min": 125000,
+      "max": 125000,
+      "count": 1
+    },
+    "bds q10 ES": {
+      "avg": 1500000,
+      "min": 1500000,
+      "max": 1500000,
+      "count": 1
+    },
+    "ded mini kuuna": {
+      "avg": 3500000,
+      "min": 3500000,
+      "max": 3500000,
+      "count": 4
+    },
+    "ectos": {
+      "avg": 12000,
+      "min": 12000,
+      "max": 12000,
+      "count": 1
+    },
+    "emerald blade q10": {
+      "avg": 1500000,
+      "min": 1500000,
+      "max": 1500000,
+      "count": 1
+    },
+    "gott": {
+      "avg": 4000000,
+      "min": 4000000,
+      "max": 4000000,
+      "count": 3
+    },
+    "heroboxes": {
+      "avg": 2500000,
+      "min": 2500000,
+      "max": 2500000,
+      "count": 3
+    },
+    "q10 FC": {
+      "avg": 1900000,
+      "min": 1900000,
+      "max": 1900000,
+      "count": 3
+    },
+    "q10 Resto": {
+      "avg": 187500,
+      "min": 187500,
+      "max": 187500,
+      "count": 3
+    },
+    "q10 Water": {
+      "avg": 1300000,
+      "min": 1300000,
+      "max": 1300000,
+      "count": 3
+    },
+    "q11 FC": {
+      "avg": 1500000,
+      "min": 1500000,
+      "max": 1500000,
+      "count": 3
+    },
+    "q11 OS 15^50 Zodiac Axe": {
+      "avg": 125000,
+      "min": 125000,
+      "max": 125000,
+      "count": 2
+    },
+    "q11 Water": {
+      "avg": 1100000,
+      "min": 1100000,
+      "max": 1100000,
+      "count": 3
+    },
+    "q12 OS 15^50 Vertebreaker": {
+      "avg": 125000,
+      "min": 125000,
+      "max": 125000,
+      "count": 2
+    },
+    "q9 DF": {
+      "avg": 250000,
+      "min": 250000,
+      "max": 250000,
+      "count": 3
+    },
+    "q9 ES": {
+      "avg": 1843750,
+      "min": 187500,
+      "max": 3500000,
+      "count": 6
+    },
+    "q9 Fire": {
+      "avg": 437500,
+      "min": 437500,
+      "max": 437500,
+      "count": 3
+    },
+    "q9 OS 15^50 Hornbow": {
+      "avg": 500000,
+      "min": 500000,
+      "max": 500000,
+      "count": 2
+    },
+    "q9 Spawning": {
+      "avg": 312500,
+      "min": 312500,
+      "max": 312500,
+      "count": 3
+    },
+    "q9 smiting": {
+      "avg": 250000,
+      "min": 250000,
+      "max": 250000,
+      "count": 3
+    },
+    "~ 2x Book of Secrets ~": {
+      "avg": 25000,
+      "min": 25000,
+      "max": 25000,
+      "count": 2
+    }
+  },
+  "valuable": {
+    "+5 SR Staff": {
+      "avg": 187500,
+      "min": 187500,
+      "max": 187500,
+      "count": 3
+    },
+    "10 prot": {
+      "avg": 6500000,
+      "min": 6500000,
+      "max": 6500000,
+      "count": 3
+    },
+    "5 GOTT": {
+      "avg": 150000,
+      "min": 150000,
+      "max": 150000,
+      "count": 2
+    },
+    "5 GoTT": {
+      "avg": 150000,
+      "min": 150000,
+      "max": 150000,
+      "count": 3
+    },
+    "80 GotT": {
+      "avg": 2250000,
+      "min": 2250000,
+      "max": 2250000,
+      "count": 1
+    },
+    "AnA": {
+      "avg": 62500,
+      "min": 62500,
+      "max": 62500,
+      "count": 2
+    },
+    "BDS q11 Air": {
+      "avg": 1600000,
+      "min": 1600000,
+      "max": 1600000,
+      "count": 3
+    },
+    "BDS q11 Death": {
+      "avg": 2900000,
+      "min": 2900000,
+      "max": 2900000,
+      "count": 3
+    },
+    "Cons": {
+      "avg": 18750,
+      "min": 18750,
+      "max": 18750,
+      "count": 1
+    },
+    "Cupcakes": {
+      "avg": 187500,
+      "min": 187500,
+      "max": 187500,
+      "count": 6
+    },
+    "Diessa Set": {
+      "avg": 500000,
+      "min": 500000,
+      "max": 500000,
+      "count": 2
+    },
+    "Flannuss Rod": {
+      "avg": 125000,
+      "min": 125000,
+      "max": 125000,
+      "count": 3
+    },
+    "GotT stack": {
+      "avg": 7500000,
+      "min": 7500000,
+      "max": 7500000,
+      "count": 1
+    },
+    "Hourglass Staff q11 Dom": {
+      "avg": 312500,
+      "min": 312500,
+      "max": 312500,
+      "count": 3
+    },
+    "Hourglass Staff q9 Dom": {
+      "avg": 562500,
+      "min": 562500,
+      "max": 562500,
+      "count": 3
+    },
+    "Kanaxai's Edge": {
+      "avg": 50000,
+      "min": 50000,
+      "max": 50000,
+      "count": 3
+    },
+    "Magmus' Staff": {
+      "avg": 100000,
+      "min": 100000,
+      "max": 100000,
+      "count": 3
+    },
+    "Next Week Nick Set (Stormy Eye x5) :": {
+      "avg": 25000,
+      "min": 25000,
+      "max": 25000,
+      "count": 1
+    },
+    "OS q9 Battle Axe (zealous, 15^50, +30hp)": {
+      "avg": 62500,
+      "min": 62500,
+      "max": 62500,
+      "count": 1
+    },
+    "Q12 Dragon Kamas": {
+      "avg": 12500,
+      "min": 12500,
+      "max": 12500,
+      "count": 6
+    },
+    "Q9 Glacial Blades": {
+      "avg": 3000000,
+      "min": 3000000,
+      "max": 3000000,
+      "count": 1
+    },
+    "Q9insp BDS": {
+      "avg": 3500000,
+      "min": 3500000,
+      "max": 3500000,
+      "count": 6
+    },
+    "Rin Set": {
+      "avg": 100000,
+      "min": 100000,
+      "max": 100000,
+      "count": 2
+    },
+    "SZcoins": {
+      "avg": 12500,
+      "min": 12500,
+      "max": 12500,
+      "count": 6
+    },
+    "Silver z coins": {
+      "avg": 12500,
+      "min": 12500,
+      "max": 12500,
+      "count": 2
+    },
+    "Staff Wrap of Paragon": {
+      "avg": 62500,
+      "min": 62500,
+      "max": 62500,
+      "count": 6
+    },
+    "Staff Wrap of Warding": {
+      "avg": 12500,
+      "min": 12500,
+      "max": 12500,
+      "count": 6
+    },
+    "Wand SR+5": {
+      "avg": 125000,
+      "min": 125000,
+      "max": 125000,
+      "count": 1
+    },
+    "bds q10 ES": {
+      "avg": 1500000,
+      "min": 1500000,
+      "max": 1500000,
+      "count": 1
+    },
+    "ded mini kuuna": {
+      "avg": 3500000,
+      "min": 3500000,
+      "max": 3500000,
+      "count": 4
+    },
+    "emerald blade q10": {
+      "avg": 1500000,
+      "min": 1500000,
+      "max": 1500000,
+      "count": 1
+    },
+    "gott": {
+      "avg": 4000000,
+      "min": 4000000,
+      "max": 4000000,
+      "count": 3
+    },
+    "heroboxes": {
+      "avg": 2500000,
+      "min": 2500000,
+      "max": 2500000,
+      "count": 3
+    },
+    "q10 FC": {
+      "avg": 1900000,
+      "min": 1900000,
+      "max": 1900000,
+      "count": 3
+    },
+    "q10 Resto": {
+      "avg": 187500,
+      "min": 187500,
+      "max": 187500,
+      "count": 3
+    },
+    "q10 Water": {
+      "avg": 1300000,
+      "min": 1300000,
+      "max": 1300000,
+      "count": 3
+    },
+    "q11 FC": {
+      "avg": 1500000,
+      "min": 1500000,
+      "max": 1500000,
+      "count": 3
+    },
+    "q11 OS 15^50 Zodiac Axe": {
+      "avg": 125000,
+      "min": 125000,
+      "max": 125000,
+      "count": 2
+    },
+    "q11 Water": {
+      "avg": 1100000,
+      "min": 1100000,
+      "max": 1100000,
+      "count": 3
+    },
+    "q12 OS 15^50 Vertebreaker": {
+      "avg": 125000,
+      "min": 125000,
+      "max": 125000,
+      "count": 2
+    },
+    "q9 DF": {
+      "avg": 250000,
+      "min": 250000,
+      "max": 250000,
+      "count": 3
+    },
+    "q9 ES": {
+      "avg": 1843750,
+      "min": 187500,
+      "max": 3500000,
+      "count": 6
+    },
+    "q9 Fire": {
+      "avg": 437500,
+      "min": 437500,
+      "max": 437500,
+      "count": 3
+    },
+    "q9 OS 15^50 Hornbow": {
+      "avg": 500000,
+      "min": 500000,
+      "max": 500000,
+      "count": 2
+    },
+    "q9 Spawning": {
+      "avg": 312500,
+      "min": 312500,
+      "max": 312500,
+      "count": 3
+    },
+    "q9 smiting": {
+      "avg": 250000,
+      "min": 250000,
+      "max": 250000,
+      "count": 3
+    },
+    "~ 2x Book of Secrets ~": {
+      "avg": 25000,
+      "min": 25000,
+      "max": 25000,
+      "count": 2
+    }
+  }
+}

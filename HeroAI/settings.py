@@ -112,13 +112,13 @@ class Settings:
         self.ShowDebugWindow = False
         self.Anonymous_PanelNames = False
         self.ShowCommandPanel = True
-        self.ShowPartyOverlay = True
-        self.ShowPartySearchOverlay = True
+        self.ShowPartyOverlay = False
+        self.ShowPartySearchOverlay = False
         self.ShowCommandPanelOnlyOnLeaderAccount = True
-        
+
         self.ShowPanelOnlyOnLeaderAccount = True
-        
-        self.ShowDialogOverlay = True
+
+        self.ShowDialogOverlay = False
         self.ShowControlPanelWindow = True
         
         self.CombinePanels = False
@@ -274,19 +274,21 @@ class Settings:
             
         self.save_requested = False
         
-    def load_settings(self):          
-        ConsoleLog("HeroAI", "Loading HeroAI settings...")      
+    def load_settings(self):
+        if not getattr(self, '_load_logged', False):
+            self._load_logged = True
+            ConsoleLog("HeroAI", "Loading HeroAI settings...")      
         self.ShowCommandPanel = self.ini_handler.read_bool("General", "ShowCommandPanel", True)
         self.PrintDebug = self.ini_handler.read_bool("General", "PrintDebug", False)
         self.ShowDebugWindow = self.ini_handler.read_bool("General", "ShowDebug", False)
         self.ShowCommandPanelOnlyOnLeaderAccount = self.ini_handler.read_bool("General", "ShowCommandPanelOnlyOnLeaderAccount", True)
         self.Anonymous_PanelNames = self.ini_handler.read_bool("General", "Anonymous_PanelNames", False)
         
-        self.ShowPartyOverlay = self.ini_handler.read_bool("General", "ShowPartyOverlay", True)
-        self.ShowPartySearchOverlay = self.ini_handler.read_bool("General", "ShowPartySearchOverlay", True)
-        
+        self.ShowPartyOverlay = self.ini_handler.read_bool("General", "ShowPartyOverlay", False)
+        self.ShowPartySearchOverlay = self.ini_handler.read_bool("General", "ShowPartySearchOverlay", False)
+
         self.ShowPanelOnlyOnLeaderAccount = self.ini_handler.read_bool("General", "ShowPanelOnlyOnLeaderAccount", True)
-        self.ShowDialogOverlay = self.ini_handler.read_bool("General", "ShowDialogOverlay", True)
+        self.ShowDialogOverlay = self.ini_handler.read_bool("General", "ShowDialogOverlay", False)
         
         self.CombinePanels = self.ini_handler.read_bool("General", "CombinePanels", False)
         self.ShowHeroPanels = self.ini_handler.read_bool("General", "ShowHeroPanels", True)

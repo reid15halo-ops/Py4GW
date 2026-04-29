@@ -150,7 +150,6 @@ class _TEMPLATES:
         
         def OnPartyMemberBehind(self):
             bot = self.parent
-            print ("Party Member behind, Triggered")
             fsm = bot.config.FSM
             fsm.pause()
             fsm.AddManagedCoroutine("OnBehind_OPD", self.parent.Events._on_party_member_behind())

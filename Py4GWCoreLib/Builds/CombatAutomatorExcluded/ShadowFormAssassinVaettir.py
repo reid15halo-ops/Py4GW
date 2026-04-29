@@ -189,7 +189,8 @@ class ShadowFormAssassinVaettir(BuildMgr):
             if (yield from self.CastSkillID(self.way_of_perfection, log=False, aftercast_delay=1000)):
                 ConsoleLog(self.build_name, "Casting Way of Perfection.", Py4GW.Console.MessageType.Info, log=False)
                 continue
-            if not self.in_killing_routine or Agent.GetHealth(player_agent_id) < 0.05:
+            # Heart of Shadow NEVER during kill phase — removed the <5% HP exception.
+            if not self.in_killing_routine:
                 if Agent.GetHealth(player_agent_id) < 0.05:
                     ConsoleLog(self.build_name, "Forcing HoS to survive, run was going to fail anyways :(", Py4GW.Console.MessageType.Warning, log=False)
                 if Agent.GetHealth(player_agent_id) < 0.35 or self.stuck_counter > 0:

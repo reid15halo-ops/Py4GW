@@ -316,6 +316,28 @@ def IsValidItem(item_id):
     owner = item_agent.owner
     return owner == Player.GetAgentID() or owner == 0
 
+# Festive items (tonics, fireworks, etc.) — non-salvageable clutter.
+# Always blacklisted regardless of rarity or user settings.
+_FESTIVE_BLACKLIST = {
+    ModelID.Bottle_Rocket.value, ModelID.Champagne_Popper.value,
+    ModelID.Ghost_In_The_Box.value, ModelID.Snowman_Summoner.value,
+    ModelID.Sparkler.value, ModelID.Squash_Serum.value,
+    ModelID.Beetle_Juice_Tonic.value, ModelID.Cottontail_Tonic.value,
+    ModelID.Frosty_Tonic.value, ModelID.Mischievious_Tonic.value,
+    ModelID.Sinister_Automatonic_Tonic.value, ModelID.Transmogrifier_Tonic.value,
+    ModelID.Yuletide_Tonic.value, ModelID.Cerebral_Tonic.value,
+    ModelID.Searing_Tonic.value, ModelID.Abyssal_Tonic.value,
+    ModelID.Unseen_Tonic.value, ModelID.Phantasmal_Tonic.value,
+    ModelID.Automatonic_Tonic.value, ModelID.Boreal_Tonic.value,
+    ModelID.Trapdoor_Tonic.value, ModelID.Macabre_Tonic.value,
+    ModelID.Skeletonic_Tonic.value, ModelID.Gelatinous_Tonic.value,
+    ModelID.Abominable_Tonic.value, ModelID.Crate_Of_Fireworks.value,
+    ModelID.Minutely_Mad_King_Tonic.value, ModelID.Zaishen_Tonic.value,
+    ModelID.Mysterious_Tonic.value, ModelID.Disco_Ball.value,
+    ModelID.Party_Beacon.value, ModelID.Spooky_Tonic.value,
+}
+
+
 def get_filtered_loot_array():
     global bot_vars
 
@@ -361,6 +383,11 @@ def get_filtered_loot_array():
     # === Tome filtering ===
     if not bot_vars.config_vars.loot_tomes:
         item_ids = ItemArray.Filter.ByCondition(item_ids, lambda item_id: not Item.Type.IsTome(item_id))
+
+    # === Festive item blacklist (always applied) ===
+    item_ids = ItemArray.Filter.ByCondition(
+        item_ids, lambda item_id: Item.GetModelID(item_id) not in _FESTIVE_BLACKLIST
+    )
 
     # Convert back to agent IDs
     filtered_agent_ids = [

@@ -1,0 +1,2 @@
+{"type": "client", "ts": "2026-04-07T11:28:33", "account": "REID15 PROTON", "kind": "SPAWN", "pid": 4660, "path": "C:\\Program Files\\GUILD WARS REID15 PROTON\\Gw.exe", "title": "Guild Wars Reforged", "memory_mb": 596.4}
+{"type": "client", "ts": "2026-04-07T12:16:19", "account": "REID15 PROTON", "kind": "MEM_DN", "pid": 4660, "delta_mb": -258.7, "now_mb": 237.9}
