@@ -18,7 +18,6 @@ class _EVENTS:
             from ...Py4GWcorelib import Utils
             from ...enums import Range
             from ...GlobalCache import GLOBAL_CACHE
-            from ..helpers_src.HeroAICombatRange import hero_ai_combat_detected
             bot = self.parent
 
             left_direction  = True
@@ -59,7 +58,7 @@ class _EVENTS:
                                 yield from bot.helpers.Multibox._brute_force_unstuck()
 
 
-                        if not hero_ai_combat_detected():
+                        if not Routines.Checks.Agents.InDanger():
                             if left_direction:
                                 yield from Routines.Yield.Movement.TurnLeft(300)
                                 left_direction = False
@@ -95,7 +94,6 @@ class _EVENTS:
         from ...Pathing import AutoPathing
         from ...Py4GWcorelib import Utils
         from ...enums import Range
-        from ..helpers_src.HeroAICombatRange import get_hero_ai_combat_distance, hero_ai_combat_detected
         bot = self.parent
 
         try:
@@ -106,12 +104,10 @@ class _EVENTS:
                 if Routines.Checks.Party.IsPartyWiped() or GLOBAL_CACHE.Party.IsPartyDefeated():
                     return
 
-                if hero_ai_combat_detected():
+                if Routines.Checks.Agents.InDanger():
                     return
 
-                party_member_id = Routines.Checks.Party.GetPartyMemberInDangerID(
-                    aggro_area=get_hero_ai_combat_distance()
-                )
+                party_member_id = Routines.Checks.Party.GetPartyMemberInDangerID()
                 if party_member_id == 0 or not Agent.IsValid(party_member_id) or Agent.IsDead(party_member_id):
                     return
 
@@ -125,12 +121,10 @@ class _EVENTS:
 
                 exit_condition = lambda: (
                     not Routines.Checks.Map.MapValid()
-                    or hero_ai_combat_detected()
+                    or Routines.Checks.Agents.InDanger()
                     or Routines.Checks.Party.IsPartyWiped()
                     or GLOBAL_CACHE.Party.IsPartyDefeated()
-                    or Routines.Checks.Party.GetPartyMemberInDangerID(
-                        aggro_area=get_hero_ai_combat_distance()
-                    ) == 0
+                    or Routines.Checks.Party.GetPartyMemberInDangerID() == 0
                 )
 
                 yield from Routines.Yield.Movement.FollowPath(
@@ -149,6 +143,9 @@ class _EVENTS:
         from ...Routines import Routines
         from ...GlobalCache import GLOBAL_CACHE
         from ...Agent import Agent
+        from ...Player import Player
+        from ...Py4GWcorelib import Utils
+        from ...enums import Range
         from ..helpers_src.HeroAICombatRange import hero_ai_combat_detected
         bot = self.parent
         
@@ -162,9 +159,12 @@ class _EVENTS:
         if dead_player == 0:
             bot.config.FSM.resume()
             return
+        if not Agent.IsValid(dead_player):
+            bot.config.FSM.resume()
+            return
 
         # If we're in danger, end combat first (wait until safe)
-        while hero_ai_combat_detected():
+        while Routines.Checks.Agents.InDanger():
             # You can replace with your combat reset routine if you have one
             #print ("In danger, waiting to be safe before moving to dead party member")
             if Routines.Checks.Party.IsPartyWiped() or GLOBAL_CACHE.Party.IsPartyDefeated():
@@ -180,15 +180,23 @@ class _EVENTS:
             print("All party members alive!")
             bot.config.FSM.resume()
             return
+        if not Agent.IsValid(dead_player):
+            bot.config.FSM.resume()
+            return
+
+        dead_pos = Agent.GetXY(dead_player)
+        if Utils.Distance(dead_pos, Player.GetXY()) <= Range.Spellcast.value:
+            print("Dead party member already within spellcast range")
+            bot.config.FSM.resume()
+            return
 
         exit_movement_condition = lambda: Routines.Checks.Party.IsPartyWiped() or GLOBAL_CACHE.Party.IsPartyDefeated()
 
-        pos = Agent.GetXY(dead_player)
-        path = [(pos[0], pos[1])]
+        path = [(dead_pos[0], dead_pos[1])]
         result = (yield from Routines.Yield.Movement.FollowPath(
             path,
             custom_exit_condition=exit_movement_condition,
-            tolerance=10,
+            tolerance=Range.Spellcast.value,
             timeout=30000,
         ))
         yield from Routines.Yield.wait(100)

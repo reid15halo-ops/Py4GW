@@ -567,10 +567,7 @@ class FSM:
             try:
                 next(routine)
             except StopIteration:
-                try:
-                    self.managed_coroutines.remove(routine)
-                except ValueError:
-                    pass  # already removed by another path
+                self.managed_coroutines.remove(routine)
             except Exception as e:
                 state_name = self.current_state.name if self.current_state else "Unknown"
                 tb = traceback.format_exc()
@@ -583,10 +580,6 @@ class FSM:
                     self.managed_coroutines.remove(routine)
                 except ValueError:
                     pass
-        
-        # A managed coroutine may have called FSM.stop() or otherwise mutated state
-        if not self.current_state or self.finished:
-            return
                 
         if self.paused:
             if self.log_actions:
@@ -594,23 +587,35 @@ class FSM:
             return
         
 
-        if self.log_actions:
-            ConsoleLog("FSM", f"{self.name}: Executing state: {self.current_state.name}", Py4GW.Console.MessageType.Info)
-        self.current_state.execute()
-
-        if not self.current_state.can_exit():
+        # Snapshot current state for this tick so shutdown/recovery transitions
+        # cannot leave us calling methods on None mid-update.
+        current_state = self.current_state
+        if current_state is None:
             return
 
-        self.current_state.exit()
-        next_state_polling = getattr(self.current_state, 'next_state', None) # Get the *original* next_state
+        if self.log_actions:
+            ConsoleLog("FSM", f"{self.name}: Executing state: {current_state.name}", Py4GW.Console.MessageType.Info)
+        current_state.execute()
+
+        # State can be externally reset/replaced during execute().
+        if self.current_state is None:
+            return
+        if self.current_state is not current_state:
+            return
+
+        if not current_state.can_exit():
+            return
+
+        current_state.exit()
+        next_state_polling = getattr(current_state, 'next_state', None) # Get the *original* next_state
         
         if next_state_polling:
-            original_state_name = self.current_state.name # Store name before changing
+            original_state_name = current_state.name # Store name before changing
             if self.on_transition:
-                 try:
-                     self.on_transition(original_state_name, next_state_polling.name)
-                 except Exception as e:
-                     ConsoleLog("FSM", f"Error in on_transition callback during polling transition: {e}", Py4GW.Console.MessageType.Error)
+                try:
+                    self.on_transition(original_state_name, next_state_polling.name)
+                except Exception as e:
+                    ConsoleLog("FSM", f"Error in on_transition callback during polling transition: {e}", Py4GW.Console.MessageType.Error)
             
             self.current_state = next_state_polling
             self.current_state.reset()
@@ -620,7 +625,7 @@ class FSM:
                 ConsoleLog("FSM", f"{self.name}: Transitioning to state: {self.current_state.name}", Py4GW.Console.MessageType.Info)
             return
 
-        final_state_name = self.current_state.name
+        final_state_name = current_state.name
         self.current_state = None
         self.finished = True
 

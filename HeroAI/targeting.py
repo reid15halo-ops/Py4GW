@@ -84,12 +84,20 @@ def IsResurrectablePartyMember(agent_id: int) -> bool:
     return Routines.Party.IsPartyMember(agent_id)
 
 
-def TargetDeadPartyMember(distance=Range.Spellcast.value):
-    dead_ally_array = AgentArray.GetDeadAllyArray()
-    dead_ally_array = AgentArray.Filter.ByDistance(dead_ally_array, Player.GetXY(), distance)
-    dead_ally_array = AgentArray.Filter.ByCondition(dead_ally_array, IsResurrectablePartyMember)
-    dead_ally_array = AgentArray.Sort.ByDistance(dead_ally_array, Player.GetXY())
-    return Utils.GetFirstFromArray(dead_ally_array)
+def TargetDeadPartyMember(
+    distance=Range.Spellcast.value,
+    reserve: bool = False,
+    skill_id: int = 0,
+    aftercast_delay: int = 250,
+):
+    if reserve:
+        return Routines.Agents.GetResurrectionTarget(
+            distance,
+            reserve=True,
+            skill_id=skill_id,
+            aftercast_delay=aftercast_delay,
+        )
+    return Routines.Agents.GetDeadAlly(distance)
 
 def TargetAllyByPredicate(
     predicate=None,
@@ -160,6 +168,20 @@ def TargetAllyNonEnchanted(distance=Range.Spellcast.value):
     ally_array = AgentArray.Manipulation.Merge(ally_array, spirit_pet_array)
 
     ally_array = AgentArray.Filter.ByCondition(ally_array, lambda agent_id: not Agent.IsEnchanted(agent_id))
+    ally_array = SortAlliesByLowestHp(ally_array)
+    return Utils.GetFirstFromArray(ally_array)
+
+
+def TargetAllyNonWeaponSpelled(distance=Range.Earshot.value):
+    ally_array = AgentArray.GetAllyArray()
+    ally_array = FilterAllyArray(ally_array, distance, False, 0)
+
+    spirit_pet_array = AgentArray.GetSpiritPetArray()
+    spirit_pet_array = FilterAllyArray(spirit_pet_array, distance, False, 0)
+    spirit_pet_array = AgentArray.Filter.ByCondition(spirit_pet_array, lambda agent_id: not Agent.IsSpawned(agent_id))
+    ally_array = AgentArray.Manipulation.Merge(ally_array, spirit_pet_array)
+
+    ally_array = AgentArray.Filter.ByCondition(ally_array, lambda agent_id: not Agent.IsWeaponSpelled(agent_id))
     ally_array = SortAlliesByLowestHp(ally_array)
     return Utils.GetFirstFromArray(ally_array)
 
@@ -466,7 +488,7 @@ def TargetMeleeOrMartialClusterEnemy(
         candidates = list(enemy_array)
 
     if require_attacking:
-        candidates = [agent_id for agent_id in candidates if Agent.IsAttacking(agent_id)]
+        candidates = [agent_id for agent_id in candidates if Agent.IsInCombatStance(agent_id)]
 
     if not candidates:
         return 0

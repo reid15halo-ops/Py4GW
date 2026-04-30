@@ -1,19 +1,21 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Optional, Protocol
+
 import Py4GW
 from Py4GWCoreLib import Player, GLOBAL_CACHE, SpiritModelID, Timer, Agent, Routines, Range, Allegiance, AgentArray
 from Py4GWCoreLib import Weapon, Effects
 from Py4GWCoreLib.enums import SPIRIT_BUFF_MAP, ModelID
 from .custom_skill import CustomSkillClass
-from .targeting import TargetLowestAlly, TargetLowestAllyEnergy, TargetClusteredEnemy, TargetLowestAllyCaster, TargetLowestAllyMartial, TargetLowestAllyMelee, TargetLowestAllyRanged, GetAllAlliesArray, TargetAllyWeaponSpell, TargetMinionOrAllyNonEnchanted, TargetMinionNonEnchanted, TargetAllyNonEnchanted, TargetDeadPartyMember, IsResurrectablePartyMember
+from .targeting import TargetLowestAlly, TargetLowestAllyEnergy, TargetClusteredEnemy, TargetLowestAllyCaster, TargetLowestAllyMartial, TargetLowestAllyMelee, TargetLowestAllyRanged, GetAllAlliesArray, TargetAllyWeaponSpell, TargetMinionOrAllyNonEnchanted, TargetMinionNonEnchanted, TargetAllyNonEnchanted, TargetAllyNonWeaponSpelled, TargetDeadPartyMember, IsResurrectablePartyMember
 from .targeting import GetEnemyAttacking, GetEnemyCasting, GetEnemyCastingSpell, GetEnemyCastingSpellOrChant, GetEnemyInjured, GetEnemyConditioned, GetEnemyHealthy
 from .targeting import GetEnemyHexed, GetEnemyDegenHexed, GetEnemyEnchanted, GetEnemyMoving, GetEnemyKnockedDown
 from .targeting import GetEnemyBleeding, GetEnemyPoisoned, GetEnemyCrippled
+from .interrupt import is_interrupt_feasible, _queue_outcome
 from .types import SkillNature, Skilltarget, SkillType
 from .constants import MAX_NUM_PLAYERS
 from .call_target import CallTarget
 from .settings import Settings
-from typing import TYPE_CHECKING, Optional, Protocol
 
 from Py4GWCoreLib.enums_src.GameData_enums import Profession
 
@@ -27,8 +29,11 @@ MAX_SKILLS = 8
 custom_skill_data_handler = CustomSkillClass()
 
 class SkillbarDataLike(Protocol):
-    recharge: int
-    adrenaline_a: int
+    @property
+    def recharge(self) -> int: ...
+
+    @property
+    def adrenaline_a(self) -> int: ...
 
 SPIRIT_BUFF_SKILL_IDS: frozenset[int] = frozenset(
     int(skill_id)
@@ -46,6 +51,8 @@ VOW_SPELL_TYPES: tuple[int, ...] = (
     SkillType.WeaponSpell.value,
     SkillType.Form.value,
 )
+
+SKILL_LOCK_MIN_LEASE_MS = 500
 
 
 # Level 3 alcohol: each drink gives +3 or more — one drink reaches target level
@@ -447,7 +454,7 @@ class CombatClass:
             self.aftercast_timer.Reset()
 
         return self.in_casting_routine
- 
+
     def GetPartyTargetID(self) -> int:
         if not GLOBAL_CACHE.Party.IsPartyLoaded():
             return 0
@@ -497,6 +504,56 @@ class CombatClass:
 
         if CallTarget(target_id, interact=False):
             self.auto_call_target_called = True
+
+    def _spike_lock_enabled(self, skill: SkillData) -> bool:
+        custom_skill = getattr(skill, "custom_skill_data", None)
+        return bool(getattr(custom_skill, "SpikeLock", False))
+
+    def _post_spike_lock(self, skill: SkillData, target_id: int) -> None:
+        if not self._spike_lock_enabled(skill):
+            return
+        if target_id == 0 or not Agent.IsValid(target_id) or Agent.IsDead(target_id):
+            return
+        try:
+            from Py4GWCoreLib.enums_src.Whiteboard_enums import (
+                WhiteboardClaimStrength,
+                WhiteboardLockKind,
+                WhiteboardLockMode,
+                WhiteboardReentryPolicy,
+            )
+
+            email = Player.GetAccountEmail() or ""
+            if not email:
+                return
+            group_id = GLOBAL_CACHE.ShMem.GetAccountGroupByEmail(email)
+            expires_at = int(Py4GW.Game.get_tick_count64()) + 1500
+            GLOBAL_CACHE.ShMem.PostLock(
+                email,
+                int(WhiteboardLockKind.CALL_TARGET),
+                int(skill.skill_id),
+                int(target_id),
+                int(expires_at),
+                int(group_id),
+                int(WhiteboardLockMode.BARRIER),
+                1,
+                int(WhiteboardReentryPolicy.OWNER_REENTRANT),
+                int(WhiteboardClaimStrength.HARD),
+            )
+        except Exception:
+            pass
+
+    def _apply_spike_lock(self, skill: SkillData, target_id: int) -> None:
+        if not self._spike_lock_enabled(skill):
+            return
+        if target_id == 0 or not Agent.IsValid(target_id) or Agent.IsDead(target_id):
+            return
+        _, target_allegiance = Agent.GetAllegiance(target_id)
+        if target_allegiance != "Enemy":
+            return
+        if CallTarget(target_id, interact=False):
+            self.auto_call_target_id = target_id
+            self.auto_call_target_called = True
+        self._post_spike_lock(skill, target_id)
 
     def GetPartyTarget(self) -> int:
         from Py4GWCoreLib import Party
@@ -675,6 +732,12 @@ class CombatClass:
             v_target = GLOBAL_CACHE.Party.Pets.GetPetID(Player.GetAgentID())
         elif target_allegiance == Skilltarget.DeadAlly:
             v_target = TargetDeadPartyMember(Range.Spellcast.value)
+        elif target_allegiance == Skilltarget.ResurrectionAlly:
+            v_target = Routines.Agents.GetResurrectionTarget(
+                Range.Spellcast.value,
+                reserve=True,
+                skill_id=self.skills[slot].skill_id,
+            )
         elif target_allegiance == Skilltarget.Spirit:
             v_target = Routines.Agents.GetNearestSpirit(Range.Spellcast.value)
         elif target_allegiance == Skilltarget.Minion:
@@ -685,10 +748,16 @@ class CombatClass:
             v_target = TargetMinionNonEnchanted()
         elif target_allegiance == Skilltarget.AllyNonEnchanted:
             v_target = TargetAllyNonEnchanted()
+        elif target_allegiance == Skilltarget.NonWeaponSpelledAlly:
+            v_target = Player.GetAgentID() if TargetAllyNonWeaponSpelled() else 0
         elif target_allegiance == Skilltarget.Corpse:
             v_target = Routines.Agents.GetNearestCorpse(Range.Spellcast.value)
         elif target_allegiance == Skilltarget.ExploitableCorpse:
-            v_target = Routines.Agents.GetNearestExploitableCorpse(Range.Spellcast.value)
+            v_target = Routines.Agents.GetNearestExploitableCorpse(
+                Range.Spellcast.value,
+                reserve=True,
+                skill_id=self.skills[slot].skill_id,
+            )
         elif target_allegiance == Skilltarget.AllyNPCByModel:
             model_id_filter = self.skills[slot].custom_skill_data.Conditions.ModelIDFilter
             if model_id_filter:
@@ -951,7 +1020,7 @@ class CombatClass:
         feature_count += (1 if Conditions.Overcast > 0 else 0)
         feature_count += (1 if Conditions.IsPartyWide else 0)
         feature_count += (1 if Conditions.RequiresSpiritInEarshot else 0)
-        feature_count += (1 if Conditions.EnemiesInRange > 0 else 0)
+        feature_count += (1 if Conditions.EnemyCount > 0 else 0)
         feature_count += (1 if Conditions.AlliesInRange > 0 else 0)
         feature_count += (1 if Conditions.SpiritsInRange > 0 else 0)
         feature_count += (1 if Conditions.MinionsInRange > 0 else 0)
@@ -1091,12 +1160,25 @@ class CombatClass:
         if Conditions.IsCasting:
             if Agent.IsCasting(vTarget):
                 casting_skill_id = Agent.GetCastingSkillID(vTarget)
-                if GLOBAL_CACHE.Skill.Data.GetActivation(casting_skill_id) >= 0.250:
-                    if len(Conditions.CastingSkillList) == 0:
-                        number_of_features += 1
-                    else:
-                        if casting_skill_id in Conditions.CastingSkillList:
+                nature = self.skills[slot].custom_skill_data.Nature
+                if nature == SkillNature.Interrupt.value:
+                    if is_interrupt_feasible(
+                        target_agent_id=vTarget,
+                        our_skill_id=self.skills[slot].skill_id,
+                        fast_casting_level=self.fast_casting_level,
+                        ping_ms=int(self.ping_handler.GetCurrentPing()),
+                    ):
+                        if (len(Conditions.CastingSkillList) == 0
+                                or casting_skill_id in Conditions.CastingSkillList):
                             number_of_features += 1
+                            _queue_outcome(vTarget, casting_skill_id, self.skills[slot].skill_id)
+                else:
+                    if GLOBAL_CACHE.Skill.Data.GetActivation(casting_skill_id) >= 0.250:
+                        if len(Conditions.CastingSkillList) == 0:
+                            number_of_features += 1
+                        else:
+                            if casting_skill_id in Conditions.CastingSkillList:
+                                number_of_features += 1
 
         if Conditions.IsKnockedDown:
             if Routines.Checks.Agents.IsKnockedDown(vTarget):
@@ -1213,10 +1295,10 @@ class CombatClass:
                     if self.HasEffect(pet_id,self.skills[slot].skill_id ):
                         return False
             
-        if Conditions.EnemiesInRange != 0:
+        if Conditions.EnemyCount != 0:
             player_pos = Player.GetXY()
-            enemy_array = enemy_array = Routines.Agents.GetFilteredEnemyArray(player_pos[0], player_pos[1], Conditions.EnemiesInRangeArea)
-            if len(enemy_array) >= Conditions.EnemiesInRange:
+            enemy_array = Routines.Agents.GetFilteredEnemyArray(player_pos[0], player_pos[1], Conditions.EnemiesInRange)
+            if len(enemy_array) >= Conditions.EnemyCount:
                 number_of_features += 1
             else:
                 return False
@@ -1277,6 +1359,7 @@ class CombatClass:
         skillbar_data = skill.skillbar_data
         skill_id = skill.skill_id
         conditions = skill.custom_skill_data.Conditions
+        target_allegiance = skill.custom_skill_data.TargetAllegiance
 
         # Check if no skill is assigned to the slot
         if skill_id == 0:
@@ -1379,7 +1462,10 @@ class CombatClass:
             skill_type == SkillType.WeaponSpell.value
             and conditions.AllowOverlapWeaponSpell
         )
-        if self.HasEffect(v_target, skill_id, exact_weapon_spell=exact_weapon_spell):
+        if (
+            target_allegiance != Skilltarget.NonWeaponSpelledAlly.value
+            and self.HasEffect(v_target, skill_id, exact_weapon_spell=exact_weapon_spell)
+        ):
             self.in_casting_routine = False
             return False, v_target
 
@@ -1572,6 +1658,89 @@ class CombatClass:
             Py4GW.Console.Log("HeroAI", f"Error in UseAlcoholIfAvailable: {e}", Py4GW.Console.MessageType.Warning)
         return False
 
+    def _skill_lock_enabled(self, skill: SkillData) -> bool:
+        custom_skill = getattr(skill, "custom_skill_data", None)
+        return bool(getattr(custom_skill, "SkillLock", False))
+
+    def _skill_lock_extra_ms(self, skill: SkillData) -> int:
+        custom_skill = getattr(skill, "custom_skill_data", None)
+        try:
+            return max(0, int(getattr(custom_skill, "SkillLockAftercastMs", 0) or 0))
+        except (TypeError, ValueError):
+            return 0
+
+    def _skill_lock_is_blocked(self, skill: SkillData) -> bool:
+        if not self._skill_lock_enabled(skill):
+            return False
+        try:
+            from Py4GWCoreLib.enums_src.Whiteboard_enums import (
+                WhiteboardClaimStrength,
+                WhiteboardLockKind,
+                WhiteboardLockMode,
+                WhiteboardReentryPolicy,
+            )
+
+            email = Player.GetAccountEmail() or ""
+            if not email:
+                return False
+            group_id = GLOBAL_CACHE.ShMem.GetAccountGroupByEmail(email)
+            now = Py4GW.Game.get_tick_count64()
+            return GLOBAL_CACHE.ShMem.IsLockBlocked(
+                int(WhiteboardLockKind.COOLDOWN),
+                int(skill.skill_id),
+                0,
+                int(group_id),
+                email,
+                int(now),
+                int(WhiteboardLockMode.EXCLUSIVE),
+                1,
+                int(WhiteboardReentryPolicy.OWNER_REENTRANT),
+                int(WhiteboardClaimStrength.HARD),
+            )
+        except Exception:
+            return False
+
+    def _skill_lock_post(self, skill: SkillData) -> None:
+        if not self._skill_lock_enabled(skill):
+            return
+        try:
+            from Py4GWCoreLib.GlobalCache.shared_memory_src.Globals import (
+                SHMEM_INTENT_DEFAULT_PING_BUDGET_MS,
+            )
+            from Py4GWCoreLib.enums_src.Whiteboard_enums import (
+                WhiteboardClaimStrength,
+                WhiteboardLockKind,
+                WhiteboardLockMode,
+                WhiteboardReentryPolicy,
+            )
+
+            email = Player.GetAccountEmail() or ""
+            if not email:
+                return
+            activation_ms = int((GLOBAL_CACHE.Skill.Data.GetActivation(skill.skill_id) or 0) * 1000)
+            aftercast_ms = int((GLOBAL_CACHE.Skill.Data.GetAftercast(skill.skill_id) or 0) * 1000)
+            extra_ms = self._skill_lock_extra_ms(skill)
+            lease_ms = (
+                max(SKILL_LOCK_MIN_LEASE_MS, activation_ms + aftercast_ms)
+                + extra_ms
+                + int(SHMEM_INTENT_DEFAULT_PING_BUDGET_MS)
+            )
+            expires_at = int(Py4GW.Game.get_tick_count64()) + int(lease_ms)
+            GLOBAL_CACHE.ShMem.PostLock(
+                email,
+                int(WhiteboardLockKind.COOLDOWN),
+                int(skill.skill_id),
+                0,
+                int(expires_at),
+                None,
+                int(WhiteboardLockMode.EXCLUSIVE),
+                1,
+                int(WhiteboardReentryPolicy.OWNER_REENTRANT),
+                int(WhiteboardClaimStrength.HARD),
+            )
+        except Exception:
+            pass
+
     def HandleCombat(self, cached_data: CacheData | None = None, ooc: bool = False) -> bool:
         """
         Execute the first castable skill in the prioritized skill order.
@@ -1595,8 +1764,14 @@ class CombatClass:
         if skill.custom_skill_data.Nature == SkillNature.Resurrection.value:
             self.aftercast = 500
 
+        if self._skill_lock_is_blocked(skill):
+            self.ResetSkillPointer()
+            return False
+
         self.aftercast_timer.Reset()
         self.MaybeCallCombatTarget(target_agent_id, cached_data)
+        self._apply_spike_lock(skill, target_agent_id)
+        self._skill_lock_post(skill)
         GLOBAL_CACHE.SkillBar.UseSkill(self.skill_order[slot]+1, target_agent_id, aftercast_delay=self.aftercast)
         self.ResetSkillPointer()
         return True

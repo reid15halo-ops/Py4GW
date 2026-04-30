@@ -10,7 +10,7 @@ class PVESkills:
         skill = CustomSkill()
         skill.SkillID = GLOBAL_CACHE.Skill.GetID("Resurrection_Signet")
         skill.SkillType = SkillType.Signet.value
-        skill.TargetAllegiance = Skilltarget.DeadAlly.value
+        skill.TargetAllegiance = Skilltarget.ResurrectionAlly.value
         skill.Nature = SkillNature.Resurrection.value
         skill.Conditions.IsAlive = False
         skill_data[skill.SkillID] = skill
@@ -30,7 +30,7 @@ class PVESkills:
         skill.SkillID = GLOBAL_CACHE.Skill.GetID("Together_as_one")
         skill.SkillType = SkillType.Shout.value
         skill.TargetAllegiance = Skilltarget.Self.value
-        skill.Nature = SkillNature.Interrupt.value
+        skill.Nature = SkillNature.SelfTargeted.value
         skill_data[skill.SkillID] = skill
 
         skill = CustomSkill()
@@ -83,8 +83,8 @@ class PVESkills:
         skill.SkillType = SkillType.Ward.value
         skill.TargetAllegiance = Skilltarget.Self.value
         skill.Nature = SkillNature.CustomC.value
-        skill.Conditions.EnemiesInRange = 3
-        skill.Conditions.EnemiesInRangeArea = Range.Spellcast.value
+        skill.Conditions.EnemyCount = 3
+        skill.Conditions.EnemiesInRange = Range.Spellcast.value
         skill_data[skill.SkillID] = skill
 
         skill = CustomSkill()
@@ -97,7 +97,7 @@ class PVESkills:
         skill = CustomSkill()
         skill.SkillID = GLOBAL_CACHE.Skill.GetID("Weapons_of_Three_Forges")
         skill.SkillType = SkillType.WeaponSpell.value
-        skill.TargetAllegiance = Skilltarget.Self.value
+        skill.TargetAllegiance = Skilltarget.NonWeaponSpelledAlly.value
         skill.Nature = SkillNature.Buff.value
         skill.Conditions.IsOutOfCombat = True
         skill.Conditions.AllowOverlapWeaponSpell = False
@@ -276,6 +276,7 @@ class PVESkills:
         skill.SkillType = SkillType.Enchantment.value
         skill.TargetAllegiance = Skilltarget.Self.value
         skill.Nature = SkillNature.Buff.value
+        skill.Conditions.IsOutOfCombat = True
         skill_data[skill.SkillID] = skill
 
         skill = CustomSkill()
@@ -332,7 +333,7 @@ class PVESkills:
         skill = CustomSkill()
         skill.SkillID = GLOBAL_CACHE.Skill.GetID("Sunspear_Rebirth_Signet")
         skill.SkillType = SkillType.Signet.value
-        skill.TargetAllegiance = Skilltarget.DeadAlly.value
+        skill.TargetAllegiance = Skilltarget.ResurrectionAlly.value
         skill.Nature = SkillNature.Resurrection.value
         skill.Conditions.IsAlive = False
         skill_data[skill.SkillID] = skill
@@ -390,6 +391,8 @@ class PVESkills:
         skill.SkillType = SkillType.Enchantment.value
         skill.TargetAllegiance = Skilltarget.Self.value
         skill.Nature = SkillNature.Buff.value
+        skill.Conditions.EnemyCount = 1
+        skill.Conditions.EnemiesInRange = Range.Adjacent.value
         skill_data[skill.SkillID] = skill
 
         skill = CustomSkill()
@@ -411,8 +414,8 @@ class PVESkills:
         skill.SkillType = SkillType.Ward.value
         skill.TargetAllegiance = Skilltarget.Self.value
         skill.Nature = SkillNature.Offensive.value
-        skill.Conditions.EnemiesInRange = 3
-        skill.Conditions.EnemiesInRangeArea = Range.Area.value
+        skill.Conditions.EnemyCount = 3
+        skill.Conditions.EnemiesInRange = Range.Area.value
         skill_data[skill.SkillID] = skill
 
         skill = CustomSkill()
@@ -455,6 +458,8 @@ class PVESkills:
         skill.SkillType = SkillType.Spell.value
         skill.TargetAllegiance = Skilltarget.EnemyClustered.value
         skill.Nature = SkillNature.Offensive.value
+        skill.SkillLock = True
+        skill.SkillLockAftercastMs = 2000
         skill_data[skill.SkillID] = skill
 
         #region DELDRIMOR
@@ -462,7 +467,7 @@ class PVESkills:
         skill = CustomSkill()
         skill.SkillID = GLOBAL_CACHE.Skill.GetID("By_Urals_Hammer")
         skill.SkillType = SkillType.Shout.value
-        skill.TargetAllegiance = Skilltarget.DeadAlly.value
+        skill.TargetAllegiance = Skilltarget.ResurrectionAlly.value
         skill.Nature = SkillNature.Resurrection.value
         skill.Conditions.IsAlive = False
         skill_data[skill.SkillID] = skill
@@ -581,8 +586,8 @@ class PVESkills:
         skill.SkillType = SkillType.Ward.value
         skill.TargetAllegiance = Skilltarget.Self.value
         skill.Nature = SkillNature.Buff.value
-        skill.Conditions.EnemiesInRange = 3
-        skill.Conditions.EnemiesInRangeArea = Range.Area.value
+        skill.Conditions.EnemyCount = 3
+        skill.Conditions.EnemiesInRange = Range.Area.value
         skill_data[skill.SkillID] = skill
 
         skill = CustomSkill()
@@ -590,8 +595,8 @@ class PVESkills:
         skill.SkillType = SkillType.Ward.value
         skill.TargetAllegiance = Skilltarget.Self.value
         skill.Nature = SkillNature.Buff.value
-        skill.Conditions.EnemiesInRange = 1
-        skill.Conditions.EnemiesInRangeArea = Range.Area.value
+        skill.Conditions.EnemyCount = 1
+        skill.Conditions.EnemiesInRange = Range.Area.value
         skill_data[skill.SkillID] = skill
 
         skill = CustomSkill()
@@ -599,8 +604,8 @@ class PVESkills:
         skill.SkillType = SkillType.Ward.value
         skill.TargetAllegiance = Skilltarget.Self.value
         skill.Nature = SkillNature.Buff.value
-        skill.Conditions.EnemiesInRange = 3
-        skill.Conditions.EnemiesInRangeArea = Range.Spellcast.value
+        skill.Conditions.EnemyCount = 3
+        skill.Conditions.EnemiesInRange = Range.Spellcast.value
         skill_data[skill.SkillID] = skill
 
         skill = CustomSkill()
@@ -608,8 +613,8 @@ class PVESkills:
         skill.SkillType = SkillType.Ward.value
         skill.TargetAllegiance = Skilltarget.Self.value
         skill.Nature = SkillNature.Buff.value
-        skill.Conditions.EnemiesInRange = 3
-        skill.Conditions.EnemiesInRangeArea = Range.Area.value
+        skill.Conditions.EnemyCount = 3
+        skill.Conditions.EnemiesInRange = Range.Area.value
         skill_data[skill.SkillID] = skill
 
         skill = CustomSkill()
@@ -626,6 +631,8 @@ class PVESkills:
         skill.SkillType = SkillType.Spell.value
         skill.TargetAllegiance = Skilltarget.Enemy.value
         skill.Nature = SkillNature.Offensive.value
+        skill.Conditions.MoreLife = 0.3
+        skill.SpikeLock = True
         skill_data[skill.SkillID] = skill
 
         skill = CustomSkill()
@@ -771,8 +778,8 @@ class PVESkills:
         skill.SkillType = SkillType.Shout.value
         skill.TargetAllegiance = Skilltarget.Self.value
         skill.Nature = SkillNature.Offensive.value
-        skill.Conditions.EnemiesInRange = 1
-        skill.Conditions.EnemiesInRangeArea = Range.Nearby.value
+        skill.Conditions.EnemyCount = 1
+        skill.Conditions.EnemiesInRange = Range.Nearby.value
         skill_data[skill.SkillID] = skill
 
         skill = CustomSkill()
@@ -894,7 +901,7 @@ class PVESkills:
         skill.SkillID = GLOBAL_CACHE.Skill.GetID("Brawling_Block")
         skill.SkillType = SkillType.Signet.value
         skill.TargetAllegiance = Skilltarget.EnemyAttacking.value
-        skill.Nature = SkillNature.Interrupt.value
+        skill.Nature = SkillNature.SelfTargeted.value
         skill.Conditions.IsAttacking = True
         skill_data[skill.SkillID] = skill
         
@@ -954,8 +961,8 @@ class PVESkills:
         skill.SkillType = SkillType.Attack.value
         skill.TargetAllegiance = Skilltarget.EnemyClustered.value
         skill.Nature = SkillNature.Offensive.value
-        skill.Conditions.EnemiesInRange = 2
-        skill.Conditions.EnemiesInRangeArea = Range.Adjacent.value
+        skill.Conditions.EnemyCount = 2
+        skill.Conditions.EnemiesInRange = Range.Adjacent.value
         skill_data[skill.SkillID] = skill
         
         skill = CustomSkill()

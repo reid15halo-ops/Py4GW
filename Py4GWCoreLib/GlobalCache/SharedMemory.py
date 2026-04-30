@@ -18,9 +18,9 @@ from Py4GWCoreLib import SharedCommandType
 import Py4GW
 import PyQuest
 from .shared_memory_src.Globals import (
-    SHMEM_MODULE_NAME, 
+    SHMEM_MODULE_NAME,
     SHMEM_SHARED_MEMORY_FILE_NAME,
-    
+
     SHMEM_MAX_PLAYERS,
     SHMEM_MAX_EMAIL_LEN,
     SHMEM_MAX_CHAR_LEN,
@@ -36,6 +36,7 @@ from .shared_memory_src.Globals import (
     SHMEM_SUBSCRIBE_TIMEOUT_MILLISECONDS,
     SHMEM_HERO_UPDATE_THROTTLE_MS,
     SHMEM_PET_UPDATE_THROTTLE_MS,
+    SHMEM_INTENT_SWEEP_INTERVAL_MS,
 )
 
 from .shared_memory_src.SharedMessageStruct import SharedMessageStruct
@@ -80,6 +81,7 @@ class Py4GWSharedMemoryManager:
 
         self._hero_update_timer = ThrottledTimer(SHMEM_HERO_UPDATE_THROTTLE_MS)
         self._pet_update_timer = ThrottledTimer(SHMEM_PET_UPDATE_THROTTLE_MS)
+        self._intent_sweep_timer = ThrottledTimer(SHMEM_INTENT_SWEEP_INTERVAL_MS)
         self._initialized = True
 
     def PublishFormationFollowPoints(self):
@@ -327,69 +329,170 @@ class Py4GWSharedMemoryManager:
     def MarkMessageAsFinished(self, account_email: str, message_index: int):
         """Mark a specific message as finished."""
         return self.GetAllAccounts().MarkMessageAsFinished(account_email, message_index)
-    
+
+    #region Whiteboard (cross-hero cast-intent)
+    def PostIntent(
+        self,
+        owner_email: str,
+        skill_id: int,
+        target_agent_id: int,
+        expires_at_tick: int,
+        isolation_group_id: int | None = None,
+    ) -> int:
+        """Claim a (skill_id, target_agent_id) slot on the whiteboard."""
+        return self.GetAllAccounts().PostIntent(
+            owner_email, skill_id, target_agent_id, expires_at_tick, isolation_group_id
+        )
+
+    def PostLock(
+        self,
+        owner_email: str,
+        kind_id: int,
+        key_id: int,
+        target_id: int,
+        expires_at_tick: int,
+        isolation_group_id: int | None = None,
+        lock_mode: int = 1,
+        max_holders: int = 1,
+        reentry_policy: int = 1,
+        claim_strength: int = 1,
+    ) -> int:
+        """Claim a generic expiring whiteboard lock slot."""
+        return self.GetAllAccounts().PostLock(
+            owner_email,
+            kind_id,
+            key_id,
+            target_id,
+            expires_at_tick,
+            isolation_group_id,
+            lock_mode,
+            max_holders,
+            reentry_policy,
+            claim_strength,
+        )
+
+    def ClearIntentsByOwner(self, owner_email: str) -> int:
+        """Zero every intent slot whose OwnerEmail matches."""
+        return self.GetAllAccounts().ClearIntentsByOwner(owner_email)
+
+    @frame_cache(category="SharedMemory", source_lib="IsIntentClaimed")
+    def IsIntentClaimed(
+        self,
+        skill_id: int,
+        target_agent_id: int,
+        group_id: int,
+        exclude_email: str,
+        now_tick: int,
+    ) -> bool:
+        """True iff another account in the same group holds an unexpired claim."""
+        return self.GetAllAccounts().IsIntentClaimed(
+            skill_id, target_agent_id, group_id, exclude_email, now_tick
+        )
+
+    @frame_cache(category="SharedMemory", source_lib="IsLockBlocked")
+    def IsLockBlocked(
+        self,
+        kind_id: int,
+        key_id: int,
+        target_id: int,
+        group_id: int,
+        exclude_email: str,
+        now_tick: int,
+        lock_mode: int = 1,
+        max_holders: int = 1,
+        reentry_policy: int = 1,
+        claim_strength: int = 1,
+    ) -> bool:
+        """True when matching unexpired whiteboard locks should block this caller."""
+        return self.GetAllAccounts().IsLockBlocked(
+            kind_id,
+            key_id,
+            target_id,
+            group_id,
+            exclude_email,
+            now_tick,
+            lock_mode,
+            max_holders,
+            reentry_policy,
+            claim_strength,
+        )
+
+    @frame_cache(category="SharedMemory", source_lib="CountLocks")
+    def CountLocks(
+        self,
+        kind_id: int,
+        key_id: int,
+        target_id: int,
+        group_id: int,
+        exclude_email: str,
+        now_tick: int,
+        reentry_policy: int = 1,
+        claim_strength: int = 1,
+    ) -> int:
+        """Count matching unexpired whiteboard locks."""
+        return self.GetAllAccounts().CountLocks(
+            kind_id,
+            key_id,
+            target_id,
+            group_id,
+            exclude_email,
+            now_tick,
+            reentry_policy,
+            claim_strength,
+        )
+
+    @frame_cache(category="SharedMemory", source_lib="IsLockSatisfied")
+    def IsLockSatisfied(
+        self,
+        kind_id: int,
+        key_id: int,
+        target_id: int,
+        group_id: int,
+        exclude_email: str,
+        now_tick: int,
+        required_holders: int,
+        claim_strength: int = 1,
+    ) -> bool:
+        """Barrier helper: True when enough matching unexpired locks exist."""
+        return self.GetAllAccounts().IsLockSatisfied(
+            kind_id,
+            key_id,
+            target_id,
+            group_id,
+            exclude_email,
+            now_tick,
+            required_holders,
+            claim_strength,
+        )
+
+    def SweepExpiredIntents(self, now_tick: int) -> int:
+        """Compact pass — zero expired slots."""
+        return self.GetAllAccounts().SweepExpiredIntents(now_tick)
+
+    @frame_cache(category="SharedMemory", source_lib="GetAllIntents")
+    def GetAllIntents(self):
+        """Debug/probe helper: list of (index, IntentStruct) for active slots."""
+        return self.GetAllAccounts().GetAllIntents()
+
     #region Callback
     def update_callback(self):
-        """Callback function to update shared memory data.
-
-        CRITICAL: This is wrapped in a hard guard against Map.IsMapLoading()
-        because shared-memory work during the game client's decompression
-        window caused master-account-only stuck-at-99% stalls.
-
-        Root-cause chain:
-          1. update_callback runs on Py4GW's PyCallback.Phase.Data tick,
-             which executes on the GAME CLIENT'S main thread between the
-             frame pump and the render pump.
-          2. During map transitions, the game uses the same main thread to
-             drive the Gw.dat decompression/shader-compile pipeline. Any
-             Python work we do on that thread steals cycles from the
-             decompressor.
-          3. Master accumulates more per-tick cost than slaves because it is
-             the follow publisher, the hero publisher (3 heroes), the bot UI
-             host, the ImGui panel owner, and the largest swapchain (more
-             dgVoodoo shader variants to compile). Slaves have ~1/10th the
-             main-thread pressure per tick.
-          4. One specific offender: `HeroAI/following.py::
-             _clear_follow_publish_state` raised `NameError: leader_index`
-             every time publish() ran during map load. 10 Hz × Python
-             traceback cost × during the worst possible window = measurable
-             CPU burn on master and never on slaves (slaves' publisher early-
-             returns on leader-check).
-          5. Any uncaught exception above would propagate out of this
-             callback into the C++ PyCallback dispatcher, re-fire next tick,
-             and keep burning master's main thread until dgVoodoo's shader
-             compile finally won the CPU race — OR it deadlocked forever at
-             99%.
-
-        Fix strategy: (a) hard-skip all shared memory work while map is
-        loading; (b) wrap in try/except so any residual exception is logged
-        once, not ten times per second; (c) the NameError in following.py
-        is independently fixed.
-        """
-        try:
-            if Map.IsMapLoading():
-                return  # Main thread belongs to the game's decompressor — hands off.
-            self.SetPlayerData(Player.GetAccountEmail())
-            self.PublishFormationFollowPoints()
-            if self._hero_update_timer.IsExpired():
-                self.SetHeroesData()
-                self._hero_update_timer.Reset()
-            if self._pet_update_timer.IsExpired():
-                self.SetPetData()
-                self._pet_update_timer.Reset()
-        except Exception as e:
-            # Rate-limited error log: only emit when the exception type or
-            # message changes, so a recurring exception doesn't flood the
-            # console and steal main-thread time by itself.
-            sig = (type(e).__name__, str(e)[:200])
-            if getattr(self, "_last_update_cb_err_sig", None) != sig:
-                self._last_update_cb_err_sig = sig
-                import traceback
-                ConsoleLog(
-                    SHMEM_MODULE_NAME,
-                    f"update_callback error: {sig[0]}: {sig[1]}\n{traceback.format_exc()}",
-                    Py4GW.Console.MessageType.Error,
-                )
+        """Callback function to update shared memory data."""
+        self.SetPlayerData(Player.GetAccountEmail())
+        self.PublishFormationFollowPoints()
+        if self._hero_update_timer.IsExpired():
+            self.SetHeroesData()
+            self._hero_update_timer.Reset()
+        if self._pet_update_timer.IsExpired():
+            self.SetPetData()
+            self._pet_update_timer.Reset()
+        if self._intent_sweep_timer.IsExpired():
+            self._intent_sweep_timer.Reset()
+            now = Py4GW.Game.get_tick_count64()
+            # Inline sweep; the ThrottledTimer above already rate-limits
+            # and iterating 64 slots is cheap. Bypasses the WHITEBOARD_SWEEP
+            # ActionQueue since no code in this repo drains named queues
+            # automatically, which would dead-letter the sweep.
+            self.SweepExpiredIntents(now)
         
         
     @staticmethod

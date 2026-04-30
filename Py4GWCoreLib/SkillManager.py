@@ -2,7 +2,7 @@ from HeroAI.custom_skill import CustomSkillClass
 from HeroAI.types import SkillType,SkillNature, Skilltarget
 
 from HeroAI.targeting import TargetLowestAlly, TargetLowestAllyEnergy, TargetClusteredEnemy, TargetLowestAllyCaster, TargetLowestAllyMartial, TargetLowestAllyMelee, TargetLowestAllyRanged, GetAllAlliesArray
-from HeroAI.targeting import TargetMinionOrAllyNonEnchanted, TargetMinionNonEnchanted, TargetAllyNonEnchanted
+from HeroAI.targeting import TargetMinionOrAllyNonEnchanted, TargetMinionNonEnchanted, TargetAllyNonEnchanted, TargetAllyNonWeaponSpelled
 from HeroAI.targeting import GetEnemyAttacking, GetEnemyCasting, GetEnemyCastingSpell, GetEnemyInjured, GetEnemyConditioned, GetEnemyHealthy
 from HeroAI.targeting import GetEnemyHexed, GetEnemyDegenHexed, GetEnemyEnchanted, GetEnemyMoving, GetEnemyKnockedDown
 from HeroAI.targeting import GetEnemyBleeding, GetEnemyPoisoned, GetEnemyCrippled
@@ -434,6 +434,12 @@ def _GetAppropiateTarget(
             v_target = GLOBAL_CACHE.Party.Pets.GetPetID(Player.GetAgentID())
         elif target_allegiance == Skilltarget.DeadAlly:
             v_target = Routines.Agents.GetDeadAlly(Range.Spellcast.value)
+        elif target_allegiance == Skilltarget.ResurrectionAlly:
+            v_target = Routines.Agents.GetResurrectionTarget(
+                Range.Spellcast.value,
+                reserve=True,
+                skill_id=skills[slot].skill_id,
+            )
         elif target_allegiance == Skilltarget.Spirit:
             v_target = Routines.Agents.GetNearestSpirit(Range.Spellcast.value)
         elif target_allegiance == Skilltarget.Minion:
@@ -444,10 +450,16 @@ def _GetAppropiateTarget(
             v_target = TargetMinionNonEnchanted()
         elif target_allegiance == Skilltarget.AllyNonEnchanted:
             v_target = TargetAllyNonEnchanted()
+        elif target_allegiance == Skilltarget.NonWeaponSpelledAlly:
+            v_target = Player.GetAgentID() if TargetAllyNonWeaponSpelled() else 0
         elif target_allegiance == Skilltarget.Corpse:
             v_target = Routines.Agents.GetNearestCorpse(Range.Spellcast.value)
         elif target_allegiance == Skilltarget.ExploitableCorpse:
-            v_target = Routines.Agents.GetNearestExploitableCorpse(Range.Spellcast.value)
+            v_target = Routines.Agents.GetNearestExploitableCorpse(
+                Range.Spellcast.value,
+                reserve=True,
+                skill_id=skills[slot].skill_id,
+            )
         else:
             v_target = GetPartytarget_fn()
             if v_target == 0:
@@ -647,7 +659,7 @@ def _AreCastConditionsMet(slot,
         feature_count += (1 if Conditions.Overcast > 0 else 0)
         feature_count += (1 if Conditions.IsPartyWide else 0)
         feature_count += (1 if Conditions.RequiresSpiritInEarshot else 0)
-        feature_count += (1 if Conditions.EnemiesInRange > 0 else 0)
+        feature_count += (1 if Conditions.EnemyCount > 0 else 0)
         feature_count += (1 if Conditions.AlliesInRange > 0 else 0)
         feature_count += (1 if Conditions.SpiritsInRange > 0 else 0)
         feature_count += (1 if Conditions.MinionsInRange > 0 else 0)
@@ -874,10 +886,10 @@ def _AreCastConditionsMet(slot,
                     if HasEffect_fn(pet_id,skills[slot].skill_id ):
                         return False
             
-        if Conditions.EnemiesInRange != 0:
+        if Conditions.EnemyCount != 0:
             player_pos = Player.GetXY()
-            enemy_array = enemy_array = Routines.Agents.GetFilteredEnemyArray(player_pos[0], player_pos[1], Conditions.EnemiesInRangeArea)
-            if len(enemy_array) >= Conditions.EnemiesInRange:
+            enemy_array = Routines.Agents.GetFilteredEnemyArray(player_pos[0], player_pos[1], Conditions.EnemiesInRange)
+            if len(enemy_array) >= Conditions.EnemyCount:
                 number_of_features += 1
             else:
                 number_of_features = 0
@@ -1508,6 +1520,12 @@ class SkillManager:
                 v_target = GLOBAL_CACHE.Party.Pets.GetPetID(Player.GetAgentID())
             elif target_allegiance == Skilltarget.DeadAlly:
                 v_target = Routines.Agents.GetDeadAlly(Range.Spellcast.value)
+            elif target_allegiance == Skilltarget.ResurrectionAlly:
+                v_target = Routines.Agents.GetResurrectionTarget(
+                    Range.Spellcast.value,
+                    reserve=True,
+                    skill_id=self.skills[slot].skill_id,
+                )
             elif target_allegiance == Skilltarget.Spirit:
                 v_target = Routines.Agents.GetNearestSpirit(Range.Spellcast.value)
             elif target_allegiance == Skilltarget.Minion:
@@ -1518,10 +1536,16 @@ class SkillManager:
                 v_target = TargetMinionNonEnchanted()
             elif target_allegiance == Skilltarget.AllyNonEnchanted:
                 v_target = TargetAllyNonEnchanted()
+            elif target_allegiance == Skilltarget.NonWeaponSpelledAlly:
+                v_target = Player.GetAgentID() if TargetAllyNonWeaponSpelled() else 0
             elif target_allegiance == Skilltarget.Corpse:
                 v_target = Routines.Agents.GetNearestCorpse(Range.Spellcast.value)
             elif target_allegiance == Skilltarget.ExploitableCorpse:
-                v_target = Routines.Agents.GetNearestExploitableCorpse(Range.Spellcast.value)
+                v_target = Routines.Agents.GetNearestExploitableCorpse(
+                    Range.Spellcast.value,
+                    reserve=True,
+                    skill_id=self.skills[slot].skill_id,
+                )
             else:
                 v_target = self.GetPartyTarget()
                 if v_target == 0:
@@ -1712,7 +1736,7 @@ class SkillManager:
             feature_count += (1 if Conditions.Overcast > 0 else 0)
             feature_count += (1 if Conditions.IsPartyWide else 0)
             feature_count += (1 if Conditions.RequiresSpiritInEarshot else 0)
-            feature_count += (1 if Conditions.EnemiesInRange > 0 else 0)
+            feature_count += (1 if Conditions.EnemyCount > 0 else 0)
             feature_count += (1 if Conditions.AlliesInRange > 0 else 0)
             feature_count += (1 if Conditions.SpiritsInRange > 0 else 0)
             feature_count += (1 if Conditions.MinionsInRange > 0 else 0)
@@ -1933,10 +1957,10 @@ class SkillManager:
                         if self.HasEffect(pet_id,self.skills[slot].skill_id ):
                             return False
                         
-            if Conditions.EnemiesInRange != 0:
+            if Conditions.EnemyCount != 0:
                 player_pos = Player.GetXY()
-                enemy_array = enemy_array = Routines.Agents.GetFilteredEnemyArray(player_pos[0], player_pos[1], Conditions.EnemiesInRangeArea)
-                if len(enemy_array) >= Conditions.EnemiesInRange:
+                enemy_array = Routines.Agents.GetFilteredEnemyArray(player_pos[0], player_pos[1], Conditions.EnemiesInRange)
+                if len(enemy_array) >= Conditions.EnemyCount:
                     number_of_features += 1
                 else:
                     number_of_features = 0
@@ -2091,7 +2115,11 @@ class SkillManager:
                 self.in_casting_routine = False
                 return False, v_target
 
-            if self.HasEffect(v_target, self.skills[slot].skill_id):
+            target_allegiance = self.skills[slot].custom_skill_data.TargetAllegiance
+            if (
+                target_allegiance != Skilltarget.NonWeaponSpelledAlly.value
+                and self.HasEffect(v_target, self.skills[slot].skill_id)
+            ):
                 self.in_casting_routine = False
                 return False, v_target
 

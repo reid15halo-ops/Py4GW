@@ -36,13 +36,13 @@ class _WAIT:
                 break
                     
     def _coro_until_out_of_combat(self, range: Range = Range.Earshot):
-        from ..helpers_src.HeroAICombatRange import hero_ai_combat_detected
-        wait_condition = lambda: not hero_ai_combat_detected()
+        from ...Routines import Routines
+        wait_condition = lambda: not(Routines.Checks.Agents.InDanger(aggro_area=range))
         yield from self._coro_until_condition(wait_condition)
         
     def _coro_until_on_combat(self, range: Range = Range.Earshot):
-        from ..helpers_src.HeroAICombatRange import hero_ai_combat_detected
-        wait_condition = lambda: hero_ai_combat_detected()
+        from ...Routines import Routines
+        wait_condition = lambda: Routines.Checks.Agents.InDanger(aggro_area=range)
         yield from self._coro_until_condition(wait_condition)
         
     def _coro_until_on_outpost(self):
@@ -58,9 +58,9 @@ class _WAIT:
     def _coro_until_model_has_quest(self, model_id: int):
         from ...Routines import Routines
         from ...Agent import Agent
-        from ..helpers_src.HeroAICombatRange import hero_ai_combat_detected
+        from ...enums import Range
         wait_function = lambda: (
-            not hero_ai_combat_detected() and
+            not (Routines.Checks.Agents.InDanger(aggro_area=Range.Spirit)) and
             Agent.HasQuest(Routines.Agents.GetAgentIDByModelID(model_id))
         )
         yield from self._coro_until_condition(wait_function, duration=1000)
@@ -69,10 +69,15 @@ class _WAIT:
         """Waits until all action finishes in current map and game sends you to a new one"""
         from ...Routines import Routines
         from ...Map import Map
+        from ...Player import Player
+        from ...GlobalCache import GLOBAL_CACHE
 
         wait_condition = lambda: (
             not Map.IsMapLoading()
             and Routines.Checks.Map.MapValid()
+            and GLOBAL_CACHE.Party.IsPartyLoaded()
+            and Map.GetInstanceUptime() >= 1500
+            and Player.GetInstanceUptime() >= 1500
             and Map.IsMapIDMatch(Map.GetMapID(), 
                 target_map_id if target_map_id else Map.GetMapIDByName(target_map_name)
             )
