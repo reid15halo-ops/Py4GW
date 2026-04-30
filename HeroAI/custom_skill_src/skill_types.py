@@ -76,6 +76,14 @@ class CastConditions:
         # (default), matches the pre-change binary alive/dead gate.
         self.AllowRecastAtLife = 0.0
 
+        # Enchantment maintenance: recast when remaining duration (ms) drops below this value.
+        # 0 = disabled (default: only cast when fully missing).
+        self.MaintainEnchantmentWindowMs = 0
+
+        # First cast this combat: force-target party leader.
+        # Subsequent casts: use normal TargetAllegiance.
+        self.PrioritizeLeaderOnCombatEntry = False
+
         self.CloseToAggro = False
 
         # combat field checks
@@ -105,6 +113,7 @@ class CustomSkill:
         self.SkillType = SkillType.Skill.value
         self.TargetAllegiance = Skilltarget.Enemy.value
         self.Nature = SkillNature.Offensive.value
+        self.IsAoE = False
         self.Conditions = CastConditions()
         # When True, this skill participates in the cross-hero whiteboard:
         # before casting, other heroes in the same IsolationGroupID who see an

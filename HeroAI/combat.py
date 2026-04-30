@@ -12,6 +12,7 @@ from .targeting import GetEnemyAttacking, GetEnemyCasting, GetEnemyCastingSpell,
 from .targeting import GetEnemyHexed, GetEnemyDegenHexed, GetEnemyEnchanted, GetEnemyMoving, GetEnemyKnockedDown
 from .targeting import GetEnemyBleeding, GetEnemyPoisoned, GetEnemyCrippled
 from .interrupt import is_interrupt_feasible, _queue_outcome
+from .targeting import TargetEnemyClusteredNearby, TargetEnemyClusteredAdjacent
 from .types import SkillNature, Skilltarget, SkillType
 from .constants import MAX_NUM_PLAYERS
 from .call_target import CallTarget
@@ -129,6 +130,7 @@ class CombatClass:
         self.nearest_spirit: int = Routines.Agents.GetNearestSpirit(Range.Spellcast.value)
         self.lowest_minion: int = Routines.Agents.GetLowestMinion(Range.Spellcast.value)
         self.nearest_corpse: int = Routines.Agents.GetNearestCorpse(Range.Spellcast.value)
+        self._leader_primed: set[int] = set()
         
         self.energy_drain = GLOBAL_CACHE.Skill.GetID("Energy_Drain") 
         self.energy_tap = GLOBAL_CACHE.Skill.GetID("Energy_Tap")
@@ -234,6 +236,8 @@ class CombatClass:
     def Update(self, cached_data: CacheData) -> None:
         self.cached_data = cached_data
         self.in_aggro = cached_data.data.in_aggro
+        if not self.in_aggro:
+            self._leader_primed.clear()
         
         self.fast_casting_exists = cached_data.data.fast_casting_exists
         self.fast_casting_level = cached_data.data.fast_casting_level
@@ -586,6 +590,14 @@ class CombatClass:
         target_allegiance = self.skills[slot].custom_skill_data.TargetAllegiance
         conditions = self.skills[slot].custom_skill_data.Conditions
 
+        # PrioritizeLeaderOnCombatEntry: first cast this combat goes to party leader
+        if (conditions.PrioritizeLeaderOnCombatEntry and
+            self.skills[slot].skill_id not in self._leader_primed):
+            leader_id = GLOBAL_CACHE.Party.GetPartyLeaderID()
+            if leader_id != 0 and Agent.IsLiving(leader_id):
+                self._leader_primed.add(self.skills[slot].skill_id)
+                return leader_id
+
         # Lazy helpers — only call expensive scans when a branch actually needs them
         _nearest_enemy = None
         def get_nearest_enemy() -> int:
@@ -627,6 +639,14 @@ class CombatClass:
                 skill_id=self.skills[slot].skill_id,
                 cluster_radius=Range.Earshot.value,
             )
+            if v_target == 0 and not targeting_strict:
+                v_target = get_nearest_enemy()
+        elif target_allegiance == Skilltarget.EnemyClusteredNearby:
+            v_target = TargetEnemyClusteredNearby(self.get_combat_distance())
+            if v_target == 0 and not targeting_strict:
+                v_target = get_nearest_enemy()
+        elif target_allegiance == Skilltarget.EnemyClusteredAdjacent:
+            v_target = TargetEnemyClusteredAdjacent(self.get_combat_distance())
             if v_target == 0 and not targeting_strict:
                 v_target = get_nearest_enemy()
         elif target_allegiance == Skilltarget.EnemyAttacking:
@@ -1462,12 +1482,19 @@ class CombatClass:
             skill_type == SkillType.WeaponSpell.value
             and conditions.AllowOverlapWeaponSpell
         )
-        if (
-            target_allegiance != Skilltarget.NonWeaponSpelledAlly.value
-            and self.HasEffect(v_target, skill_id, exact_weapon_spell=exact_weapon_spell)
-        ):
-            self.in_casting_routine = False
-            return False, v_target
+        has_effect = self.HasEffect(v_target, skill_id, exact_weapon_spell=exact_weapon_spell)
+        if has_effect and target_allegiance != Skilltarget.NonWeaponSpelledAlly.value:
+            # Enchantment maintenance window: recast before expiry
+            if (skill_type == SkillType.Enchantment.value and
+                conditions.MaintainEnchantmentWindowMs > 0):
+                remaining = GLOBAL_CACHE.Effects.GetEffectTimeRemaining(v_target, skill_id)
+                if remaining > conditions.MaintainEnchantmentWindowMs:
+                    self.in_casting_routine = False
+                    return False, v_target
+                # else: effect present but within maintenance window, allow recast
+            else:
+                self.in_casting_routine = False
+                return False, v_target
 
         # Check if the skill has the required conditions
         if not self.AreCastConditionsMet(slot, v_target):

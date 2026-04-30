@@ -510,6 +510,57 @@ def TargetMeleeOrMartialClusterEnemy(
     return _filter_blacklisted(scored[0][2])
 
 
+def _target_enemy_clustered(
+    max_distance: float,
+    radius: float,
+) -> int:
+    """Internal: enemy with the most neighbours within *radius* (squared-distance, pre-cached positions)."""
+    player_x, player_y = Player.GetXY()
+    enemy_array = Routines.Agents.GetFilteredEnemyArray(player_x, player_y, max_distance)
+    enemy_array = AgentArray.Filter.ByCondition(
+        enemy_array,
+        lambda agent_id: Agent.IsValid(agent_id) and not Agent.IsDead(agent_id),
+    )
+    n = len(enemy_array)
+    if n == 0:
+        return 0
+
+    # Pre-fetch positions once — O(n) native calls instead of O(n²).
+    positions = [(agent_id, Agent.GetXY(agent_id)) for agent_id in enemy_array]
+    radius_sq = radius * radius
+
+    best_id, best_count = 0, -1
+    for i in range(n):
+        agent_id, (x1, y1) = positions[i]
+        count = 0
+        for j in range(n):
+            if i == j:
+                continue
+            _, (x2, y2) = positions[j]
+            dx = x2 - x1
+            dy = y2 - y1
+            if dx * dx + dy * dy <= radius_sq:
+                count += 1
+        if count > best_count:
+            best_count, best_id = count, agent_id
+
+    return _filter_blacklisted(best_id)
+
+
+def TargetEnemyClusteredNearby(
+    max_distance: float = Range.Spellcast.value,
+) -> int:
+    """Returns the enemy with the most other enemies within Nearby radius (252 units, Energy Surge range)."""
+    return _target_enemy_clustered(max_distance, Range.Nearby.value)
+
+
+def TargetEnemyClusteredAdjacent(
+    max_distance: float = Range.Spellcast.value,
+) -> int:
+    """Returns the enemy with the most other enemies within Adjacent radius (166 units, melee/scythe range)."""
+    return _target_enemy_clustered(max_distance, Range.Adjacent.value)
+
+
 def TargetCasterClusterEnemy(
     skill_id: int,
     *,

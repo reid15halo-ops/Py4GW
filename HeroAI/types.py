@@ -142,7 +142,8 @@ class Skilltarget (IntEnum):
     AllyWeaponSpell = 38
     NonWeaponSpelledAlly = 39
     ResurrectionAlly = 40
-
+    EnemyClusteredNearby = 41
+    EnemyClusteredAdjacent = 42
 
 
 class SkillNature (Enum):
