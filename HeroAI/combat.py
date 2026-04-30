@@ -131,6 +131,9 @@ class CombatClass:
         self.lowest_minion: int = Routines.Agents.GetLowestMinion(Range.Spellcast.value)
         self.nearest_corpse: int = Routines.Agents.GetNearestCorpse(Range.Spellcast.value)
         self._leader_primed: set[int] = set()
+        self._cluster_cache_ttl_ms: int = 100
+        self._cluster_nearby_cache: tuple[int, int, float] | None = None  # (tick_ms, target_id, distance)
+        self._cluster_adj_cache: tuple[int, int, float] | None = None    # (tick_ms, target_id, distance)
         
         self.energy_drain = GLOBAL_CACHE.Skill.GetID("Energy_Drain") 
         self.energy_tap = GLOBAL_CACHE.Skill.GetID("Energy_Tap")
@@ -577,7 +580,22 @@ class CombatClass:
             return self.cached_data.GetActiveScanRange()
         return Range.Spellcast.value if self.in_aggro else Range.Earshot.value
 
-
+    def _get_cluster_target_cached(
+        self,
+        target_fn,
+        cache_attr: str,
+    ) -> int:
+        """Return cached cluster target if TTL (100 ms) and distance haven't changed."""
+        distance = self.get_combat_distance()
+        now = int(Py4GW.Game.get_tick_count64())
+        cached = getattr(self, cache_attr)
+        if cached is not None:
+            tick_ms, target_id, last_distance = cached
+            if now - tick_ms < self._cluster_cache_ttl_ms and last_distance == distance:
+                return target_id
+        target_id = target_fn(distance)
+        setattr(self, cache_attr, (now, target_id, distance))
+        return target_id
 
     def GetAppropiateTarget(self, slot: int) -> int:
         from .utils import HasIllusionaryWeaponry
@@ -642,11 +660,15 @@ class CombatClass:
             if v_target == 0 and not targeting_strict:
                 v_target = get_nearest_enemy()
         elif target_allegiance == Skilltarget.EnemyClusteredNearby:
-            v_target = TargetEnemyClusteredNearby(self.get_combat_distance())
+            v_target = self._get_cluster_target_cached(
+                TargetEnemyClusteredNearby, "_cluster_nearby_cache"
+            )
             if v_target == 0 and not targeting_strict:
                 v_target = get_nearest_enemy()
         elif target_allegiance == Skilltarget.EnemyClusteredAdjacent:
-            v_target = TargetEnemyClusteredAdjacent(self.get_combat_distance())
+            v_target = self._get_cluster_target_cached(
+                TargetEnemyClusteredAdjacent, "_cluster_adj_cache"
+            )
             if v_target == 0 and not targeting_strict:
                 v_target = get_nearest_enemy()
         elif target_allegiance == Skilltarget.EnemyAttacking:
