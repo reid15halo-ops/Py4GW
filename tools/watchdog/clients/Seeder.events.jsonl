@@ -1,3 +1,0 @@
-{"type": "client", "ts": "2026-04-07T11:28:33", "account": "Seeder", "kind": "SPAWN", "pid": 39784, "path": "C:\\Program Files\\GUILD WARS Seeder\\Gw.exe", "title": "Guild Wars Reforged", "memory_mb": 592.0}
-{"type": "client", "ts": "2026-04-07T11:46:59", "account": "Seeder", "kind": "MEM_UP", "pid": 39784, "delta_mb": 55.4, "now_mb": 649.7}
-{"type": "client", "ts": "2026-04-07T12:16:19", "account": "Seeder", "kind": "EXIT", "pid": 39784, "reason": "process_gone", "last_title": "Guild Wars Reforged", "last_memory_mb": 491.4}

@@ -79,6 +79,15 @@ follow_map_entry_signature: tuple[int, int, int, int] | None = None
 follow_require_front_after_map_entry = False
 follow_throttle_timer = ThrottledTimer(300)
 follow_throttle_timer.Start()
+_headless_runtime = None
+
+
+def _get_headless_runtime():
+    global _headless_runtime
+    if _headless_runtime is None:
+        from HeroAI.headless_tree import HeroAIHeadlessTree
+        _headless_runtime = HeroAIHeadlessTree()
+    return _headless_runtime
 
 def _combat_bumper_follow_target(raw_target_position: tuple[float, float]) -> tuple[float, float]:
     probe_position = Player.GetXY()
@@ -194,7 +203,8 @@ def Follow() -> BehaviorTree.NodeState:
             xx += random.uniform(-5.0, 5.0)
             yy += random.uniform(-5.0, 5.0)
 
-    ActionQueueManager().ResetQueue("ACTION")
+    if not in_aggro:
+        ActionQueueManager().ResetQueue("ACTION")
     if follow_z == 0:
         #Player.Move(xx, yy, follow_z)
         Player.Move(xx, yy)
@@ -292,7 +302,7 @@ def draw():
     PyImGui.end()
 
 def main():
-    HeroAI_Tree.tick()
+    _get_headless_runtime().tick()
 
     
 

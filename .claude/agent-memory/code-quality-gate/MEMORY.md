@@ -1,0 +1,15 @@
+- [HeroAI review patterns](review_patterns_heroai.md) — Recurring quality patterns: salvage dialog handling, error throttling, jitter gaps
+- [Review patterns 2026-03-28](review_patterns_2026_03_28.md) — DRY violations, error counter boilerplate, print-vs-ConsoleLog across HeroAI and Messaging
+- [HeroAI code style patterns](review_heroai_style_2026_03_28.md) — Dual logging APIs, repeated boilerplate, magic number duplication across HeroAI/
+- [Security review 2026-03-28](review_security_2026_03_28.md) — BT reset() non-propagation, INI race on 6 clients, silent exceptions in new features
+- [Cross-file constant duplication](review_cross_file_constants.md) — INI paths duplicated between HeroAI.py and MultiboxCommander.py; profession ID sets duplicated in targeting.py
+- [HeroAI main() density](review_heroai_main_density.md) — main() accumulating inlined subsystems; push for extraction to named helpers
+- [Architecture review 2026-03-28](review_architecture_2026_03_28.md) — Interrupt deconfliction, BT watchdog, outpost reporter: INI contention, dead vars, DRY gaps
+- [Gemini Commander security audit](review_gemini_commander_security.md) — Path traversal in debugger, PII leak via to_dict email, MASTER_EMAIL duplication
+- [Gemini Commander full review](review_gemini_commander_2026_03_28.md) — 4/10: PII to Google API, unsafe atomic write, no output validation, stale INI on crash
+- [Pre-commit sweep 2026-03-28](review_precommit_2026_03_28.md) — 9/10 approved: BT reset fix, aggro outside throttle, merchant model ID, 15 command wrappers, overlay defaults
+- [Outpost autonomy audit 2026-03-29](review_outpost_autonomy_audit.md) — Two surviving autonomous NPC paths: Blessed auto-bless + Pycons vault restock
+- [Combat batch 2026-03-29](review_combat_batch_2026_03_29.md) — 9/10: stick-until-dead, SY! stagger, DC guard, AvSelect fix, BiP prio, dead var
+- [ActionSafetyLayer 2026-04-05](review_action_safety_layer.md) — 4/10 REVISION: fail-open exceptions, DRY dialog dup, per-frame O(n), burst-fire
+- [Asterius Scythe v3 2026-04-05](review_asterius_v3_2026_04_05.md) — 7/10: PII leak, untyped boss_state dict, positional tuples, DRY map guards
+- [Asterius debug overlay 2026-04-05](review_asterius_debug_overlay.md) — 6/10: _get_debug_state() every frame on 6 clients; likely c0000005 cause

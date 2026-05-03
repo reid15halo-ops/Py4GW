@@ -1,2 +1,0 @@
-{"type": "client", "ts": "2026-04-07T11:28:33", "account": "HealDerv", "kind": "SPAWN", "pid": 43572, "path": "C:\\Program Files\\GUILD WARS HealDerv\\Gw.exe", "title": "Guild Wars Reforged", "memory_mb": 585.8}
-{"type": "client", "ts": "2026-04-07T12:16:19", "account": "HealDerv", "kind": "EXIT", "pid": 43572, "reason": "process_gone", "last_title": "Guild Wars Reforged", "last_memory_mb": 499.6}

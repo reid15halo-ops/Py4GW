@@ -209,7 +209,9 @@ def execute_follower_follow(
             xx += random.uniform(-5.0, 5.0)
             yy += random.uniform(-5.0, 5.0)
 
-    ActionQueueManager().ResetQueue("ACTION")
+    if not party_in_aggro:
+        ActionQueueManager().ResetQueue("ACTION")
+
     if follow_z == 0:
         Player.Move(xx, yy)
     else:

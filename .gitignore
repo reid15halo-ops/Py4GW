@@ -6,6 +6,7 @@ py4gw_accounts.json
 GodTools.py
 god_tools_src/*
 Py4GW.ini
+!Widgets/Automation/Bots/Farmers/Events/Py4GW.ini
 
 # 1. Ignore ALL .ini files in Settings and subfolders
 Settings/**/*.ini
@@ -218,3 +219,16 @@ cython_debug/
 # macOS system files
 .DS_Store
 /Sources/frenkeyLib/Scripts/output
+
+# Watchdog data files (large/ephemeral — only track clients/*.current.json)
+tools/watchdog/events.jsonl
+tools/watchdog/SESSION.md
+tools/watchdog/.*.json
+tools/watchdog/screenshots/
+tools/watchdog/clients/*.events.jsonl
+
+# Injection logs (scattered per-widget)
+Py4GW_injection_log.txt
+
+# Backup files
+*.bak

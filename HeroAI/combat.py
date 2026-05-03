@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional, Protocol
 
 import Py4GW
-from Py4GWCoreLib import Player, GLOBAL_CACHE, SpiritModelID, Timer, Agent, Routines, Range, Allegiance, AgentArray
+from Py4GWCoreLib import Player, GLOBAL_CACHE, SpiritModelID, Timer, Agent, Routines, Range, Allegiance, AgentArray, Map
 from Py4GWCoreLib import Weapon, Effects
 from Py4GWCoreLib.enums import SPIRIT_BUFF_MAP, ModelID
 from .custom_skill import CustomSkillClass
@@ -100,6 +100,12 @@ class CombatClass:
         """
         self.cached_data: CacheData | None = None
         self.active_spirit_buff_skill_ids: set[int] | None = None
+        self._cached_enemy_arrays: dict[tuple, tuple[float, list]] = {}
+        self._cached_ally_arrays: dict[tuple, tuple[float, list]] = {}
+        self._cached_spirit_arrays: dict[tuple, tuple[float, list]] = {}
+        self._cached_minion_arrays: dict[tuple, tuple[float, list]] = {}
+        self._ARRAY_CACHE_TTL = 0.25
+        self._ARRAY_CACHE_CELL_SIZE = 250.0
         
         self.skills: list[CombatClass.SkillData] = []
         self.skill_order: list[int] = [0] * MAX_SKILLS
@@ -237,6 +243,59 @@ class CombatClass:
         self.leave_junundu = GLOBAL_CACHE.Skill.GetID("Leave_Junundu")
         self.junundu_tunnel = GLOBAL_CACHE.Skill.GetID("Junundu_Tunnel")
         
+    def _array_cache_key(self, x: float, y: float, range_area: float, *extra) -> tuple:
+        return (
+            int(Map.GetMapID() or 0),
+            float(range_area),
+            int(float(x) // self._ARRAY_CACHE_CELL_SIZE),
+            int(float(y) // self._ARRAY_CACHE_CELL_SIZE),
+            *extra,
+        )
+
+    def _get_cached_enemy_array(self, x: float, y: float, range_area: float) -> list:
+        import time
+        now = time.time()
+        key = self._array_cache_key(x, y, range_area)
+        entry = self._cached_enemy_arrays.get(key)
+        if entry and now - entry[0] < self._ARRAY_CACHE_TTL:
+            return entry[1]
+        result = Routines.Agents.GetFilteredEnemyArray(x, y, range_area)
+        self._cached_enemy_arrays[key] = (now, result)
+        return result
+
+    def _get_cached_ally_array(self, x: float, y: float, range_area: float, other_ally: bool = True) -> list:
+        import time
+        now = time.time()
+        key = self._array_cache_key(x, y, range_area, bool(other_ally))
+        entry = self._cached_ally_arrays.get(key)
+        if entry and now - entry[0] < self._ARRAY_CACHE_TTL:
+            return entry[1]
+        result = Routines.Agents.GetFilteredAllyArray(x, y, range_area, other_ally=other_ally)
+        self._cached_ally_arrays[key] = (now, result)
+        return result
+
+    def _get_cached_spirit_array(self, x: float, y: float, range_area: float) -> list:
+        import time
+        now = time.time()
+        key = self._array_cache_key(x, y, range_area)
+        entry = self._cached_spirit_arrays.get(key)
+        if entry and now - entry[0] < self._ARRAY_CACHE_TTL:
+            return entry[1]
+        result = Routines.Agents.GetFilteredSpiritArray(x, y, range_area)
+        self._cached_spirit_arrays[key] = (now, result)
+        return result
+
+    def _get_cached_minion_array(self, x: float, y: float, range_area: float) -> list:
+        import time
+        now = time.time()
+        key = self._array_cache_key(x, y, range_area)
+        entry = self._cached_minion_arrays.get(key)
+        if entry and now - entry[0] < self._ARRAY_CACHE_TTL:
+            return entry[1]
+        result = Routines.Agents.GetFilteredMinionArray(x, y, range_area)
+        self._cached_minion_arrays[key] = (now, result)
+        return result
+
     def Update(self, cached_data: CacheData) -> None:
         self.cached_data = cached_data
         self.in_aggro = cached_data.data.in_aggro
@@ -759,7 +818,7 @@ class CombatClass:
             v_target = GetEnemyKnockedDown(self.get_combat_distance())
             if v_target == 0 and not targeting_strict:
                 v_target = get_nearest_enemy()
-        elif target_allegiance == Skilltarget.AllyMartialRanged:
+        elif target_allegiance == Skilltarget.EnemyMartialRanged:
             v_target = Routines.Agents.GetNearestEnemyRanged(self.get_combat_distance())
             if v_target == 0 and not targeting_strict:
                 v_target = get_nearest_enemy()
@@ -1262,13 +1321,14 @@ class CombatClass:
             if Agent.IsHoldingItem(vTarget):
                 number_of_features += 1
 
-        if Conditions.LessLife != 0:
-            if Routines.Checks.Agents.GetHealth(vTarget) < Conditions.LessLife:
-                number_of_features += 1
-
-        if Conditions.MoreLife != 0:
-            if Routines.Checks.Agents.GetHealth(vTarget) > Conditions.MoreLife:
-                number_of_features += 1
+        if Conditions.LessLife != 0 or Conditions.MoreLife != 0:
+            target_health = Routines.Checks.Agents.GetHealth(vTarget)
+            if Conditions.LessLife != 0:
+                if target_health < Conditions.LessLife:
+                    number_of_features += 1
+            if Conditions.MoreLife != 0:
+                if target_health > Conditions.MoreLife:
+                    number_of_features += 1
         
         if Conditions.LessEnergy != 0:
             from .utils import GetEnergyValues
@@ -1361,37 +1421,36 @@ class CombatClass:
                     if self.HasEffect(pet_id,self.skills[slot].skill_id ):
                         return False
             
-        if Conditions.EnemyCount != 0:
+        if Conditions.EnemyCount != 0 or Conditions.AlliesInRange != 0 or Conditions.SpiritsInRange != 0 or Conditions.MinionsInRange != 0:
             player_pos = Player.GetXY()
-            enemy_array = Routines.Agents.GetFilteredEnemyArray(player_pos[0], player_pos[1], Conditions.EnemiesInRange)
-            if len(enemy_array) >= Conditions.EnemyCount:
-                number_of_features += 1
-            else:
-                return False
-                
-        if Conditions.AlliesInRange != 0:
-            player_pos = Player.GetXY()
-            ally_array = ally_array = Routines.Agents.GetFilteredAllyArray(player_pos[0], player_pos[1], Conditions.AlliesInRangeArea,other_ally=True)
-            if len(ally_array) >= Conditions.AlliesInRange:
-                number_of_features += 1
-            else:
-                return False
-                
-        if Conditions.SpiritsInRange != 0:
-            player_pos = Player.GetXY()
-            ally_array = ally_array = Routines.Agents.GetFilteredSpiritArray(player_pos[0], player_pos[1], Conditions.SpiritsInRangeArea)
-            if len(ally_array) >= Conditions.SpiritsInRange:
-                number_of_features += 1
-            else:
-                return False
-                
-        if Conditions.MinionsInRange != 0:
-            player_pos = Player.GetXY()
-            ally_array = ally_array = Routines.Agents.GetFilteredMinionArray(player_pos[0], player_pos[1], Conditions.MinionsInRangeArea)
-            if len(ally_array) >= Conditions.MinionsInRange:
-                number_of_features += 1
-            else:
-                return False
+
+            if Conditions.EnemyCount != 0:
+                enemy_array = self._get_cached_enemy_array(player_pos[0], player_pos[1], Conditions.EnemiesInRange)
+                if len(enemy_array) >= Conditions.EnemyCount:
+                    number_of_features += 1
+                else:
+                    return False
+
+            if Conditions.AlliesInRange != 0:
+                ally_array = self._get_cached_ally_array(player_pos[0], player_pos[1], Conditions.AlliesInRangeArea, other_ally=True)
+                if len(ally_array) >= Conditions.AlliesInRange:
+                    number_of_features += 1
+                else:
+                    return False
+
+            if Conditions.SpiritsInRange != 0:
+                spirit_array = self._get_cached_spirit_array(player_pos[0], player_pos[1], Conditions.SpiritsInRangeArea)
+                if len(spirit_array) >= Conditions.SpiritsInRange:
+                    number_of_features += 1
+                else:
+                    return False
+
+            if Conditions.MinionsInRange != 0:
+                minion_array = self._get_cached_minion_array(player_pos[0], player_pos[1], Conditions.MinionsInRangeArea)
+                if len(minion_array) >= Conditions.MinionsInRange:
+                    number_of_features += 1
+                else:
+                    return False
 
         if Conditions.CloseToAggro:
             if Routines.Checks.Agents.InAggro(self.get_combat_distance()) or Routines.Checks.Agents.IsCloseToAggro():
@@ -1603,6 +1662,15 @@ class CombatClass:
         if target_id == 0 or Agent.IsDead(target_id) or (target_allegiance != "Enemy"):
             if self.ChooseTarget():
                 self.MaybeCallCombatTarget(Player.GetTargetID(), cached_data)
+                cached_data.auto_attack_time = cached_data.GetWeaponAttackAftercast()
+                cached_data.auto_attack_timer.Reset()
+                return True
+
+        elif not Routines.Checks.Agents.IsAttacking(player_id):
+            attack_reissue_time = min(cached_data.auto_attack_time or 500, 500)
+            if cached_data.auto_attack_timer.HasElapsed(attack_reissue_time):
+                self.SafeInteract(target_id)
+                self.MaybeCallCombatTarget(target_id, cached_data)
                 cached_data.auto_attack_time = cached_data.GetWeaponAttackAftercast()
                 cached_data.auto_attack_timer.Reset()
                 return True

@@ -170,6 +170,8 @@ class HeroAIHeadlessTree:
         return self._is_user_interrupting()
 
     def _follow(self) -> BehaviorTree.NodeState:
+        if self.cached_data.data.in_aggro:
+            return BehaviorTree.NodeState.FAILURE
         return execute_follower_follow(self.cached_data, self._follow_state)
 
     def IsLootingActive(self) -> bool:
@@ -246,10 +248,6 @@ class HeroAIHeadlessTree:
                     ),
                 ),
                 BehaviorTree.ActionNode(
-                    name="Follow",
-                    action_fn=lambda: self._follow(),
-                ),
-                BehaviorTree.ActionNode(
                     name="HandleCombat",
                     action_fn=lambda: (
                         self.cached_data.auto_attack_timer.Reset()
@@ -257,6 +255,10 @@ class HeroAIHeadlessTree:
                         if self._handle_combat()
                         else BehaviorTree.NodeState.FAILURE
                     ),
+                ),
+                BehaviorTree.ActionNode(
+                    name="Follow",
+                    action_fn=lambda: self._follow(),
                 ),
             ],
         )
@@ -270,7 +272,11 @@ class HeroAIHeadlessTree:
                 ),
                 BehaviorTree.ConditionNode(
                     name="DistanceSafe",
-                    condition_fn=lambda: self._distance_to_destination() < Range.SafeCompass.value,
+                    condition_fn=lambda: (
+                        self.cached_data.data.in_aggro
+                        or self.cached_data.data.party_in_aggro
+                        or self._distance_to_destination() < Range.SafeCompass.value
+                    ),
                 ),
                 BehaviorTree.ConditionNode(
                     name="NotKnockedDown",

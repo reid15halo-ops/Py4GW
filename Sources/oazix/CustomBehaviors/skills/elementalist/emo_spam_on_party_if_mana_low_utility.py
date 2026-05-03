@@ -2,7 +2,7 @@ from typing import Any, Generator, override
 
 import PyImGui
 
-from Py4GWCoreLib import GLOBAL_CACHE, Range, Agent, Player
+from Py4GWCoreLib import GLOBAL_CACHE, Range, Agent, Player, Routines
 from Sources.oazix.CustomBehaviors.PersistenceLocator import PersistenceLocator
 from Sources.oazix.CustomBehaviors.primitives.behavior_state import BehaviorState
 from Sources.oazix.CustomBehaviors.primitives.bus.event_bus import EventBus
@@ -44,6 +44,9 @@ class EmoSpamOnPartyIfManaLowUtility(CustomSkillUtilityBase):
         self.score_definition: ScoreStaticDefinition = score_definition
         self.skills: list[CustomSkillUtilityBase] = skills
 
+        # Ether Renewal skill reference — spamming only helps if ER is active
+        self._ether_renewal_skill = CustomSkill("Ether_Renewal")
+
         # Load persisted configuration or use defaults
         self.mana_low_threshold: float = float(PersistenceLocator().skills.read_or_default(self.custom_skill.skill_name, "mana_low_threshold", str(0.70)))
 
@@ -63,12 +66,18 @@ class EmoSpamOnPartyIfManaLowUtility(CustomSkillUtilityBase):
     def _evaluate(self, current_state: BehaviorState, previously_attempted_skills: list[CustomSkill]) -> float | None:
         """
         Evaluate if we should spam skills on party members.
-        Returns score if player's energy is below threshold, None otherwise.
+        Returns score if player's energy is below threshold AND Ether Renewal is active.
+        Spamming enchantments only regenerates energy when ER is up.
         """
         player_agent = Player.GetAgentID()
         player_energy_percent = Agent.GetEnergy(player_agent)
-        
+
         if player_energy_percent > self.mana_low_threshold: return None
+
+        # Only spam if Ether Renewal is active — otherwise spamming wastes our last energy
+        if self._ether_renewal_skill.skill_id != 0:
+            has_er = Routines.Checks.Effects.HasBuff(player_agent, self._ether_renewal_skill.skill_id)
+            if not has_er: return None
 
         target = self.get_target()
         if target is None: return None
@@ -77,7 +86,7 @@ class EmoSpamOnPartyIfManaLowUtility(CustomSkillUtilityBase):
         for skill_utility in self.skills:
             if skill_utility.custom_skill.skill_slot > 0:
                 return self.score_definition.get_score()
-    
+
         return None
 
     @override

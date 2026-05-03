@@ -364,6 +364,8 @@ class AutoInventoryHandler():
         rarity_filter = self._normalize_rarity_names(rarities)
         strategy = self._normalize_salvage_strategy()
         target_item_ids = list(dict.fromkeys(item_ids if item_ids is not None else [item.id for item in self._get_inventory_items()]))
+        current_inv_ids = {item.id for item in self._get_inventory_items()}
+        self.last_salvage_failed_item_ids = self.last_salvage_failed_item_ids & current_inv_ids
 
         salvaged_items = 0
         total_items = len(target_item_ids)
@@ -381,6 +383,8 @@ class AutoInventoryHandler():
         )
 
         for index, item_id in enumerate(target_item_ids, start=1):
+            if item_id in self.last_salvage_failed_item_ids:
+                continue
             item = next((candidate for candidate in self._get_inventory_items() if candidate.id == item_id), None)
             skip_reason = self._get_salvage_skip_reason(
                 item,
@@ -436,7 +440,7 @@ class AutoInventoryHandler():
 
         if salvaged_items > 0 and log:
             ConsoleLog(self.module_name, f"Salvaged {salvaged_items} items", Console.MessageType.Success)
-        self.last_salvage_failed_item_ids = failed_item_ids
+        self.last_salvage_failed_item_ids = self.last_salvage_failed_item_ids | failed_item_ids
 
              
              

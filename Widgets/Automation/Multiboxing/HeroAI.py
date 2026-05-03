@@ -27,6 +27,7 @@ from Py4GWCoreLib import (GLOBAL_CACHE, Agent, LootConfig,
 
 #region GLOBALS
 LOOT_THROTTLE_CHECK = ThrottledTimer(250)
+COMBAT_SKIP_LOG_THROTTLE = ThrottledTimer(1000)
 
 cached_data = CacheData()
 heroai_build = HeroAI_Build(cached_data)
@@ -101,14 +102,36 @@ def HandleCombat(cached_data: CacheData):
     options = cached_data.account_options
     
     if not options or not options.Combat:  # halt operation if combat is disabled
+        _log_combat_skip("combat option disabled")
         return False
     
     if not cached_data.data.in_aggro:
+        _log_combat_skip("not in local aggro")
         return False
 
     heroai_build.set_cached_data(cached_data)
     next(heroai_build.ProcessCombat(), None)
-    return heroai_build.DidTickSucceed()
+    did_succeed = heroai_build.DidTickSucceed()
+    if not did_succeed:
+        _log_combat_skip("no castable skill or attack action")
+    return did_succeed
+
+
+def _log_combat_skip(reason: str) -> None:
+    try:
+        from HeroAI.settings import Settings
+        if not Settings().PrintDebug:
+            return
+        if not COMBAT_SKIP_LOG_THROTTLE.IsExpired():
+            return
+        COMBAT_SKIP_LOG_THROTTLE.Reset()
+        Py4GW.Console.Log(
+            MODULE_NAME,
+            f"Combat skipped: {reason}",
+            Py4GW.Console.MessageType.Debug,
+        )
+    except Exception:
+        pass
 
 
 
@@ -271,6 +294,9 @@ GlobalGuardNode = BehaviorTree.SequenceNode(
         BehaviorTree.ConditionNode(
             name="DistanceSafe",
             condition_fn=lambda:
+                cached_data.data.in_aggro
+                or cached_data.data.party_in_aggro
+                or
                 HeroAI_FloatingWindows.DistanceToDestination(cached_data)
                 < Range.SafeCompass.value
         ),
@@ -298,9 +324,18 @@ CastingBlockNode = BehaviorTree.ConditionNode(
     
     
 def movement_interrupt() -> BehaviorTree.NodeState:
+    if cached_data.data.in_aggro:
+        return BehaviorTree.NodeState.FAILURE
+
     if Agent.IsMoving(Player.GetAgentID()):
         return BehaviorTree.NodeState.SUCCESS   # block lower-priority automation for this tick
     return BehaviorTree.NodeState.FAILURE      # allow next branch
+
+
+def follow_interrupt() -> BehaviorTree.NodeState:
+    if cached_data.data.in_aggro:
+        return BehaviorTree.NodeState.FAILURE
+    return Follow(cached_data)
 
 
 def user_interrupt() -> BehaviorTree.NodeState:
@@ -339,18 +374,7 @@ HeroAI_BT = BehaviorTree.SequenceNode(name="HeroAI_Main_BT",
                     action_fn=lambda: user_interrupt(),
                 ),
 
-                BehaviorTree.ActionNode(
-                    name="MovementInterrupt",
-                    action_fn=lambda: movement_interrupt(),
-                ),
-
-                # Follow
-                BehaviorTree.ActionNode(
-                    name="Follow",
-                    action_fn=lambda: Follow(cached_data),
-                ),
-
-                # Combat
+                # Combat has priority over formation movement while aggro is active.
                 BehaviorTree.ActionNode(
                     name="HandleCombat",
                     action_fn=lambda: (
@@ -360,6 +384,18 @@ HeroAI_BT = BehaviorTree.SequenceNode(name="HeroAI_Main_BT",
                         else BehaviorTree.NodeState.FAILURE
                     ),
                 ),
+
+                BehaviorTree.ActionNode(
+                    name="MovementInterrupt",
+                    action_fn=lambda: movement_interrupt(),
+                ),
+
+                # Follow
+                BehaviorTree.ActionNode(
+                    name="Follow",
+                    action_fn=lambda: follow_interrupt(),
+                ),
+
             ],
         ),
     ],

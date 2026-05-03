@@ -1,3 +1,0 @@
-{"type": "client", "ts": "2026-04-07T11:28:33", "account": "Main", "kind": "SPAWN", "pid": 26172, "path": "C:\\Program Files\\GUILD WARS Main\\Gw.exe", "title": "Guild Wars Reforged", "memory_mb": 632.6}
-{"type": "client", "ts": "2026-04-07T11:46:59", "account": "Main", "kind": "MEM_UP", "pid": 26172, "delta_mb": 80.9, "now_mb": 695.6}
-{"type": "client", "ts": "2026-04-07T12:16:19", "account": "Main", "kind": "EXIT", "pid": 26172, "reason": "process_gone", "last_title": "Guild Wars Reforged", "last_memory_mb": 595.0}

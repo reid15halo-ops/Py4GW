@@ -1,4 +1,6 @@
-from Py4GWCoreLib import GLOBAL_CACHE, Utils, AgentArray, Routines, Agent, Player, Party
+import time as _time
+
+from Py4GWCoreLib import GLOBAL_CACHE, Utils, AgentArray, Routines, Agent, Player, Party, Map
 from Py4GWCoreLib.EnemyBlacklist import EnemyBlacklist
 from .constants import (
     MASTER_EMAIL,
@@ -7,6 +9,53 @@ from .constants import (
     BLOOD_RITUAL,
     MAX_NUM_PLAYERS,
 )
+
+# Module-level enemy array cache. Keep this short and position-aware so moving
+# followers do not keep stale empty enemy scans after entering combat range.
+_ENEMY_CACHE_TTL = 0.25
+_ENEMY_CACHE_CELL_SIZE = 250.0
+_enemy_cache: dict[tuple[int, float, int, int], tuple[float, list]] = {}
+_enemy_pos_cache_data: tuple[float, tuple[int, float, int, int] | None, list[tuple[int, float, float]]] = (0.0, None, [])
+
+
+def _enemy_cache_key(px: float, py: float, area: float) -> tuple[int, float, int, int]:
+    return (
+        int(Map.GetMapID() or 0),
+        float(area),
+        int(float(px) // _ENEMY_CACHE_CELL_SIZE),
+        int(float(py) // _ENEMY_CACHE_CELL_SIZE),
+    )
+
+
+def _get_cached_enemies(px: float, py: float, area: float) -> list:
+    """Return filtered enemy array, cached briefly per range and position cell."""
+    now = _time.time()
+    key = _enemy_cache_key(px, py, area)
+    entry = _enemy_cache.get(key)
+    if entry and now - entry[0] < _ENEMY_CACHE_TTL:
+        return entry[1]
+    result = Routines.Agents.GetFilteredEnemyArray(px, py, area)
+    _enemy_cache[key] = (now, result)
+    return result
+
+
+def _get_cached_enemy_positions(px: float, py: float, area: float) -> list[tuple[int, float, float]]:
+    """Return [(agent_id, x, y)] for alive enemies, cached briefly."""
+    global _enemy_pos_cache_data
+    now = _time.time()
+    key = _enemy_cache_key(px, py, area)
+    if (
+        _enemy_pos_cache_data[1] == key
+        and now - _enemy_pos_cache_data[0] < _ENEMY_CACHE_TTL
+    ):
+        return _enemy_pos_cache_data[2]
+    enemies = _get_cached_enemies(px, py, area)
+    enemies = AgentArray.Filter.ByCondition(
+        enemies, lambda aid: Agent.IsValid(aid) and not Agent.IsDead(aid)
+    )
+    positions = [(eid, *Agent.GetXY(eid)) for eid in enemies]
+    _enemy_pos_cache_data = (now, key, positions)
+    return positions
 
 
 def _filter_blacklisted(agent_id: int) -> int:
@@ -37,7 +86,17 @@ def FilterAllyArray(array, distance, other_ally=False, filter_skill_id=0):
     
     return array
 
-def SortAlliesByPartyPosition(agent_array):
+_party_order_cache: tuple[float, dict, dict, dict, int] = (0.0, {}, {}, {}, 0)
+_PARTY_ORDER_TTL = 3.0
+
+
+def _get_party_order() -> tuple[dict, dict, dict, int]:
+    """Return (player_order, hero_order, pet_owner_order, fallback_index), cached 3s."""
+    global _party_order_cache
+    now = _time.time()
+    if now - _party_order_cache[0] < _PARTY_ORDER_TTL:
+        return _party_order_cache[1], _party_order_cache[2], _party_order_cache[3], _party_order_cache[4]
+
     player_order = {}
     for index, player in enumerate(Party.GetPlayers() or []):
         agent_id = int(Party.Players.GetAgentIDByLoginNumber(player.login_number) or 0)
@@ -58,6 +117,12 @@ def SortAlliesByPartyPosition(agent_array):
             pet_owner_order[pet_id] = order
 
     fallback_index = hero_start + len(hero_order)
+    _party_order_cache = (now, player_order, hero_order, pet_owner_order, fallback_index)
+    return player_order, hero_order, pet_owner_order, fallback_index
+
+
+def SortAlliesByPartyPosition(agent_array):
+    player_order, hero_order, pet_owner_order, fallback_index = _get_party_order()
 
     def sort_key(agent_id):
         if agent_id in player_order:
@@ -289,12 +354,8 @@ def TargetClusteredEnemy(
         )
 
     player_x, player_y = Player.GetXY()
-    enemy_array = Routines.Agents.GetFilteredEnemyArray(player_x, player_y, area)
-    enemy_array = AgentArray.Filter.ByCondition(
-        enemy_array,
-        lambda agent_id: Agent.IsValid(agent_id) and not Agent.IsDead(agent_id),
-    )
-    if not enemy_array:
+    enemy_positions = _get_cached_enemy_positions(player_x, player_y, area)
+    if not enemy_positions:
         return 0
 
     aoe_range = GLOBAL_CACHE.Skill.Data.GetAoERange(skill_id) or Range.Nearby.value
@@ -302,36 +363,36 @@ def TargetClusteredEnemy(
         cluster_radius if cluster_radius is not None else Range.Earshot.value
     )
     player_pos = (player_x, player_y)
+    cluster_r_sq = effective_cluster_radius * effective_cluster_radius
+    aoe_r_sq = aoe_range * aoe_range
 
     scored: list[tuple[int, int, float, float, int]] = []
-    for agent_id in enemy_array:
-        target_x, target_y = Agent.GetXY(agent_id)
+    for agent_id, target_x, target_y in enemy_positions:
+        # Compute blob and AoE hits via distance math; no re-scan.
+        blob_ids = []
+        aoe_count = 0
+        cx_sum, cy_sum = 0.0, 0.0
+        for eid, ex, ey in enemy_positions:
+            dx, dy = ex - target_x, ey - target_y
+            dist_sq = dx * dx + dy * dy
+            if dist_sq <= cluster_r_sq:
+                blob_ids.append(eid)
+                cx_sum += ex
+                cy_sum += ey
+            if dist_sq <= aoe_r_sq:
+                aoe_count += 1
 
-        # Use aggro area to define the local blob, then prefer the center-ish
-        # target within that blob that also maximizes actual AoE hits.
-        blob = Routines.Agents.GetFilteredEnemyArray(
-            target_x, target_y, effective_cluster_radius
-        )
-        blob = AgentArray.Filter.ByCondition(
-            blob,
-            lambda eid: Agent.IsValid(eid) and not Agent.IsDead(eid),
-        )
-        if not blob:
+        if not blob_ids:
             continue
 
-        aoe_hits = Routines.Agents.GetFilteredEnemyArray(target_x, target_y, aoe_range)
-        aoe_hits = AgentArray.Filter.ByCondition(
-            aoe_hits,
-            lambda eid: Agent.IsValid(eid) and not Agent.IsDead(eid),
-        )
-
-        center_x = sum(Agent.GetXY(eid)[0] for eid in blob) / len(blob)
-        center_y = sum(Agent.GetXY(eid)[1] for eid in blob) / len(blob)
+        n = len(blob_ids)
+        center_x = cx_sum / n
+        center_y = cy_sum / n
         center_distance = Utils.Distance((target_x, target_y), (center_x, center_y))
         player_distance = Utils.Distance(player_pos, (target_x, target_y))
 
         scored.append(
-            (len(aoe_hits), len(blob), center_distance, player_distance, agent_id)
+            (aoe_count, n, center_distance, player_distance, agent_id)
         )
 
     if not scored:
@@ -426,25 +487,20 @@ def TargetAllyWeaponSpell(
     if not candidates:
         return 0
 
-    def _enemies_near(agent_id):
-        ally_x, ally_y = Agent.GetXY(agent_id)
-        nearby = Routines.Agents.GetFilteredEnemyArray(ally_x, ally_y, Range.Earshot.value)
-        nearby = AgentArray.Filter.ByCondition(
-            nearby,
-            lambda enemy_id: Agent.IsValid(enemy_id) and not Agent.IsDead(enemy_id),
-        )
-        return len(nearby)
+    _px, _py = Player.GetXY()
+    _cached_epos = _get_cached_enemy_positions(_px, _py, Range.SafeCompass.value)
+    _earshot_sq = Range.Earshot.value * Range.Earshot.value
 
-    player_pos = Player.GetXY()
-    scored = [
-        (
-            -_enemies_near(agent_id),
+    player_pos = (_px, _py)
+    scored = []
+    for agent_id in candidates:
+        ax, ay = Agent.GetXY(agent_id)
+        scored.append((
+            -sum(1 for _, ex, ey in _cached_epos if (ex - ax) ** 2 + (ey - ay) ** 2 <= _earshot_sq),
             Agent.GetHealth(agent_id),
-            Utils.Distance(player_pos, Agent.GetXY(agent_id)),
+            Utils.Distance(player_pos, (ax, ay)),
             agent_id,
-        )
-        for agent_id in candidates
-    ]
+        ))
     scored.sort()
     return scored[0][3]
 
@@ -462,11 +518,7 @@ def TargetMeleeOrMartialClusterEnemy(
     then player-distance. require_attacking=True hard-requires IsAttacking.
     """
     player_x, player_y = Player.GetXY()
-    enemy_array = Routines.Agents.GetFilteredEnemyArray(player_x, player_y, max_distance)
-    enemy_array = AgentArray.Filter.ByCondition(
-        enemy_array,
-        lambda agent_id: Agent.IsValid(agent_id) and not Agent.IsDead(agent_id),
-    )
+    enemy_array = [eid for eid, _, _ in _get_cached_enemy_positions(player_x, player_y, max_distance)]
     if not enemy_array:
         return 0
 
@@ -494,17 +546,18 @@ def TargetMeleeOrMartialClusterEnemy(
         return 0
 
     player_pos = (player_x, player_y)
+    aoe_r_sq = aoe_range * aoe_range
+    # Pre-cache all enemy positions; one scan, no nested GetFilteredEnemyArray.
+    all_positions = [(eid, *Agent.GetXY(eid)) for eid in enemy_array]
     scored: list[tuple[int, float, int]] = []
     for agent_id in candidates:
         target_x, target_y = Agent.GetXY(agent_id)
-        nearby = Routines.Agents.GetFilteredEnemyArray(target_x, target_y, aoe_range)
-        nearby = AgentArray.Filter.ByCondition(
-            nearby,
-            lambda eid: Agent.IsValid(eid) and not Agent.IsDead(eid),
-        )
-        cluster_score = max(0, len(nearby) - 1)
-        distance = Utils.Distance(player_pos, Agent.GetXY(agent_id))
-        scored.append((cluster_score, distance, agent_id))
+        cluster_score = sum(
+            1 for _, ex, ey in all_positions
+            if (ex - target_x) ** 2 + (ey - target_y) ** 2 <= aoe_r_sq
+        ) - 1
+        distance = Utils.Distance(player_pos, (target_x, target_y))
+        scored.append((max(0, cluster_score), distance, agent_id))
 
     scored.sort(key=lambda item: (-item[0], item[1]))
     return _filter_blacklisted(scored[0][2])
@@ -516,17 +569,12 @@ def _target_enemy_clustered(
 ) -> int:
     """Internal: enemy with the most neighbours within *radius* (squared-distance, pre-cached positions)."""
     player_x, player_y = Player.GetXY()
-    enemy_array = Routines.Agents.GetFilteredEnemyArray(player_x, player_y, max_distance)
-    enemy_array = AgentArray.Filter.ByCondition(
-        enemy_array,
-        lambda agent_id: Agent.IsValid(agent_id) and not Agent.IsDead(agent_id),
-    )
-    n = len(enemy_array)
+    cached_pos = _get_cached_enemy_positions(player_x, player_y, max_distance)
+    n = len(cached_pos)
     if n == 0:
         return 0
 
-    # Pre-fetch positions once — O(n) native calls instead of O(n²).
-    positions = [(agent_id, Agent.GetXY(agent_id)) for agent_id in enemy_array]
+    positions = [(aid, (ex, ey)) for aid, ex, ey in cached_pos]
     radius_sq = radius * radius
 
     best_id, best_count = 0, -1
@@ -573,11 +621,7 @@ def TargetCasterClusterEnemy(
     ASC. Returns 0 if no caster is in range.
     """
     player_x, player_y = Player.GetXY()
-    enemy_array = Routines.Agents.GetFilteredEnemyArray(player_x, player_y, max_distance)
-    enemy_array = AgentArray.Filter.ByCondition(
-        enemy_array,
-        lambda agent_id: Agent.IsValid(agent_id) and not Agent.IsDead(agent_id),
-    )
+    enemy_array = [eid for eid, _, _ in _get_cached_enemy_positions(player_x, player_y, max_distance)]
     if not enemy_array:
         return 0
 
@@ -586,19 +630,19 @@ def TargetCasterClusterEnemy(
         return 0
 
     aoe_range = GLOBAL_CACHE.Skill.Data.GetAoERange(skill_id) or Range.Nearby.value
+    aoe_r_sq = aoe_range * aoe_range
 
+    # Pre-cache caster positions; one scan, no nested GetFilteredEnemyArray.
+    caster_positions = [(cid, *Agent.GetXY(cid)) for cid in casters]
     player_pos = (player_x, player_y)
     scored: list[tuple[int, float, int]] = []
-    for agent_id in casters:
-        target_x, target_y = Agent.GetXY(agent_id)
-        nearby = Routines.Agents.GetFilteredEnemyArray(target_x, target_y, aoe_range)
-        nearby = AgentArray.Filter.ByCondition(
-            nearby,
-            lambda eid: Agent.IsValid(eid) and not Agent.IsDead(eid) and Agent.IsCaster(eid),
-        )
-        cluster_score = max(0, len(nearby) - 1)
-        distance = Utils.Distance(player_pos, Agent.GetXY(agent_id))
-        scored.append((cluster_score, distance, agent_id))
+    for agent_id, target_x, target_y in caster_positions:
+        cluster_score = sum(
+            1 for _, cx, cy in caster_positions
+            if (cx - target_x) ** 2 + (cy - target_y) ** 2 <= aoe_r_sq
+        ) - 1
+        distance = Utils.Distance(player_pos, (target_x, target_y))
+        scored.append((max(0, cluster_score), distance, agent_id))
 
     scored.sort(key=lambda item: (-item[0], item[1]))
     return _filter_blacklisted(scored[0][2])

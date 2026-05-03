@@ -1,13 +1,29 @@
 from __future__ import annotations
 
 import math
+import time as _time
 from dataclasses import dataclass
 
 from Py4GWCoreLib import Agent, Range, ThrottledTimer, Utils
 from Py4GWCoreLib.AgentArray import AgentArray
 from Py4GWCoreLib.IniManager import IniManager
+from Py4GWCoreLib.Map import Map
 from Py4GWCoreLib.Player import Player
 from Py4GWCoreLib.Py4GWcorelib import VectorFields
+
+_VF_CACHE_TTL = 0.25
+_VF_CACHE_CELL_SIZE = 250.0
+_vf_ally_cache: tuple[float, tuple[int, int, int] | None, list[tuple[float, float]]] = (0.0, None, [])
+_vf_enemy_cache: tuple[float, tuple[int, int, int] | None, list[tuple[float, float]]] = (0.0, None, [])
+
+
+def _vf_cache_key() -> tuple[int, int, int]:
+    px, py = Player.GetXY()
+    return (
+        int(Map.GetMapID() or 0),
+        int(float(px) // _VF_CACHE_CELL_SIZE),
+        int(float(py) // _VF_CACHE_CELL_SIZE),
+    )
 
 
 @dataclass(slots=True)
@@ -231,6 +247,12 @@ def _accumulate_repulsion(
 
 
 def _collect_nearby_allies() -> list[tuple[float, float]]:
+    global _vf_ally_cache
+    now = _time.time()
+    key = _vf_cache_key()
+    if _vf_ally_cache[1] == key and now - _vf_ally_cache[0] < _VF_CACHE_TTL:
+        return _vf_ally_cache[2]
+
     my_agent_id = Player.GetAgentID()
     positions: list[tuple[float, float]] = []
     for agent_id in AgentArray.GetAllyArray():
@@ -243,15 +265,24 @@ def _collect_nearby_allies() -> list[tuple[float, float]]:
             continue
         positions.append(Agent.GetXY(agent_id))
 
+    _vf_ally_cache = (now, key, positions)
     return positions
 
 
 def _collect_nearby_enemies() -> list[tuple[float, float]]:
+    global _vf_enemy_cache
+    now = _time.time()
+    key = _vf_cache_key()
+    if _vf_enemy_cache[1] == key and now - _vf_enemy_cache[0] < _VF_CACHE_TTL:
+        return _vf_enemy_cache[2]
+
     positions: list[tuple[float, float]] = []
     for agent_id in AgentArray.GetEnemyArray():
         if not Agent.IsValid(agent_id) or not Agent.IsAlive(agent_id):
             continue
         positions.append(Agent.GetXY(agent_id))
+
+    _vf_enemy_cache = (now, key, positions)
     return positions
 
 
