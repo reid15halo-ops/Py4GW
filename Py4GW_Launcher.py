@@ -736,17 +736,17 @@ class GWLauncher:
                 log_history.append(f"Inject DLL - Failed to open process. Error: {ctypes.get_last_error()}")
                 return False
 
-            # Get LoadLibraryA address
+            # Get LoadLibraryW address (Unicode) to support non-ASCII install paths
             loadlib_addr = kernel32.GetProcAddress(
                 kernel32._handle,
-                b"LoadLibraryA"
+                b"LoadLibraryW"
             )
             if not loadlib_addr:
-                log_history.append("Inject DLL - Failed to get LoadLibraryA address")
+                log_history.append("Inject DLL - Failed to get LoadLibraryW address")
                 return False
 
-            # Prepare DLL path
-            dll_path_bytes = dll_path.encode('ascii') + b'\0'
+            # Prepare DLL path as UTF-16LE (wchar_t) for LoadLibraryW
+            dll_path_bytes = dll_path.encode('utf-16-le') + b'\0\0'
             path_size = len(dll_path_bytes)
 
             # Allocate memory in target process

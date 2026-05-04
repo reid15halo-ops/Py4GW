@@ -16,7 +16,7 @@ class Player:
 
     @staticmethod
     def _hwnd_account_fallback() -> str:
-        """Deterministic ASCII-safe account identifier for unsupported/missing email cases."""
+        """Deterministic account identifier fallback for missing/corrupt email cases."""
         try:
             hwnd = int(Py4GW.Console.get_gw_window_handle() or 0)
         except Exception:
@@ -28,7 +28,9 @@ class Player:
     def _sanitize_account_email_or_fallback(account_email: str | None) -> str:
         """
         Normalize account email for shared-memory usage.
-        Falls back to HWND identity for unsupported encodings/non-ASCII accounts.
+        Falls back to HWND identity only for truly empty/corrupt strings.
+        Non-ASCII characters (e.g. Chinese, Korean, Japanese) are valid and
+        supported by the c_wchar shared-memory buffers.
         """
         if not account_email:
             return Player._hwnd_account_fallback()
@@ -37,9 +39,10 @@ class Player:
             if not account_email:
                 return Player._hwnd_account_fallback()
 
-            # Some account strings (e.g. unsupported locale/corrupt decode cases) are not safe
-            # for downstream paths; collapse them to HWND identity.
-            account_email.encode("ascii")
+            # Strip null bytes that would corrupt c_wchar arrays.
+            account_email = account_email.replace('\x00', '')
+            if not account_email:
+                return Player._hwnd_account_fallback()
 
             if len(account_email) > Player._ACCOUNT_EMAIL_MAX_LEN:
                 account_email = account_email[:Player._ACCOUNT_EMAIL_MAX_LEN]

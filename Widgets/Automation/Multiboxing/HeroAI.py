@@ -452,14 +452,20 @@ modulo = 0
 
 def main():
     global cached_data, map_quads, modulo
-    
+
     try:
+        # Guard: skip all game-state access while map is loading to prevent
+        # null-pointer crashes (see GitHub issue #154).
+        if Map.IsMapLoading():
+            HeroAI_BT.reset()
+            return
+
         cached_data.Update()
 
         EnsureFollowModuleIni()
         HeroAI_FloatingWindows.update()
         handle_UI(cached_data)
-        
+
         if initialize(cached_data):
             modulo += 1
             if modulo >= 2:

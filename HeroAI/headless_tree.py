@@ -217,6 +217,11 @@ class HeroAIHeadlessTree:
         self.cached_data.Update()
 
     def tick(self):
+        # Guard: do not access game agents while map is loading (GitHub #154)
+        if Map.IsMapLoading():
+            self.tree.reset()
+            return BehaviorTree.NodeState.RUNNING
+
         self.update()
         if self.initialize():
             return self.tree.tick()

@@ -238,17 +238,23 @@ class CacheData:
 
             if self.game_throttle_timer.HasElapsed(self.game_throttle_time):
                 self.game_throttle_timer.Reset()
+
+                # Guard: do not access game agents while map is loading
+                from Py4GWCoreLib.Map import Map as _Map
+                if _Map.IsMapLoading():
+                    return
+
                 self.account_email = Player.GetAccountEmail()
                 self.data.reset()
                 self.data.update()
-                
+
                 self.party.reset()
                 self.party.update()
-                
+
                 self.account_data = GLOBAL_CACHE.ShMem.GetAccountDataFromEmail(self.account_email) or self.account_data
                 self.account_options = GLOBAL_CACHE.ShMem.GetHeroAIOptionsFromEmail(self.account_email) or self.account_options
                 self.data.party_position = int(self.account_data.AgentPartyData.PartyPosition)
-                
+
                 from .utils import SameMapOrPartyAsAccount
 
                 self.data.party_in_aggro = False
@@ -261,12 +267,12 @@ class CacheData:
                         self.data.leader_in_aggro = account_in_aggro
                     if account_in_aggro:
                         self.data.party_in_aggro = True
-                    
+
                 self.data.in_aggro = self.InAggro(AgentArray.GetEnemyArray(), self.GetActiveScanRange())
-                    
+
                 if self.data.in_aggro:
                     self.stay_alert_timer.Reset()
-                    
+
                 if not self.stay_alert_timer.HasElapsed(STAY_ALERT_TIME):
                     self.data.in_aggro = True
                 self.auto_attack_time = self.GetWeaponAttackAftercast()

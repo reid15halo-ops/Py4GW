@@ -1044,6 +1044,10 @@ def main():
     global _pipeline_logged
     _auto_enable_sibling_widgets()
     try:
+        # Guard: skip during map loading to prevent null-pointer crashes (#154)
+        if Map.IsMapLoading():
+            return
+
         if not _pipeline_logged and Player.IsPlayerLoaded():
             Py4GW.Console.Log(MODULE_NAME,
                 "[Pipeline] Autonomous outpost pipeline active: "
