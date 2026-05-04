@@ -1,0 +1,55 @@
+name: Smoke Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  syntax-check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13 (32-bit)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          architecture: x86
+
+      - name: Syntax check critical files
+        shell: bash
+        run: |
+          errors=0
+          for dir in HeroAI Py4GWCoreLib Widgets/Automation/Multiboxing Widgets/System; do
+            find "$dir" -name "*.py" | while read f; do
+              if ! python -m py_compile "$f" 2>/dev/null; then
+                echo "SYNTAX ERROR: $f"
+                errors=$((errors + 1))
+              fi
+            done
+          done
+          if [ $errors -gt 0 ]; then
+            echo "$errors syntax errors found"
+            exit 1
+          fi
+          echo "All files passed syntax check"
+
+  smoke-test:
+    runs-on: windows-latest
+    needs: syntax-check
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13 (32-bit)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          architecture: x86
+
+      - name: Run smoke tests
+        run: python Tests/test_smoke.py
+
+      - name: Run verification script
+        run: python verify_custom_changes.py
