@@ -16,6 +16,7 @@ from Py4GWCoreLib.Player import Player
 from Py4GWCoreLib.routines_src.BehaviourTrees import BehaviorTree
 
 from HeroAI.cache_data import CacheData
+from HeroAI.constants import MASTER_EMAIL
 from HeroAI.follow.follower_runtime import FollowExecutionState, execute_follower_follow
 
 from HeroAI.windows import (HeroAI_FloatingWindows ,HeroAI_Windows,)

@@ -58,9 +58,9 @@ class SharedCommandType(IntEnum):
     MerchantRules = auto()
     RefreshHeroAIBuilds = auto()
     WithdrawGold = auto()
-    ShareSalvageKit = auto()
-    ShareExpertKit = auto()
-    ShareIDKit = auto()
+    ShareSalvageKit = 47
+    ShareExpertKit = 48
+    ShareIDKit = 49
 
     #region privately Handled Commands
     MultiBoxing = auto() # privately Handled Command, by frenkey

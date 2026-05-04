@@ -27,6 +27,7 @@ class CastConditions:
         self.HasEnchantment = False
         self.EnchantmentList = []
         self.HasDervishEnchantment = False
+        self.StripDervishEnchantments = False
         self.HasHex = False
         self.HexList = []
         self.HasChant = False

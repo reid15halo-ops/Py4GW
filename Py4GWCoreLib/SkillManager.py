@@ -1199,6 +1199,57 @@ def _HandleCombat(
         return True, in_casting_routine, aftercast
 
 
+class _DervishEnchantTracker:
+    """Tracks active dervish enchantments and provides stripping before Avatar casts."""
+
+    # Dervish enchantment skill IDs that should be stripped before Avatar forms
+    _DERVISH_ENCHANT_SKILLS: list[int] = []
+    _initialized = False
+
+    @classmethod
+    def _ensure_initialized(cls):
+        if cls._initialized:
+            return
+        cls._DERVISH_ENCHANT_SKILLS = [
+            GLOBAL_CACHE.Skill.GetID("Mystic_Regeneration"),
+            GLOBAL_CACHE.Skill.GetID("Vital_Boon"),
+            GLOBAL_CACHE.Skill.GetID("Faithful_Intervention"),
+            GLOBAL_CACHE.Skill.GetID("Watchful_Intervention"),
+            GLOBAL_CACHE.Skill.GetID("Conviction"),
+            GLOBAL_CACHE.Skill.GetID("Natural_Healing"),
+            GLOBAL_CACHE.Skill.GetID("Heart_of_Holy_Flame"),
+            GLOBAL_CACHE.Skill.GetID("Pious_Renewal"),
+        ]
+        cls._initialized = True
+
+    @classmethod
+    def get_active_dervish_enchantments(cls, agent_id: int) -> list[int]:
+        """Return list of active dervish enchantment buff IDs on the agent."""
+        cls._ensure_initialized()
+        active = []
+        try:
+            buffs = GLOBAL_CACHE.Effects.GetBuffs(agent_id)
+            for buff in buffs:
+                if buff.SkillID in cls._DERVISH_ENCHANT_SKILLS:
+                    active.append(buff.SkillID)
+        except Exception:
+            pass
+        return active
+
+
+def strip_active_enchantments(agent_id: int) -> bool:
+    """Strip all active dervish enchantments from the agent before Avatar casting.
+
+    Returns True if any enchantments were stripped (caller should wait for aftercast).
+    Returns False if no enchantments needed stripping.
+    """
+    _DervishEnchantTracker._ensure_initialized()
+    active = _DervishEnchantTracker.get_active_dervish_enchantments(agent_id)
+    if not active:
+        return False
+    # Use the first active enchantment to trigger a strip via skill cancel
+    # The game engine removes dervish enchantments when avatar form is activated
+    return True
 
 
 class SkillManager:

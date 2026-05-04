@@ -425,6 +425,69 @@ def LeaveParty(index: int, message: SharedMessageStruct):
 
 # endregion
 
+# region MoveToXY
+
+
+def MoveToXY(index: int, message: SharedMessageStruct):
+    # ConsoleLog(MODULE_NAME, f"Processing TravelToMap message: {message}", Console.MessageType.Info)
+    GLOBAL_CACHE.ShMem.MarkMessageAsRunning(message.ReceiverEmail, index)
+    sender_data = GLOBAL_CACHE.ShMem.GetAccountDataFromEmail(message.SenderEmail)
+    if sender_data is None:
+        GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
+        return
+
+    map_id = int(message.Params[0])
+    map_x = int(message.Params[1])
+    map_y = int(message.Params[2])
+    dialog_id = int(message.Params[3])
+
+    if Map.GetMapID() == map_id:
+        yield from MoveToXY_correct_map(dialog_id, map_x, map_y)
+    else:
+        ConsoleLog(MODULE_NAME, f"Wrong map id.", Console.MessageType.Info, False)
+
+    GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
+    ConsoleLog(MODULE_NAME, "MoveToXY message processed", Console.MessageType.Info, False)
+
+
+def MoveToXY_correct_map(dialog_id, map_x, map_y):
+
+    ConsoleLog(MODULE_NAME, f"MoveToXY at ({map_x}, {map_y}).", Console.MessageType.Info, False)
+
+    range_adjacent_value = Range.Adjacent.value
+    if Utils.Distance((map_x, map_y), Player.GetXY()) > range_adjacent_value:
+        path3d = yield from AutoPathing().get_path_to(map_x, map_y, smooth_by_los=True, margin=100.0, step_dist=242.0)
+        path2d: list[tuple[float, float]] = [(x, y) for (x, y, *_) in path3d]
+
+        yield from Routines.Yield.Movement.FollowPath(
+            path_points=path2d,
+            custom_exit_condition=lambda: Agent.IsDead(Player.GetAgentID()),
+            tolerance=range_adjacent_value,
+            log=False,
+            timeout=15_000,
+            progress_callback=lambda progress: ConsoleLog("MoveToXY", f"FollowPath: progress: {progress}",
+                                                          Console.MessageType.Info),
+            custom_pause_fn=lambda: False)
+
+    if dialog_id > 0:
+        yield from MoveToXY_send_dialog_id(dialog_id, map_x, map_y)
+
+
+def MoveToXY_send_dialog_id(dialog_id, map_x, map_y):
+    result = yield from Routines.Yield.Agents.InteractWithAgentXY(x=map_x, y=map_y)
+    yield from Routines.Yield.wait(500)
+    # ConsoleLog(MODULE_NAME, f"Interaction result: {result}", Py4GW.Console.MessageType.Info)
+    if result:
+        ConsoleLog(MODULE_NAME, f"Dialog {dialog_id} at ({map_x}, {map_y}).", Console.MessageType.Info, False)
+        Player.SendDialog(dialog_id)
+        yield from Routines.Yield.wait(500)
+    else:
+        ConsoleLog(MODULE_NAME, f"Dialog at ({map_x}, {map_y}) failed, could not find an npc there.",
+                   Console.MessageType.Info, False)
+
+
+# endregion
+
 # region TravelToMap
 
 
@@ -2585,6 +2648,68 @@ def WithdrawGold(index: int, message: SharedMessageStruct):
     yield from Routines.Yield.Items.WithdrawGold(target_gold, deposit_all)
     GLOBAL_CACHE.ShMem.MarkMessageAsFinished(message.ReceiverEmail, index)
     ConsoleLog(MODULE_NAME, "WithdrawGold message processed and finished.", Console.MessageType.Info, False)
+
+# region Kit Sharing
+
+_KIT_DROP_COOLDOWN_S = 10.0
+_kit_last_drop: dict[str, float] = {}
+
+
+def _ShareKit(index: int, message: SharedMessageStruct, kit_filter, kit_name: str):
+    """Generic handler for kit sharing commands (DRY pattern).
+
+    Validates same-map between sender and receiver, enforces a cooldown to
+    prevent drain, then drops a matching kit for the requester to pick up.
+    """
+    email = message.ReceiverEmail
+    GLOBAL_CACHE.ShMem.MarkMessageAsRunning(email, index)
+
+    # --- Same-map validation ---
+    sender_data = GLOBAL_CACHE.ShMem.GetAccountDataFromEmail(message.SenderEmail)
+    if sender_data is None or sender_data.MapID != Map.GetMapID():
+        ConsoleLog(MODULE_NAME,
+                   f"_ShareKit({kit_name}): sender on different map — ignoring.",
+                   Console.MessageType.Warning, log=True)
+        GLOBAL_CACHE.ShMem.MarkMessageAsFinished(email, index)
+        return
+
+    # --- Cooldown to prevent drain ---
+    now = time.time()
+    last = _kit_last_drop.get(kit_name, 0.0)
+    if now - last < _KIT_DROP_COOLDOWN_S:
+        ConsoleLog(MODULE_NAME,
+                   f"_ShareKit({kit_name}): cooldown active ({_KIT_DROP_COOLDOWN_S}s) — skipping.",
+                   Console.MessageType.Warning, log=True)
+        GLOBAL_CACHE.ShMem.MarkMessageAsFinished(email, index)
+        return
+
+    # --- Find and drop the kit ---
+    bags = Inventory.GetBags()
+    kit_item = None
+    for bag in bags:
+        for item in Inventory.GetBagItems(bag):
+            if kit_filter(item):
+                kit_item = item
+                break
+        if kit_item:
+            break
+
+    if kit_item is None:
+        ConsoleLog(MODULE_NAME,
+                   f"_ShareKit({kit_name}): no kit found in inventory.",
+                   Console.MessageType.Warning, log=True)
+        GLOBAL_CACHE.ShMem.MarkMessageAsFinished(email, index)
+        return
+
+    Inventory.DropItem(kit_item.ItemID)
+    _kit_last_drop[kit_name] = time.time()
+    yield from Routines.Yield.wait(250)
+
+    GLOBAL_CACHE.ShMem.MarkMessageAsFinished(email, index)
+    ConsoleLog(MODULE_NAME,
+               f"_ShareKit({kit_name}): dropped kit for {message.SenderEmail}.",
+               Console.MessageType.Info, False)
+
 # endregion
 
 # region InventoryQuery
@@ -2793,6 +2918,17 @@ def ProcessMessages():
         case SharedCommandType.ReservedLegacyCommand:
             GLOBAL_CACHE.ShMem.MarkMessageAsFinished(account_email, index)
             pass
+        case SharedCommandType.MoveToXY:
+            GLOBAL_CACHE.Coroutines.append(MoveToXY(index, message))
+        case SharedCommandType.ShareSalvageKit:
+            GLOBAL_CACHE.Coroutines.append(_ShareKit(index, message,
+                lambda item: getattr(item, 'IsSalvageKit', False), "SalvageKit"))
+        case SharedCommandType.ShareExpertKit:
+            GLOBAL_CACHE.Coroutines.append(_ShareKit(index, message,
+                lambda item: getattr(item, 'IsExpertSalvageKit', False), "ExpertKit"))
+        case SharedCommandType.ShareIDKit:
+            GLOBAL_CACHE.Coroutines.append(_ShareKit(index, message,
+                lambda item: getattr(item, 'IsIDKit', False), "IDKit"))
         case _:
             GLOBAL_CACHE.ShMem.MarkMessageAsFinished(account_email, index)
             pass

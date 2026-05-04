@@ -1,8 +1,12 @@
 #region STATES
 from typing import TYPE_CHECKING, Dict, Callable, Any
 
+from ...Py4GWcorelib import ConsoleLog
+
 if TYPE_CHECKING:
     from Py4GWCoreLib.botting_src.helpers import BottingClass
+
+MODULE_NAME = "EVENTS"
 
 
 #region EVENTS
@@ -30,7 +34,7 @@ class _EVENTS:
                 
                 while retries < max_retries:
                     if Routines.Checks.Party.IsPartyWiped() or GLOBAL_CACHE.Party.IsPartyDefeated():
-                        print("Party wiped, aborting OnPartyMemberBehind")
+                        ConsoleLog(MODULE_NAME, "Party wiped, aborting OnPartyMemberBehind")
                         return
                     
                     
@@ -68,18 +72,18 @@ class _EVENTS:
 
 
                         if not Routines.Checks.Map.MapValid():
-                            print("Map invalid, breaking pixel stack loop")
+                            ConsoleLog(MODULE_NAME, "Map invalid, breaking pixel stack loop")
                             return
 
                         # success condition
                         if Routines.Checks.Party.IsAllPartyMembersInRange(Range.Spellcast.value):
-                            print("Party Member in range, resuming")
+                            ConsoleLog(MODULE_NAME, "Party Member in range, resuming")
                             return
 
                     retries += 1
-                    print(f"Pixel stack attempt {retries} failed, retrying...")
+                    ConsoleLog(MODULE_NAME, f"Pixel stack attempt {retries} failed, retrying...")
 
-                print("Pixel stack retries exhausted, giving up")
+                ConsoleLog(MODULE_NAME, "Pixel stack retries exhausted, giving up")
 
             finally:
                 # guarantee FSM resume no matter what
@@ -150,10 +154,10 @@ class _EVENTS:
         bot = self.parent
         
         if Routines.Checks.Party.IsPartyWiped() or GLOBAL_CACHE.Party.IsPartyDefeated():
-                    print("Party wiped, aborting OnPartyMemberBehind")
+                    ConsoleLog(MODULE_NAME, "Party wiped, aborting OnPartyMemberBehind")
                     return
                 
-        print ("Party Member dead behind")
+        ConsoleLog(MODULE_NAME, "Party Member dead behind")
         # Find a dead party member
         dead_player = Routines.Party.GetDeadPartyMemberID()
         if dead_player == 0:
@@ -168,16 +172,16 @@ class _EVENTS:
             # You can replace with your combat reset routine if you have one
             #print ("In danger, waiting to be safe before moving to dead party member")
             if Routines.Checks.Party.IsPartyWiped() or GLOBAL_CACHE.Party.IsPartyDefeated():
-                    print("Party wiped, aborting OnPartyMemberBehind")
+                    ConsoleLog(MODULE_NAME, "Party wiped, aborting OnPartyMemberBehind")
                     return
                 
             yield from Routines.Yield.wait(1000)  
 
-        print ("Safe now, moving to dead party member")
+        ConsoleLog(MODULE_NAME, "Safe now, moving to dead party member")
         # Now safe → move to the dead party member
         dead_player = Routines.Party.GetDeadPartyMemberID()
         if dead_player == 0:
-            print("All party members alive!")
+            ConsoleLog(MODULE_NAME, "All party members alive!")
             bot.config.FSM.resume()
             return
         if not Agent.IsValid(dead_player):
@@ -186,7 +190,7 @@ class _EVENTS:
 
         dead_pos = Agent.GetXY(dead_player)
         if Utils.Distance(dead_pos, Player.GetXY()) <= Range.Spellcast.value:
-            print("Dead party member already within spellcast range")
+            ConsoleLog(MODULE_NAME, "Dead party member already within spellcast range")
             bot.config.FSM.resume()
             return
 
@@ -201,11 +205,11 @@ class _EVENTS:
         ))
         yield from Routines.Yield.wait(100)
         if not result:
-            print("Failed to move to dead party member")
+            ConsoleLog(MODULE_NAME, "Failed to move to dead party member")
             bot.config.FSM.resume()
             return
         else:
-            print("Arrived at dead party member, waiting for revival")
+            ConsoleLog(MODULE_NAME, "Arrived at dead party member, waiting for revival")
             
         yield from bot.helpers.Multibox._pixel_stack()
 

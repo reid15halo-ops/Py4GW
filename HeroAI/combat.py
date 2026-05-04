@@ -398,7 +398,6 @@ class CombatClass:
         ]
 
         for priority in priorities:
-            #for i in range(ptr,MAX_SKILLS):
             for i in range(MAX_SKILLS):
                 skill = original_skills[i]
                 if not ptr_chk[i] and skill.custom_skill_data.Nature == priority.value:
@@ -431,7 +430,6 @@ class CombatClass:
 
         
         for skill_type in skill_types:
-            #for i in range(ptr,MAX_SKILLS):
             for i in range(MAX_SKILLS):
                 skill = original_skills[i]
                 if not ptr_chk[i] and skill.custom_skill_data.SkillType == skill_type.value:
@@ -440,9 +438,8 @@ class CombatClass:
                     ptr += 1
                     ordered_skills.append(skill)
 
-        combos = [3, 2, 1]  # Dual attack, off-hand attack, lead attack
+        combos = [1, 2, 3]  # Lead attack, off-hand attack, dual attack
         for combo in combos:
-            #for i in range(ptr,MAX_SKILLS):
             for i in range(MAX_SKILLS):
                 skill = original_skills[i]
                 if not ptr_chk[i] and GLOBAL_CACHE.Skill.Data.GetCombo(skill.skill_id) == combo:
