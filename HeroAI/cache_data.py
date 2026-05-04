@@ -12,11 +12,8 @@ from Py4GWCoreLib import AgentArray, Weapon, Routines
 from Py4GWCoreLib.IniManager import IniManager
 from Py4GWCoreLib.EnemyBlacklist import EnemyBlacklist
 
-INI_DIR = "HeroAI"
-MAIN_WINDOW_INI = "main_window.ini"
-CONSUMABLES_WINDOW_INI = "consumables_window.ini"
-FORMATION_WINDOW_INI = "formation_window.ini"
-FLAGGING_WINDOW_INI = "flagging_window.ini"
+from HeroAI.constants import (INI_DIR, MAIN_WINDOW_INI, CONSUMABLES_WINDOW_INI,
+                              FORMATION_WINDOW_INI, FLAGGING_WINDOW_INI)
 
 @dataclass
 class GameData:

@@ -8,6 +8,7 @@ from Py4GWCoreLib.Player import Player
 from Py4GWCoreLib.Map import Map
 from Py4GWCoreLib.enums_src.Multiboxing_enums import SharedCommandType
 from Py4GWCoreLib.py4gwcorelib_src.Console import ConsoleLog
+from HeroAI.constants import MELEE_PROFESSIONS
 
 class Command:
     '''
@@ -193,7 +194,7 @@ class HeroAICommands:
 
         # Invite order priority:
         # 1) melee-like first (R/W/A/D), 2) Mesmer, 3) Paragon, 4) Necro, 5) Ritualist, 6) others.
-        melee_professions = {1, 2, 7, 10}
+        melee_professions = MELEE_PROFESSIONS
         priority_by_profession = {5: 1, 9: 2, 4: 3, 8: 4}
 
         def _invite_priority(account: AccountStruct) -> tuple[int, str]:

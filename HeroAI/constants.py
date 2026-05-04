@@ -38,4 +38,16 @@ SKILLBAR_WINDOW_HASH = 641635682
 import os
 MASTER_EMAIL = os.environ.get("PY4GW_MASTER_EMAIL", "jonasglawion@aol.com")
 
+""" INI PATHS """
+INI_DIR = "HeroAI"
+MAIN_WINDOW_INI = "main_window.ini"
+CONSUMABLES_WINDOW_INI = "consumables_window.ini"
+FORMATION_WINDOW_INI = "formation_window.ini"
+FLAGGING_WINDOW_INI = "flagging_window.ini"
+
+""" PROFESSION SETS """
+MELEE_PROFESSIONS = frozenset({1, 2, 7, 10})  # Warrior, Ranger, Dervish, Assassin
+CASTER_PROFESSIONS = frozenset({3, 4, 5, 6, 8})  # Monk, Necro, Mesmer, Ele, Rit
+SUPPORT_PROFESSIONS = frozenset({3, 8, 9})  # Monk, Rit, Paragon
+
 """ AI CONSTANTS """
