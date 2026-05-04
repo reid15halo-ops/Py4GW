@@ -796,7 +796,6 @@ def draw_buffs_bar(account_data: AccountStruct, win_pos: tuple, win_size: tuple,
         draw_buffs_and_upkeeps(account_data, skill_size)
         
     PyImGui.end()
-    pass  # Implementation of buffs bar drawing logic goes here
 
 def draw_buffs_and_upkeeps(account_data: AccountStruct, skill_size: float = 28):
     style = ImGui.get_style()
@@ -1528,9 +1527,6 @@ def draw_hero_panel(window: WindowModule, account_data: AccountStruct, cached_da
             settings.save_settings()
         
     window.end()
-            
-        
-    pass  # Implementation of hero panel drawing logic goes here
 
 def draw_button(id_suffix: str, icon: str, w : float = 0, h : float = 0, active : bool = False, enabled : bool = True) -> bool:       
     style = ImGui.get_style()
@@ -1682,9 +1678,6 @@ def draw_consumables_window(cached_data: CacheData):
             PyImGui.close_current_popup()
             
         PyImGui.end_popup()
-        
-    
-    pass  # Implementation of consumables window drawing logic goes here
 
 def draw_base_consumables_window(cached_data: CacheData):
     global configure_base_consumables_window_open
@@ -1773,8 +1766,6 @@ def draw_command_panel(window: WindowModule, cached_data: CacheData):
             
     window.end()
     style.WindowPadding.pop_style_var()
-    
-    pass  # Implementation of command panel drawing logic goes here
 
 hotbars : dict[str, WindowModule] = {}
 configure_hotbar = None
