@@ -311,6 +311,13 @@ def compute_mixed_follow_target(
     ally_positions: list[tuple[float, float]] | None = None,
     enemy_positions: list[tuple[float, float]] | None = None,
 ) -> tuple[float, float] | None:
+    # [STABILITY] Guard against garbage (0,0) positions that occur during map
+    # loading. Computing vector fields from origin produces wild movement commands.
+    if (abs(current_pos[0]) < 0.01 and abs(current_pos[1]) < 0.01):
+        return None
+    if (abs(assigned_pos[0]) < 0.01 and abs(assigned_pos[1]) < 0.01):
+        return None
+
     cfg = config or load_follow_movement_config()
     target_tolerance = max(0.0, follow_distance)
 

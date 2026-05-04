@@ -12,6 +12,8 @@ from Py4GWCoreLib.GlobalCache.shared_memory_src.AllAccounts import AllAccounts
 from Py4GWCoreLib.GlobalCache.shared_memory_src.HeroAIOptionStruct import HeroAIOptionStruct
 from Py4GWCoreLib.native_src.internals.types import Vec2f
 
+from ..constants import MASTER_EMAIL
+
 
 class SharedMemoryManagerProtocol(Protocol):
     max_num_players: int
@@ -498,10 +500,11 @@ class FollowFormationPublisher:
 
         if not Party.IsPartyLoaded():
             return
-        leader_agent_id = Party.GetPartyLeaderID()
-        if not Agent.IsValid(leader_agent_id):
-            return
-        if Player.GetAgentID() != leader_agent_id:
+
+        # Identify the leader by account email rather than GetPartyLeaderID().
+        # GetPartyLeaderID() breaks when a non-Py4GW friend joins the party
+        # and shifts the party leader slot. Using MASTER_EMAIL is deterministic.
+        if account_email != MASTER_EMAIL:
             return
 
         points = self._get_follow_points()

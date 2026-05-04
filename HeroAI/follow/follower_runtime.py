@@ -71,6 +71,11 @@ def execute_follower_follow(
             return True
         return Utils.Distance((previous_x, previous_y), (current_x, current_y)) > refresh_distance
 
+    # [STABILITY] Early-return during map transitions to prevent null pointer
+    # dereferences on agent data that isn't populated yet (MapId: 0 crash).
+    if Map.IsMapLoading() or not Map.IsMapReady():
+        return BehaviorTree.NodeState.FAILURE
+
     options = cached_data.account_options
     if not options or not options.Following:
         return BehaviorTree.NodeState.FAILURE
