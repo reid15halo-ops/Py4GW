@@ -104,8 +104,12 @@ class CombatClass:
         self._cached_ally_arrays: dict[tuple, tuple[float, list]] = {}
         self._cached_spirit_arrays: dict[tuple, tuple[float, list]] = {}
         self._cached_minion_arrays: dict[tuple, tuple[float, list]] = {}
-        self._ARRAY_CACHE_TTL = 0.25
+        self._ENEMY_CACHE_TTL = 0.10   # 100ms — enemies move fast, stale data causes mis-targeting
+        self._ARRAY_CACHE_TTL = 0.25   # 250ms — allies/spirits/minions are less volatile
         self._ARRAY_CACHE_CELL_SIZE = 250.0
+        # Position-delta invalidation: if player moves >100 units, enemy cache is stale
+        self._ENEMY_CACHE_MOVE_THRESHOLD = 100.0
+        self._enemy_cache_pos: tuple[float, float] | None = None  # (x, y) at last enemy cache fill
         
         self.skills: list[CombatClass.SkillData] = []
         self.skill_order: list[int] = [0] * MAX_SKILLS
@@ -139,8 +143,8 @@ class CombatClass:
         self.nearest_corpse: int = Routines.Agents.GetNearestCorpse(Range.Spellcast.value)
         self._leader_primed: set[int] = set()
         self._cluster_cache_ttl_ms: int = 100
-        self._cluster_nearby_cache: tuple[int, int, float] | None = None  # (tick_ms, target_id, distance)
-        self._cluster_adj_cache: tuple[int, int, float] | None = None    # (tick_ms, target_id, distance)
+        self._cluster_nearby_cache: tuple[int, int, float, float, float] | None = None  # (tick_ms, target_id, distance, x, y)
+        self._cluster_adj_cache: tuple[int, int, float, float, float] | None = None    # (tick_ms, target_id, distance, x, y)
         
         self.energy_drain = GLOBAL_CACHE.Skill.GetID("Energy_Drain") 
         self.energy_tap = GLOBAL_CACHE.Skill.GetID("Energy_Tap")
@@ -256,11 +260,25 @@ class CombatClass:
         import time
         now = time.time()
         key = self._array_cache_key(x, y, range_area)
-        entry = self._cached_enemy_arrays.get(key)
-        if entry and now - entry[0] < self._ARRAY_CACHE_TTL:
-            return entry[1]
+
+        # Position-delta invalidation: if player moved >100 units since last fill,
+        # the entire enemy cache is stale (e.g. hero running to catch up with formation)
+        pos_invalid = False
+        if self._enemy_cache_pos is not None:
+            dx = x - self._enemy_cache_pos[0]
+            dy = y - self._enemy_cache_pos[1]
+            if dx * dx + dy * dy > self._ENEMY_CACHE_MOVE_THRESHOLD * self._ENEMY_CACHE_MOVE_THRESHOLD:
+                pos_invalid = True
+                self._cached_enemy_arrays.clear()
+
+        if not pos_invalid:
+            entry = self._cached_enemy_arrays.get(key)
+            if entry and now - entry[0] < self._ENEMY_CACHE_TTL:
+                return entry[1]
+
         result = Routines.Agents.GetFilteredEnemyArray(x, y, range_area)
         self._cached_enemy_arrays[key] = (now, result)
+        self._enemy_cache_pos = (x, y)
         return result
 
     def _get_cached_ally_array(self, x: float, y: float, range_area: float, other_ally: bool = True) -> list:
@@ -665,16 +683,33 @@ class CombatClass:
         target_fn,
         cache_attr: str,
     ) -> int:
-        """Return cached cluster target if TTL (100 ms) and distance haven't changed."""
+        """Return cached cluster target if TTL (100 ms), distance, and position haven't changed.
+
+        Position-delta invalidation: if player crossed a cell boundary (moved >100 units)
+        since the cluster was computed, the cached AoE target is no longer valid.
+        """
         distance = self.get_combat_distance()
         now = int(Py4GW.Game.get_tick_count64())
         cached = getattr(self, cache_attr)
         if cached is not None:
-            tick_ms, target_id, last_distance = cached
+            tick_ms, target_id, last_distance, cx, cy = cached
             if now - tick_ms < self._cluster_cache_ttl_ms and last_distance == distance:
-                return target_id
+                # Check position delta — invalidate if player moved significantly
+                try:
+                    px, py = Player.GetXY()
+                    dx = px - cx
+                    dy = py - cy
+                    if dx * dx + dy * dy <= self._ENEMY_CACHE_MOVE_THRESHOLD * self._ENEMY_CACHE_MOVE_THRESHOLD:
+                        return target_id
+                except Exception:
+                    return target_id  # safe fallback: use cached value if position unavailable
+        # Recompute cluster target
         target_id = target_fn(distance)
-        setattr(self, cache_attr, (now, target_id, distance))
+        try:
+            px, py = Player.GetXY()
+        except Exception:
+            px, py = 0.0, 0.0
+        setattr(self, cache_attr, (now, target_id, distance, px, py))
         return target_id
 
     def GetAppropiateTarget(self, slot: int) -> int:
